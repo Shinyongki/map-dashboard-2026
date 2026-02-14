@@ -9,6 +9,7 @@ import type {
   AssignmentChangeData,
   MapMode,
 } from "../lib/map-types";
+import { useWelfareResources, type WelfareFacility } from "../hooks/useWelfareResources";
 
 const fmt = (n?: number | null): string => (!n ? "-" : n.toLocaleString());
 
@@ -96,6 +97,9 @@ function RegionSummaryView({
   const regionDiscrepancies = discrepancies.filter(d => d.시군 === r.region);
   const regionChanges = assignmentChanges.filter(a => a.시군 === r.region);
 
+  const { data: resources } = useWelfareResources();
+  const regionResources = resources?.filter(res => res.region === r.region) || [];
+
   return (
     <div className="h-full flex flex-col bg-white">
       {/* 헤더 */}
@@ -117,6 +121,7 @@ function RegionSummaryView({
 
       <ScrollArea className="flex-1">
         <div className="p-4 space-y-4">
+
 
           {/* ── 종사자 현황 ── */}
           <CollapsibleSection
@@ -245,6 +250,37 @@ function RegionSummaryView({
               ))}
             </CollapsibleSection>
           )}
+
+          {/* ── 관내 노인의료복지시설 ── */}
+          <CollapsibleSection
+            title="관내 노인의료복지시설"
+            badge={`${regionResources.length}개소`}
+            badgeColor="gray"
+            expanded={expanded === "resources"}
+            onToggle={() => setExpanded(expanded === "resources" ? null : "resources")}
+          >
+            {regionResources.length === 0 ? (
+              <div className="text-xs text-gray-400 p-2 text-center">등록된 시설이 없습니다.</div>
+            ) : (
+              <div className="space-y-2">
+                {regionResources.map((res) => (
+                  <div key={res.id} className="bg-gray-50 p-2 rounded-md border border-gray-100">
+                    <div className="flex justify-between items-start mb-1">
+                      <span className="text-xs font-bold text-gray-800">{res.name}</span>
+                      <span className="text-[10px] text-gray-500 bg-white px-1 border rounded">{res.operatorType}</span>
+                    </div>
+                    <div className="text-[11px] text-gray-600 space-y-0.5">
+                      <div>{res.address}</div>
+                      <div className="flex gap-2">
+                        <span>📞 {res.phone}</span>
+                        <span>👥 정원 {res.capacity}명</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CollapsibleSection>
 
           {/* ── 기관별 제출 현황 (클릭하면 상세) ── */}
           <div>

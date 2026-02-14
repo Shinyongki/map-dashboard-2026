@@ -11,6 +11,7 @@ interface MapRegionProps {
   onClick: (regionName: string) => void;
   onHover: (regionName: string, x: number, y: number) => void;
   onHoverEnd: () => void;
+  customLabel?: string;
 }
 
 export default function MapRegion({
@@ -23,6 +24,7 @@ export default function MapRegion({
   onClick,
   onHover,
   onHoverEnd,
+  customLabel,
 }: MapRegionProps) {
   const [isHovered, setIsHovered] = useState(false);
 
@@ -95,8 +97,8 @@ export default function MapRegion({
         {region.name}
       </text>
 
-      {/* 데이터 라벨 (방안 1) */}
-      {stats && (
+      {/* 데이터 라벨 */}
+      {(stats || customLabel) && (
         <g pointerEvents="none" style={{ userSelect: "none" }}>
           <rect
             x={region.labelX - 25}
@@ -116,25 +118,29 @@ export default function MapRegion({
             fontWeight="bold"
             fill="#334155"
           >
-            {mapMode === "submission" && `${stats.submissions}/${stats.totalOrganizations}`}
-            {mapMode === "staff" && `종 ${stats.sw_m + stats.sw_f + stats.cg_m + stats.cg_f}`}
-            {mapMode === "user" && `이 ${stats.gen_m_gen + stats.gen_f_gen + stats.gen_m_int + stats.gen_f_int + stats.special_m + stats.special_f}`}
-            {mapMode === "new_term" && `+${stats.new_m + stats.new_f}/-${stats.term_m_death + stats.term_f_death}`}
-            {mapMode === "balance" && (
-              (() => {
-                const as = stats.assigned_sw + stats.assigned_cg;
-                const st = stats.sw_m + stats.sw_f + stats.cg_m + stats.cg_f;
-                const us = stats.gen_m_gen + stats.gen_f_gen + stats.gen_m_int + stats.gen_f_int + stats.special_m + stats.special_f;
-                const au = stats.assigned_users;
-                const sR = as > 0 ? (st / as) * 100 : 0;
-                const uR = au > 0 ? (us / au) * 100 : 0;
-                const diff = Math.round(sR - uR);
-                return `${diff > 0 ? "+" : ""}${diff}p`;
-              })()
+            {customLabel ? customLabel : (
+              <>
+                {mapMode === "submission" && stats && `${stats.submissions}/${stats.totalOrganizations}`}
+                {mapMode === "staff" && stats && `종 ${stats.sw_m + stats.sw_f + stats.cg_m + stats.cg_f}`}
+                {mapMode === "user" && stats && `이 ${stats.gen_m_gen + stats.gen_f_gen + stats.gen_m_int + stats.gen_f_int + stats.special_m + stats.special_f}`}
+                {mapMode === "new_term" && stats && `+${stats.new_m + stats.new_f}/-${stats.term_m_death + stats.term_f_death}`}
+                {mapMode === "balance" && stats && (
+                  (() => {
+                    const as = stats.assigned_sw + stats.assigned_cg;
+                    const st = stats.sw_m + stats.sw_f + stats.cg_m + stats.cg_f;
+                    const us = stats.gen_m_gen + stats.gen_f_gen + stats.gen_m_int + stats.gen_f_int + stats.special_m + stats.special_f;
+                    const au = stats.assigned_users;
+                    const sR = as > 0 ? (st / as) * 100 : 0;
+                    const uR = au > 0 ? (us / au) * 100 : 0;
+                    const diff = Math.round(sR - uR);
+                    return `${diff > 0 ? "+" : ""}${diff}p`;
+                  })()
+                )}
+                {mapMode === "special" && stats && `특 ${stats.special_m + stats.special_f}`}
+                {mapMode === "short_term" && stats && `단 ${stats.short_m + stats.short_f}`}
+                {mapMode === "termination" && stats && `종 ${stats.term_m_death + stats.term_m_refuse + stats.term_m_etc + stats.term_f_death + stats.term_f_refuse + stats.term_f_etc}`}
+              </>
             )}
-            {mapMode === "special" && `특 ${stats.special_m + stats.special_f}`}
-            {mapMode === "short_term" && `단 ${stats.short_m + stats.short_f}`}
-            {mapMode === "termination" && `종 ${stats.term_m_death + stats.term_m_refuse + stats.term_m_etc + stats.term_f_death + stats.term_f_refuse + stats.term_f_etc}`}
           </text>
         </g>
       )}

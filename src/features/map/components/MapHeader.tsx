@@ -7,6 +7,7 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { MapMode, MapTheme } from "../lib/map-types";
+import { LayoutDashboard } from "lucide-react";
 
 interface MapHeaderProps {
   selectedMonth: string;
@@ -140,6 +141,15 @@ export default function MapHeader({
           </Select>
         </div>
       </div>
+      <a
+        href="https://jongsaja.vercel.app/admin"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition-colors shadow-sm self-end sm:self-auto"
+      >
+        <LayoutDashboard className="w-4 h-4" />
+        관리자 대시보드
+      </a>
     </div>
   );
 }

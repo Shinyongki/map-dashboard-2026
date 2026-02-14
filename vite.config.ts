@@ -15,6 +15,16 @@ export default defineConfig({
                 target: "https://jongsaja.vercel.app",
                 changeOrigin: true,
             },
+            "/kma-api": {
+                target: "https://apihub.kma.go.kr",
+                changeOrigin: true,
+                rewrite: (path) => path.replace(/^\/kma-api/, ""),
+            },
+            "/anthropic-api": {
+                target: "https://api.anthropic.com",
+                changeOrigin: true,
+                rewrite: (path) => path.replace(/^\/anthropic-api/, ""),
+            },
         },
     },
 });

@@ -131,13 +131,8 @@ export function getInstitutionStatuses(
   }));
 }
 
-// 특정 기관의 상세 정보
-export function getInstitutionDetail(
-  code: string,
-  surveys: SurveyData[] | undefined
-): InstitutionDetail | null {
-  const s = (surveys || []).find((s) => s.기관코드 === code);
-  if (!s) return null;
+// 내부 helper: SurveyData -> InstitutionDetail 변환
+function toInstitutionDetail(s: SurveyData): InstitutionDetail {
   return {
     기관명: s.기관명,
     기관코드: s.기관코드,
@@ -186,4 +181,25 @@ export function getInstitutionDetail(
     변경_이용자: s.변경_이용자,
     변경일자: s.변경일자,
   };
+}
+
+// 특정 시군의 전체 기관 상세 정보 (차트용)
+export function getInstitutionDetails(
+  region: string,
+  surveys: SurveyData[] | undefined
+): InstitutionDetail[] {
+  if (!surveys) return [];
+  return surveys
+    .filter((s) => s.시군 === region)
+    .map(toInstitutionDetail);
+}
+
+// 특정 기관의 상세 정보
+export function getInstitutionDetail(
+  code: string,
+  surveys: SurveyData[] | undefined
+): InstitutionDetail | null {
+  const s = (surveys || []).find((s) => s.기관코드 === code);
+  if (!s) return null;
+  return toInstitutionDetail(s);
 }
