@@ -1,0 +1,224 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: hsl(0, 0%, 100%);
+  --foreground: hsl(20, 14.3%, 4.1%);
+  --muted: hsl(60, 4.8%, 95.9%);
+  --muted-foreground: hsl(25, 5.3%, 44.7%);
+  --popover: hsl(0, 0%, 100%);
+  --popover-foreground: hsl(20, 14.3%, 4.1%);
+  --card: hsl(0, 0%, 100%);
+  --card-foreground: hsl(20, 14.3%, 4.1%);
+  --border: hsl(20, 5.9%, 90%);
+  --input: hsl(20, 5.9%, 90%);
+  --primary: hsl(239, 84%, 67%);
+  --primary-foreground: hsl(211, 100%, 99%);
+  --secondary: hsl(151, 55%, 46%);
+  --secondary-foreground: hsl(0, 0%, 100%);
+  --accent: hsl(37, 91%, 55%);
+  --accent-foreground: hsl(24, 9.8%, 10%);
+  --destructive: hsl(0, 84.2%, 60.2%);
+  --destructive-foreground: hsl(60, 9.1%, 97.8%);
+  --ring: hsl(20, 14.3%, 4.1%);
+  --radius: 0.5rem;
+
+  /* Custom colors matching design */
+  --neutral-50: hsl(0, 0%, 98%);
+  --neutral-100: hsl(0, 0%, 96%);
+  --neutral-200: hsl(0, 0%, 90%);
+  --neutral-300: hsl(0, 0%, 83%);
+  --neutral-400: hsl(0, 0%, 64%);
+  --neutral-500: hsl(0, 0%, 45%);
+  --neutral-600: hsl(0, 0%, 32%);
+  --neutral-700: hsl(0, 0%, 25%);
+  --neutral-800: hsl(0, 0%, 15%);
+  --neutral-900: hsl(0, 0%, 9%);
+
+  /* Neon Infographic Tokens */
+  --neon-cyan: #00f2fe;
+  --neon-purple: #8a2be2;
+  --neon-blue: #4facfe;
+  --infographic-bg: #0a0b1e;
+  --infographic-card: rgba(16, 18, 45, 0.6);
+}
+
+.dark {
+  --background: hsl(240, 10%, 3.9%);
+  --foreground: hsl(0, 0%, 98%);
+  --muted: hsl(240, 3.7%, 15.9%);
+  --muted-foreground: hsl(240, 5%, 64.9%);
+  --popover: hsl(240, 10%, 3.9%);
+  --popover-foreground: hsl(0, 0%, 98%);
+  --card: hsl(240, 10%, 3.9%);
+  --card-foreground: hsl(0, 0%, 98%);
+  --border: hsl(240, 3.7%, 15.9%);
+  --input: hsl(240, 3.7%, 15.9%);
+  --primary: hsl(239, 84%, 67%);
+  --primary-foreground: hsl(211, 100%, 99%);
+  --secondary: hsl(151, 55%, 46%);
+  --secondary-foreground: hsl(0, 0%, 100%);
+  --accent: hsl(37, 91%, 55%);
+  --accent-foreground: hsl(0, 0%, 98%);
+  --destructive: hsl(0, 62.8%, 30.6%);
+  --destructive-foreground: hsl(0, 0%, 98%);
+  --ring: hsl(240, 4.9%, 83.9%);
+  --radius: 0.5rem;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-sans antialiased bg-background text-foreground;
+    font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+
+  input[type="number"] {
+    @apply text-right;
+  }
+
+  .step-container {
+    @apply transition-all duration-300 ease-in-out;
+  }
+}
+
+/* Custom styles for Korean interface */
+.korean-interface {
+  font-family: 'Noto Sans KR', sans-serif;
+}
+
+/* Progress bar enhancement */
+.progress-bar {
+  @apply transition-all duration-500 ease-out;
+}
+
+/* Form validation styles */
+.field-error {
+  @apply text-red-500 text-sm mt-1;
+}
+
+/* Custom button variants for Korean design */
+.btn-primary {
+  @apply bg-primary hover:opacity-90 text-primary-foreground;
+}
+
+.btn-secondary {
+  @apply bg-secondary hover:opacity-90 text-secondary-foreground;
+}
+
+/* Table styling for summary */
+.summary-table {
+  @apply text-sm border-collapse;
+}
+
+.summary-table th,
+.summary-table td {
+  @apply border-b border-neutral-200 py-2 px-3;
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 768px) {
+  .mobile-stack {
+    @apply flex-col space-y-2;
+  }
+
+  .mobile-full-width {
+    @apply w-full;
+  }
+}
+
+/* Loading spinner */
+.loading-spinner {
+  @apply animate-spin rounded-full border-2 border-transparent border-t-current;
+}
+
+/* File upload area styling */
+.file-upload-area {
+  @apply border-2 border-dashed border-neutral-300 rounded-lg p-6 text-center hover:border-primary transition-colors cursor-pointer;
+}
+
+.file-upload-area:hover {
+  @apply border-primary bg-blue-50;
+}
+
+/* Status indicators */
+.status-success {
+  @apply text-green-600 bg-green-50 border-green-200;
+}
+
+.status-warning {
+  @apply text-amber-600 bg-amber-50 border-amber-200;
+}
+
+.status-error {
+  @apply text-red-600 bg-red-50 border-red-200;
+}
+
+/* Korean typography improvements */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  @apply font-medium tracking-tight;
+}
+
+/* Form section styling */
+.form-section {
+  @apply bg-neutral-50 rounded-lg p-4 border-l-4 border-primary;
+}
+
+/* Summary cards */
+.summary-card {
+  @apply p-3 rounded-lg border;
+}
+
+.summary-card-blue {
+  @apply bg-blue-50 border-blue-200 text-blue-800;
+}
+
+.summary-card-pink {
+  @apply bg-pink-50 border-pink-200 text-pink-800;
+}
+
+.summary-card-green {
+  @apply bg-green-50 border-green-200 text-green-800;
+}
+
+/* Infographic Glassmorphism */
+.glass-panel {
+  background: rgba(16, 18, 45, 0.4);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Neon Glows */
+.neon-glow-cyan {
+  filter: drop-shadow(0 0 5px var(--neon-cyan));
+}
+
+.neon-glow-purple {
+  filter: drop-shadow(0 0 5px var(--neon-purple));
+}
+
+.neon-border-cyan {
+  border-color: var(--neon-cyan);
+  box-shadow: 0 0 10px rgba(0, 242, 254, 0.2);
+}
+
+.neon-text-cyan {
+  color: var(--neon-cyan);
+  text-shadow: 0 0 8px rgba(0, 242, 254, 0.5);
+}
