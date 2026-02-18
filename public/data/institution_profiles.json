@@ -1,0 +1,3420 @@
+[
+  {
+    "code": "A48000002",
+    "region": "*광역지원기관",
+    "delegationType": "위탁",
+    "delegationPeriod": "2026-01-01 ~ 2028-12-31 (3년)",
+    "yearHistory": {
+      "2020": false,
+      "2021": false,
+      "2022": false,
+      "2023": true,
+      "2024": true,
+      "2025": true,
+      "2026": true
+    },
+    "facilityType": "사회서비스원",
+    "services": {
+      "specialized": false,
+      "emergencySafety": false,
+      "homeVisitCare": false,
+      "homeSeniorWelfare": false,
+      "socialServiceCenter": false,
+      "seniorJobDispatch": false
+    },
+    "corporation": {
+      "name": "재단법인 경상남도 사회서비스원",
+      "registrationNo": "823-82-00258",
+      "uniqueNo": "823-82-00258"
+    },
+    "name": "(재)경상남도 사회서비스원",
+    "director": "조철현",
+    "zipCode": "51404",
+    "address": "경남 창원시 성산구 창원대로524,경남사회적경제혁신타운 본관동2층204호경상남도사회서비스원광역지원기관",
+    "contact": {
+      "mainPhone": "055-288-6892",
+      "phone": "055-288-6892",
+      "emergency": "010-7759-2829",
+      "fax": "055-237-8277",
+      "email": "gnscc@naver.com"
+    },
+    "allocation": {
+      "mow": {
+        "socialWorker": 5,
+        "careProvider": 0,
+        "users": 0
+      },
+      "actual": {
+        "socialWorkerAllocated": 5,
+        "socialWorkerHired": 5,
+        "careProviderAllocated": 0,
+        "careProviderHired": 0,
+        "usersAllocated": 0,
+        "usersServed": 0
+      }
+    },
+    "lat": 35.2269052381334,
+    "lng": 128.651705893433
+  },
+  {
+    "code": "A48310001",
+    "region": "거제시",
+    "delegationType": "위탁",
+    "delegationPeriod": "2026-01-01 ~ 2027-12-31 (2년)",
+    "yearHistory": {
+      "2020": true,
+      "2021": true,
+      "2022": true,
+      "2023": true,
+      "2024": true,
+      "2025": true,
+      "2026": true
+    },
+    "facilityType": "재가노인복지시설",
+    "services": {
+      "specialized": true,
+      "emergencySafety": false,
+      "homeVisitCare": true,
+      "homeSeniorWelfare": true,
+      "socialServiceCenter": false,
+      "seniorJobDispatch": false
+    },
+    "corporation": {
+      "name": "(사)거제시자원봉사단체협의회",
+      "registrationNo": "612-82-62159",
+      "uniqueNo": "--"
+    },
+    "name": "거제노인통합지원센터",
+    "director": "김창규",
+    "zipCode": "53288",
+    "address": "경남 거제시 거제중앙로 1772 (상동동, 상동동 라푸름 아파트) 상가 3층",
+    "contact": {
+      "mainPhone": "055-638-2111",
+      "phone": "055-638-2111",
+      "emergency": "055-638-2111",
+      "fax": "055-638-4698",
+      "email": "geoje1365@hanmail.net"
+    },
+    "allocation": {
+      "mow": {
+        "socialWorker": 6,
+        "careProvider": 59,
+        "users": 970
+      },
+      "actual": {
+        "socialWorkerAllocated": 4,
+        "socialWorkerHired": 3,
+        "careProviderAllocated": 36,
+        "careProviderHired": 34,
+        "usersAllocated": 571,
+        "usersServed": 467
+      }
+    },
+    "lat": 34.8777290167288,
+    "lng": 128.629382329917
+  },
+  {
+    "code": "A48310002",
+    "region": "거제시",
+    "delegationType": "위탁",
+    "delegationPeriod": "2026-01-01 ~ 2027-12-31 (2년)",
+    "yearHistory": {
+      "2020": true,
+      "2021": true,
+      "2022": true,
+      "2023": true,
+      "2024": true,
+      "2025": true,
+      "2026": true
+    },
+    "facilityType": "재가노인복지시설",
+    "services": {
+      "specialized": true,
+      "emergencySafety": false,
+      "homeVisitCare": true,
+      "homeSeniorWelfare": false,
+      "socialServiceCenter": false,
+      "seniorJobDispatch": false
+    },
+    "corporation": {
+      "name": "사회복지법인 소나무",
+      "registrationNo": "612-82-06837",
+      "uniqueNo": "--"
+    },
+    "name": "거제사랑노인복지센터",
+    "director": "이형철",
+    "zipCode": "53255",
+    "address": "경상남도 거제시 고현로12길 6",
+    "contact": {
+      "mainPhone": "055-637-6674",
+      "phone": "055-637-6675",
+      "emergency": "010-6558-5026",
+      "fax": "055-637-6676",
+      "email": "akwehf1004@naver.com"
+    },
+    "allocation": {
+      "mow": {
+        "socialWorker": 4,
+        "careProvider": 61,
+        "users": 895
+      },
+      "actual": {
+        "socialWorkerAllocated": 3,
+        "socialWorkerHired": 2,
+        "careProviderAllocated": 33,
+        "careProviderHired": 31,
+        "usersAllocated": 525,
+        "usersServed": 495
+      }
+    },
+    "lat": 34.8870741484798,
+    "lng": 128.625586024429
+  },
+  {
+    "code": "A48310003",
+    "region": "거제시",
+    "delegationType": "위탁",
+    "delegationPeriod": "2026-01-01 ~ 2027-12-31 (2년)",
+    "yearHistory": {
+      "2020": false,
+      "2021": false,
+      "2022": false,
+      "2023": false,
+      "2024": false,
+      "2025": false,
+      "2026": true
+    },
+    "facilityType": "노인여가복지시설",
+    "services": {
+      "specialized": false,
+      "emergencySafety": false,
+      "homeVisitCare": false,
+      "homeSeniorWelfare": false,
+      "socialServiceCenter": false,
+      "seniorJobDispatch": false
+    },
+    "corporation": {
+      "name": "하청교회 행복늘푸른대학",
+      "registrationNo": "617-82-01176",
+      "uniqueNo": "612-82-91232"
+    },
+    "name": "하청교회 행복늘푸른대학",
+    "director": "홍명택",
+    "zipCode": "53204",
+    "address": "경남 거제시 하청면 하청로 21-1",
+    "contact": {
+      "mainPhone": "055-636-6660",
+      "phone": "055-636-6660",
+      "emergency": "010-3221-9213",
+      "fax": "055-636-9677",
+      "email": "happyuni6@daum.com"
+    },
+    "allocation": {
+      "mow": {
+        "socialWorker": 0,
+        "careProvider": 0,
+        "users": 0
+      },
+      "actual": {
+        "socialWorkerAllocated": 2,
+        "socialWorkerHired": 2,
+        "careProviderAllocated": 30,
+        "careProviderHired": 30,
+        "usersAllocated": 465,
+        "usersServed": 389
+      }
+    },
+    "lat": 34.9564765179131,
+    "lng": 128.654654763195
+  },
+  {
+    "code": "A48310004",
+    "region": "거제시",
+    "delegationType": "위탁",
+    "delegationPeriod": "2026-01-01 ~ 2027-12-31 (2년)",
+    "yearHistory": {
+      "2020": false,
+      "2021": false,
+      "2022": false,
+      "2023": false,
+      "2024": false,
+      "2025": false,
+      "2026": true
+    },
+    "facilityType": "사회복지법인",
+    "services": {
+      "specialized": false,
+      "emergencySafety": false,
+      "homeVisitCare": false,
+      "homeSeniorWelfare": true,
+      "socialServiceCenter": false,
+      "seniorJobDispatch": false
+    },
+    "corporation": {
+      "name": "은빛노인통합지원센터",
+      "registrationNo": "299-82-00606",
+      "uniqueNo": "299-82-00606"
+    },
+    "name": "은빛노인통합지원센터",
+    "director": "김은란",
+    "zipCode": "53285",
+    "address": "",
+    "contact": {
+      "mainPhone": "055-950-0595",
+      "phone": "055-950-0595",
+      "emergency": "010-4845-0999",
+      "fax": "055-950-0581",
+      "email": "silver0580@daum.net"
+    },
+    "allocation": {
+      "mow": {
+        "socialWorker": 0,
+        "careProvider": 0,
+        "users": 0
+      },
+      "actual": {
+        "socialWorkerAllocated": 2,
+        "socialWorkerHired": 2,
+        "careProviderAllocated": 33,
+        "careProviderHired": 33,
+        "usersAllocated": 480,
+        "usersServed": 400
+      }
+    },
+    "lat": 34.857133513454016,
+    "lng": 128.58367425040285
+  },
+  {
+    "code": "A48880002",
+    "region": "거창군",
+    "delegationType": "위탁",
+    "delegationPeriod": "2024-01-01 ~ 2026-12-31 (3년)",
+    "yearHistory": {
+      "2020": true,
+      "2021": true,
+      "2022": true,
+      "2023": true,
+      "2024": true,
+      "2025": true,
+      "2026": true
+    },
+    "facilityType": "사회복지법인",
+    "services": {
+      "specialized": true,
+      "emergencySafety": true,
+      "homeVisitCare": true,
+      "homeSeniorWelfare": true,
+      "socialServiceCenter": false,
+      "seniorJobDispatch": false
+    },
+    "corporation": {
+      "name": "거창노인통합지원센터",
+      "registrationNo": "611-82-07361",
+      "uniqueNo": "611-82-07361"
+    },
+    "name": "거창노인통합지원센터",
+    "director": "이경은",
+    "zipCode": "50135",
+    "address": "경상남도 거창군 거창읍 창동로 174(2층)",
+    "contact": {
+      "mainPhone": "055-945-3365",
+      "phone": "055-943-1365",
+      "emergency": "010-7101-6162",
+      "fax": "055-945-3364",
+      "email": "945-3365@naver.com"
+    },
+    "allocation": {
+      "mow": {
+        "socialWorker": 3,
+        "careProvider": 46,
+        "users": 690
+      },
+      "actual": {
+        "socialWorkerAllocated": 4,
+        "socialWorkerHired": 2,
+        "careProviderAllocated": 46,
+        "careProviderHired": 42,
+        "usersAllocated": 746,
+        "usersServed": 634
+      }
+    },
+    "lat": 35.6925521038576,
+    "lng": 127.919972617579
+  },
+  {
+    "code": "A48880003",
+    "region": "거창군",
+    "delegationType": "위탁",
+    "delegationPeriod": "2024-01-01 ~ 2026-12-31 (3년)",
+    "yearHistory": {
+      "2020": true,
+      "2021": true,
+      "2022": true,
+      "2023": true,
+      "2024": true,
+      "2025": true,
+      "2026": true
+    },
+    "facilityType": "재가노인복지시설",
+    "services": {
+      "specialized": false,
+      "emergencySafety": false,
+      "homeVisitCare": false,
+      "homeSeniorWelfare": true,
+      "socialServiceCenter": false,
+      "seniorJobDispatch": false
+    },
+    "corporation": {
+      "name": "형린HS복지재단",
+      "registrationNo": "611-82-07610",
+      "uniqueNo": "611-82-07610"
+    },
+    "name": "거창인애노인통합지원센터",
+    "director": "김천호",
+    "zipCode": "50141",
+    "address": "경상남도 거창군 거창읍 장팔길 93, 2층",
+    "contact": {
+      "mainPhone": "055-942-9116",
+      "phone": "055-942-9116",
+      "emergency": "010-9396-5823",
+      "fax": "055-942-3118",
+      "email": "gudflshs@hanmail.net"
+    },
+    "allocation": {
+      "mow": {
+        "socialWorker": 3,
+        "careProvider": 46,
+        "users": 690
+      },
+      "actual": {
+        "socialWorkerAllocated": 3,
+        "socialWorkerHired": 3,
+        "careProviderAllocated": 46,
+        "careProviderHired": 43,
+        "usersAllocated": 706,
+        "usersServed": 658
+      }
+    },
+    "lat": 35.6763991328672,
+    "lng": 127.908409506967
+  },
+  {
+    "code": "A48880004",
+    "region": "거창군",
+    "delegationType": "위탁",
+    "delegationPeriod": "2024-01-01 ~ 2026-12-31 (3년)",
+    "yearHistory": {
+      "2020": false,
+      "2021": false,
+      "2022": false,
+      "2023": false,
+      "2024": true,
+      "2025": true,
+      "2026": true
+    },
+    "facilityType": "재가노인복지시설",
+    "services": {
+      "specialized": false,
+      "emergencySafety": false,
+      "homeVisitCare": true,
+      "homeSeniorWelfare": false,
+      "socialServiceCenter": false,
+      "seniorJobDispatch": false
+    },
+    "corporation": {
+      "name": "사회복지법인 해월",
+      "registrationNo": "611-82-08604",
+      "uniqueNo": "--"
+    },
+    "name": "해월노인복지센터",
+    "director": "염병섭",
+    "zipCode": "50141",
+    "address": "경남 거창군 거창읍 절부길 13-26",
+    "contact": {
+      "mainPhone": "055-945-1080",
+      "phone": "055-945-1080",
+      "emergency": "010-4933-9037",
+      "fax": "055-943-1398",
+      "email": "sunmoon1079@hanmail.net"
+    },
+    "allocation": {
+      "mow": {
+        "socialWorker": 3,
+        "careProvider": 44,
+        "users": 660
+      },
+      "actual": {
+        "socialWorkerAllocated": 3,
+        "socialWorkerHired": 3,
+        "careProviderAllocated": 43,
+        "careProviderHired": 35,
+        "usersAllocated": 660,
+        "usersServed": 473
+      }
+    },
+    "lat": 35.6802478690032,
+    "lng": 127.896063518675
+  },
+  {
+    "code": "A48820003",
+    "region": "고성군",
+    "delegationType": "위탁",
+    "delegationPeriod": "2026-01-01 ~ 2030-12-31 (5년)",
+    "yearHistory": {
+      "2020": false,
+      "2021": false,
+      "2022": true,
+      "2023": true,
+      "2024": true,
+      "2025": true,
+      "2026": true
+    },
+    "facilityType": "사단법인",
+    "services": {
+      "specialized": true,
+      "emergencySafety": false,
+      "homeVisitCare": false,
+      "homeSeniorWelfare": false,
+      "socialServiceCenter": false,
+      "seniorJobDispatch": false
+    },
+    "corporation": {
+      "name": "대한노인회 고성군지회",
+      "registrationNo": "612-82-65480",
+      "uniqueNo": "--"
+    },
+    "name": "대한노인회 고성군지회(노인맞춤돌봄서비스)",
+    "director": "최종림",
+    "zipCode": "52934",
+    "address": "경남 고성군 고성읍 남포로79번길 133",
+    "contact": {
+      "mainPhone": "055-804-7500",
+      "phone": "055-804-7500",
+      "emergency": "010-9214-2300",
+      "fax": "055-804-7501",
+      "email": "gsmd8400@daum.net"
+    },
+    "allocation": {
+      "mow": {
+        "socialWorker": 5,
+        "careProvider": 80,
+        "users": 1200
+      },
+      "actual": {
+        "socialWorkerAllocated": 6,
+        "socialWorkerHired": 6,
+        "careProviderAllocated": 80,
+        "careProviderHired": 80,
+        "usersAllocated": 1256,
+        "usersServed": 1143
+      }
+    },
+    "lat": 34.9696481525941,
+    "lng": 128.313417595371
+  },
+  {
+    "code": "A48820005",
+    "region": "고성군",
+    "delegationType": "위탁",
+    "delegationPeriod": "2026-01-01 ~ 2030-12-31 (5년)",
+    "yearHistory": {
+      "2020": false,
+      "2021": false,
+      "2022": false,
+      "2023": false,
+      "2024": false,
+      "2025": false,
+      "2026": true
+    },
+    "facilityType": "협동조합",
+    "services": {
+      "specialized": false,
+      "emergencySafety": false,
+      "homeVisitCare": false,
+      "homeSeniorWelfare": false,
+      "socialServiceCenter": false,
+      "seniorJobDispatch": false
+    },
+    "corporation": {
+      "name": "사회적협동조합 노인세상",
+      "registrationNo": "190-82-00503",
+      "uniqueNo": "190-82-00503"
+    },
+    "name": "사회적협동조합 노인세상",
+    "director": "배상길",
+    "zipCode": "52938",
+    "address": "경남 고성군 고성읍 동외로 212",
+    "contact": {
+      "mainPhone": "055-674-8989",
+      "phone": "055-674-8989",
+      "emergency": "010-5767-5917",
+      "fax": "055-674-9801",
+      "email": "mdniss1020@naver.com"
+    },
+    "allocation": {
+      "mow": {
+        "socialWorker": 0,
+        "careProvider": 0,
+        "users": 0
+      },
+      "actual": {
+        "socialWorkerAllocated": 5,
+        "socialWorkerHired": 5,
+        "careProviderAllocated": 64,
+        "careProviderHired": 58,
+        "usersAllocated": 985,
+        "usersServed": 960
+      }
+    },
+    "lat": 34.9801553305619,
+    "lng": 128.326966328828
+  },
+  {
+    "code": "A48250001",
+    "region": "김해시",
+    "delegationType": "위탁",
+    "delegationPeriod": "2024-01-01 ~ 2026-12-31 (3년)",
+    "yearHistory": {
+      "2020": true,
+      "2021": true,
+      "2022": true,
+      "2023": true,
+      "2024": true,
+      "2025": true,
+      "2026": true
+    },
+    "facilityType": "재가노인복지시설",
+    "services": {
+      "specialized": true,
+      "emergencySafety": false,
+      "homeVisitCare": true,
+      "homeSeniorWelfare": false,
+      "socialServiceCenter": false,
+      "seniorJobDispatch": false
+    },
+    "corporation": {
+      "name": "사회복지법인정수사복지재단",
+      "registrationNo": "615-82-67997",
+      "uniqueNo": "615-82-67997"
+    },
+    "name": "효능원노인통합지원센터",
+    "director": "이선자",
+    "zipCode": "50869",
+    "address": "경상남도 김해시 진영읍 서부로 38번길 77-35",
+    "contact": {
+      "mainPhone": "055-343-7900",
+      "phone": "055-723-4888",
+      "emergency": "010-7678-7803",
+      "fax": "055-342-4410",
+      "email": "7900hyo@hanmail.net"
+    },
+    "allocation": {
+      "mow": {
+        "socialWorker": 5,
+        "careProvider": 37,
+        "users": 605
+      },
+      "actual": {
+        "socialWorkerAllocated": 5,
+        "socialWorkerHired": 5,
+        "careProviderAllocated": 44,
+        "careProviderHired": 36,
+        "usersAllocated": 702,
+        "usersServed": 513
+      }
+    },
+    "lat": 35.2895761951049,
+    "lng": 128.759099514672
+  },
+  {
+    "code": "A48250004",
+    "region": "김해시",
+    "delegationType": "위탁",
+    "delegationPeriod": "2024-01-01 ~ 2026-12-31 (3년)",
+    "yearHistory": {
+      "2020": true,
+      "2021": true,
+      "2022": true,
+      "2023": true,
+      "2024": true,
+      "2025": true,
+      "2026": true
+    },
+    "facilityType": "사회복지관",
+    "services": {
+      "specialized": false,
+      "emergencySafety": true,
+      "homeVisitCare": false,
+      "homeSeniorWelfare": false,
+      "socialServiceCenter": false,
+      "seniorJobDispatch": false
+    },
+    "corporation": {
+      "name": "인제대학교산학협력단",
+      "registrationNo": "622-82-60221",
+      "uniqueNo": "615-80-08785"
+    },
+    "name": "김해시종합사회복지관",
+    "director": "김희년",
+    "zipCode": "50958",
+    "address": "경상남도 김해시 분성로 227 노인맞춤돌봄서비스사업",
+    "contact": {
+      "mainPhone": "055-329-6336",
+      "phone": "070-7605-7774",
+      "emergency": "010-2631-0824",
+      "fax": "055-329-6340",
+      "email": "gcwc6336@hanmail.net"
+    },
+    "allocation": {
+      "mow": {
+        "socialWorker": 4,
+        "careProvider": 42,
+        "users": 655
+      },
+      "actual": {
+        "socialWorkerAllocated": 4,
+        "socialWorkerHired": 3,
+        "careProviderAllocated": 41,
+        "careProviderHired": 38,
+        "usersAllocated": 615,
+        "usersServed": 492
+      }
+    },
+    "lat": 35.2324337801483,
+    "lng": 128.870545889559
+  },
+  {
+    "code": "A48250005",
+    "region": "김해시",
+    "delegationType": "위탁",
+    "delegationPeriod": "2024-01-01 ~ 2026-12-31 (3년)",
+    "yearHistory": {
+      "2020": true,
+      "2021": true,
+      "2022": true,
+      "2023": true,
+      "2024": true,
+      "2025": true,
+      "2026": true
+    },
+    "facilityType": "재가노인복지시설",
+    "services": {
+      "specialized": false,
+      "emergencySafety": false,
+      "homeVisitCare": false,
+      "homeSeniorWelfare": true,
+      "socialServiceCenter": false,
+      "seniorJobDispatch": false
+    },
+    "corporation": {
+      "name": "경남생명의전화",
+      "registrationNo": "615-82-10723",
+      "uniqueNo": "615-82-11528"
+    },
+    "name": "생명의전화노인통합지원센터",
+    "director": "김병식",
+    "zipCode": "50900",
+    "address": "경상남도 김해시 삼계로 69번길 15, 대명빌딩 401호",
+    "contact": {
+      "mainPhone": "055-325-9195",
+      "phone": "055-325-9195",
+      "emergency": "055-327-9195",
+      "fax": "055-326-9195",
+      "email": "lifegapa1@daum.net"
+    },
+    "allocation": {
+      "mow": {
+        "socialWorker": 5,
+        "careProvider": 42,
+        "users": 680
+      },
+      "actual": {
+        "socialWorkerAllocated": 3,
+        "socialWorkerHired": 3,
+        "careProviderAllocated": 43,
+        "careProviderHired": 39,
+        "usersAllocated": 619,
+        "usersServed": 570
+      }
+    },
+    "lat": 35.2596989262421,
+    "lng": 128.872673573447
+  },
+  {
+    "code": "A48250006",
+    "region": "김해시",
+    "delegationType": "위탁",
+    "delegationPeriod": "2024-01-01 ~ 2026-12-31 (3년)",
+    "yearHistory": {
+      "2020": true,
+      "2021": true,
+      "2022": true,
+      "2023": true,
+      "2024": true,
+      "2025": true,
+      "2026": true
+    },
+    "facilityType": "사회복지법인",
+    "services": {
+      "specialized": false,
+      "emergencySafety": false,
+      "homeVisitCare": true,
+      "homeSeniorWelfare": false,
+      "socialServiceCenter": false,
+      "seniorJobDispatch": false
+    },
+    "corporation": {
+      "name": "사회복지법인 보현행원",
+      "registrationNo": "622-82-00029",
+      "uniqueNo": "614-82-02972"
+    },
+    "name": "보현행원노인통합지원센터",
+    "director": "이진학",
+    "zipCode": "50877",
+    "address": "경상남도 김해시 주촌면 서부로1295번길 219",
+    "contact": {
+      "mainPhone": "055-329-0070",
+      "phone": "055-329-0070",
+      "emergency": "010-5456-9478",
+      "fax": "055-329-0071",
+      "email": "bohyunst@daum.net"
+    },
+    "allocation": {
+      "mow": {
+        "socialWorker": 4,
+        "careProvider": 33,
+        "users": 545
+      },
+      "actual": {
+        "socialWorkerAllocated": 3,
+        "socialWorkerHired": 3,
+        "careProviderAllocated": 35,
+        "careProviderHired": 31,
+        "usersAllocated": 535,
+        "usersServed": 463
+      }
+    },
+    "lat": 35.2348022674816,
+    "lng": 128.793130591887
+  },
+  {
+    "code": "A48250007",
+    "region": "김해시",
+    "delegationType": "위탁",
+    "delegationPeriod": "2024-01-01 ~ 2026-12-31 (3년)",
+    "yearHistory": {
+      "2020": false,
+      "2021": false,
+      "2022": true,
+      "2023": true,
+      "2024": true,
+      "2025": true,
+      "2026": true
+    },
+    "facilityType": "협동조합",
+    "services": {
+      "specialized": false,
+      "emergencySafety": false,
+      "homeVisitCare": false,
+      "homeSeniorWelfare": false,
+      "socialServiceCenter": false,
+      "seniorJobDispatch": false
+    },
+    "corporation": {
+      "name": "김해돌봄지원센터 사회적협동조합",
+      "registrationNo": "714-82-00537",
+      "uniqueNo": "--"
+    },
+    "name": "김해돌봄지원센터",
+    "director": "이소라",
+    "zipCode": "50905",
+    "address": "경남 김해시 구산로27번길 4-2 (구산동) 3층 301호",
+    "contact": {
+      "mainPhone": "055-724-0515",
+      "phone": "055-724-0515",
+      "emergency": "010-5541-6314",
+      "fax": "070-7543-4131",
+      "email": "gdolbom@daum.net"
+    },
+    "allocation": {
+      "mow": {
+        "socialWorker": 3,
+        "careProvider": 31,
+        "users": 490
+      },
+      "actual": {
+        "socialWorkerAllocated": 3,
+        "socialWorkerHired": 3,
+        "careProviderAllocated": 29,
+        "careProviderHired": 24,
+        "usersAllocated": 435,
+        "usersServed": 334
+      }
+    },
+    "lat": 35.2490524307996,
+    "lng": 128.871759497072
+  },
+  {
+    "code": "A48840001",
+    "region": "남해군",
+    "delegationType": "위탁",
+    "delegationPeriod": "2025-01-01 ~ 2026-12-31 (2년)",
+    "yearHistory": {
+      "2020": true,
+      "2021": true,
+      "2022": true,
+      "2023": true,
+      "2024": true,
+      "2025": true,
+      "2026": true
+    },
+    "facilityType": "재가노인복지시설",
+    "services": {
+      "specialized": true,
+      "emergencySafety": true,
+      "homeVisitCare": false,
+      "homeSeniorWelfare": true,
+      "socialServiceCenter": false,
+      "seniorJobDispatch": false
+    },
+    "corporation": {
+      "name": "대한불교조계종 화방사 화방복지원",
+      "registrationNo": "613-82-63409",
+      "uniqueNo": "613-82-63409"
+    },
+    "name": "화방남해노인통합지원센터",
+    "director": "고현옥",
+    "zipCode": "52407",
+    "address": "경상남도 남해군 고현면 화방로211번길81-7",
+    "contact": {
+      "mainPhone": "055-863-1737",
+      "phone": "055-863-1737",
+      "emergency": "010-3067-5521",
+      "fax": "055-864-1738",
+      "email": "jaegas1737@hanmail.net"
+    },
+    "allocation": {
+      "mow": {
+        "socialWorker": 4,
+        "careProvider": 68,
+        "users": 1020
+      },
+      "actual": {
+        "socialWorkerAllocated": 6,
+        "socialWorkerHired": 5,
+        "careProviderAllocated": 68,
+        "careProviderHired": 68,
+        "usersAllocated": 1070,
+        "usersServed": 992
+      }
+    },
+    "lat": 34.8677483550785,
+    "lng": 127.869287626416
+  },
+  {
+    "code": "A48840002",
+    "region": "남해군",
+    "delegationType": "위탁",
+    "delegationPeriod": "2025-01-01 ~ 2026-12-31 (2년)",
+    "yearHistory": {
+      "2020": true,
+      "2021": true,
+      "2022": true,
+      "2023": true,
+      "2024": true,
+      "2025": true,
+      "2026": true
+    },
+    "facilityType": "재가노인복지시설",
+    "services": {
+      "specialized": false,
+      "emergencySafety": false,
+      "homeVisitCare": true,
+      "homeSeniorWelfare": true,
+      "socialServiceCenter": false,
+      "seniorJobDispatch": true
+    },
+    "corporation": {
+      "name": "대한불교조계종 화방사 화방복지원",
+      "registrationNo": "613-82-13307",
+      "uniqueNo": "--"
+    },
+    "name": "화방재가복지센터",
+    "director": "천지훈",
+    "zipCode": "52407",
+    "address": "경상남도 남해군 고현면 화방로211번길 81-20",
+    "contact": {
+      "mainPhone": "055-863-1988",
+      "phone": "055-863-1988",
+      "emergency": "010-6436-8155",
+      "fax": "055-863-1989",
+      "email": "hb8631988@naver.com"
+    },
+    "allocation": {
+      "mow": {
+        "socialWorker": 4,
+        "careProvider": 68,
+        "users": 1020
+      },
+      "actual": {
+        "socialWorkerAllocated": 4,
+        "socialWorkerHired": 4,
+        "careProviderAllocated": 62,
+        "careProviderHired": 63,
+        "usersAllocated": 962,
+        "usersServed": 791
+      }
+    },
+    "lat": 34.8666915334201,
+    "lng": 127.868740959739
+  },
+  {
+    "code": "A48270001",
+    "region": "밀양시",
+    "delegationType": "위탁",
+    "delegationPeriod": "2023-01-01 ~ 2025-12-31 (3년)",
+    "yearHistory": {
+      "2020": true,
+      "2021": true,
+      "2022": true,
+      "2023": true,
+      "2024": true,
+      "2025": true,
+      "2026": true
+    },
+    "facilityType": "사단법인",
+    "services": {
+      "specialized": false,
+      "emergencySafety": true,
+      "homeVisitCare": false,
+      "homeSeniorWelfare": false,
+      "socialServiceCenter": false,
+      "seniorJobDispatch": false
+    },
+    "corporation": {
+      "name": "사단법인밀양시자원봉사단체협의회",
+      "registrationNo": "615-82-67551",
+      "uniqueNo": "615-82-67551"
+    },
+    "name": "밀양시자원봉사단체협의회",
+    "director": "정준호",
+    "zipCode": "50422",
+    "address": "경남 밀양시 밀성로3길 9 (내이동) 2층",
+    "contact": {
+      "mainPhone": "055-352-0094",
+      "phone": "055-352-0094",
+      "emergency": "010-4484-1719",
+      "fax": "055-352-0098",
+      "email": "jabong0094@naver.com"
+    },
+    "allocation": {
+      "mow": {
+        "socialWorker": 4,
+        "careProvider": 61,
+        "users": 915
+      },
+      "actual": {
+        "socialWorkerAllocated": 4,
+        "socialWorkerHired": 4,
+        "careProviderAllocated": 61,
+        "careProviderHired": 61,
+        "usersAllocated": 915,
+        "usersServed": 924
+      }
+    },
+    "lat": 35.4997955622599,
+    "lng": 128.749322422144
+  },
+  {
+    "code": "A48270002",
+    "region": "밀양시",
+    "delegationType": "위탁",
+    "delegationPeriod": "2026-01-01 ~ 2028-12-31 (3년)",
+    "yearHistory": {
+      "2020": true,
+      "2021": true,
+      "2022": true,
+      "2023": true,
+      "2024": true,
+      "2025": true,
+      "2026": true
+    },
+    "facilityType": "재가노인복지시설",
+    "services": {
+      "specialized": true,
+      "emergencySafety": false,
+      "homeVisitCare": false,
+      "homeSeniorWelfare": true,
+      "socialServiceCenter": false,
+      "seniorJobDispatch": false
+    },
+    "corporation": {
+      "name": "사회복지법인 하남복지재단",
+      "registrationNo": "615-82-02183",
+      "uniqueNo": "65-82-06573"
+    },
+    "name": "밀양노인통합지원센터",
+    "director": "박래훈",
+    "zipCode": "50455",
+    "address": "경상남도 밀양시 초동면 성만1길 50-8",
+    "contact": {
+      "mainPhone": "055-391-1900",
+      "phone": "055-391-1904",
+      "emergency": "010-7185-6753",
+      "fax": "055-391-1902",
+      "email": "miryanggapa@hanmail.net"
+    },
+    "allocation": {
+      "mow": {
+        "socialWorker": 4,
+        "careProvider": 62,
+        "users": 930
+      },
+      "actual": {
+        "socialWorkerAllocated": 5,
+        "socialWorkerHired": 5,
+        "careProviderAllocated": 63,
+        "careProviderHired": 63,
+        "usersAllocated": 945,
+        "usersServed": 870
+      }
+    },
+    "lat": 35.4113849035402,
+    "lng": 128.693195132455
+  },
+  {
+    "code": "A48270003",
+    "region": "밀양시",
+    "delegationType": "위탁",
+    "delegationPeriod": "2026-01-01 ~ 2028-12-31 (3년)",
+    "yearHistory": {
+      "2020": true,
+      "2021": true,
+      "2022": true,
+      "2023": true,
+      "2024": true,
+      "2025": true,
+      "2026": true
+    },
+    "facilityType": "재가노인복지시설",
+    "services": {
+      "specialized": false,
+      "emergencySafety": false,
+      "homeVisitCare": false,
+      "homeSeniorWelfare": true,
+      "socialServiceCenter": false,
+      "seniorJobDispatch": false
+    },
+    "corporation": {
+      "name": "사회복지사법인 성보",
+      "registrationNo": "615-82-12527",
+      "uniqueNo": "--"
+    },
+    "name": "우리들노인통합지원센터",
+    "director": "김두영",
+    "zipCode": "50429",
+    "address": "",
+    "contact": {
+      "mainPhone": "055-802-8765",
+      "phone": "055-802-8765",
+      "emergency": "010-7532-2348",
+      "fax": "055-802-8766",
+      "email": "dnflemfxhd@naver.com"
+    },
+    "allocation": {
+      "mow": {
+        "socialWorker": 5,
+        "careProvider": 50,
+        "users": 800
+      },
+      "actual": {
+        "socialWorkerAllocated": 5,
+        "socialWorkerHired": 5,
+        "careProviderAllocated": 52,
+        "careProviderHired": 50,
+        "usersAllocated": 830,
+        "usersServed": 793
+      }
+    }
+  },
+  {
+    "code": "A48240001",
+    "region": "사천시",
+    "delegationType": "위탁",
+    "delegationPeriod": "2026-01-01 ~ 2030-12-31 (5년)",
+    "yearHistory": {
+      "2020": true,
+      "2021": true,
+      "2022": true,
+      "2023": true,
+      "2024": true,
+      "2025": true,
+      "2026": true
+    },
+    "facilityType": "재가노인복지시설",
+    "services": {
+      "specialized": false,
+      "emergencySafety": false,
+      "homeVisitCare": false,
+      "homeSeniorWelfare": true,
+      "socialServiceCenter": false,
+      "seniorJobDispatch": false
+    },
+    "corporation": {
+      "name": "사회복지법인사랑원",
+      "registrationNo": "609-82-11353",
+      "uniqueNo": "--"
+    },
+    "name": "사랑원노인지원센터",
+    "director": "최미경",
+    "zipCode": "52536",
+    "address": "경상남도 사천시 사남면 사남로 847-15",
+    "contact": {
+      "mainPhone": "055-853-8894",
+      "phone": "055-786-8894",
+      "emergency": "010-6556-7520",
+      "fax": "070-8224-0175",
+      "email": "sarangwon8894@hanmail.net"
+    },
+    "allocation": {
+      "mow": {
+        "socialWorker": 5,
+        "careProvider": 80,
+        "users": 1200
+      },
+      "actual": {
+        "socialWorkerAllocated": 3,
+        "socialWorkerHired": 3,
+        "careProviderAllocated": 47,
+        "careProviderHired": 46,
+        "usersAllocated": 723,
+        "usersServed": 695
+      }
+    },
+    "lat": 35.0483863220043,
+    "lng": 128.095515502902
+  },
+  {
+    "code": "A48240002",
+    "region": "사천시",
+    "delegationType": "위탁",
+    "delegationPeriod": "2026-01-01 ~ 2030-12-31 (5년)",
+    "yearHistory": {
+      "2020": true,
+      "2021": true,
+      "2022": true,
+      "2023": true,
+      "2024": true,
+      "2025": true,
+      "2026": true
+    },
+    "facilityType": "재가노인복지시설",
+    "services": {
+      "specialized": false,
+      "emergencySafety": false,
+      "homeVisitCare": true,
+      "homeSeniorWelfare": true,
+      "socialServiceCenter": false,
+      "seniorJobDispatch": false
+    },
+    "corporation": {
+      "name": "사회복지법인 행복한집",
+      "registrationNo": "492-82-00210",
+      "uniqueNo": "492-82-00210"
+    },
+    "name": "사천노인통합지원센터",
+    "director": "박시현",
+    "zipCode": "52547",
+    "address": "경상남도 사천시 백천길 16 행복한집",
+    "contact": {
+      "mainPhone": "055-833-3700",
+      "phone": "055-833-3700",
+      "emergency": "010-7184-3700",
+      "fax": "055-835-4171",
+      "email": "happy-4000@naver.com"
+    },
+    "allocation": {
+      "mow": {
+        "socialWorker": 6,
+        "careProvider": 96,
+        "users": 1440
+      },
+      "actual": {
+        "socialWorkerAllocated": 3,
+        "socialWorkerHired": 3,
+        "careProviderAllocated": 46,
+        "careProviderHired": 46,
+        "usersAllocated": 708,
+        "usersServed": 607
+      }
+    },
+    "lat": 34.9919865696929,
+    "lng": 128.062596547532
+  },
+  {
+    "code": "A48240003",
+    "region": "사천시",
+    "delegationType": "위탁",
+    "delegationPeriod": "2026-01-01 ~ 2030-12-31 (5년)",
+    "yearHistory": {
+      "2020": false,
+      "2021": false,
+      "2022": false,
+      "2023": false,
+      "2024": false,
+      "2025": false,
+      "2026": true
+    },
+    "facilityType": "노인주거복지시설",
+    "services": {
+      "specialized": true,
+      "emergencySafety": false,
+      "homeVisitCare": false,
+      "homeSeniorWelfare": false,
+      "socialServiceCenter": false,
+      "seniorJobDispatch": false
+    },
+    "corporation": {
+      "name": "남양양로원",
+      "registrationNo": "613-82-15270",
+      "uniqueNo": "613-82-15270"
+    },
+    "name": "남양양로원",
+    "director": "조덕래",
+    "zipCode": "52546",
+    "address": "경남 사천시 모충길 50 (송포동, 삼소원)",
+    "contact": {
+      "mainPhone": "055-835-9105",
+      "phone": "055-835-9105",
+      "emergency": "010-8955-1554",
+      "fax": "055-835-9938",
+      "email": "samsowon9100@hanmail.net"
+    },
+    "allocation": {
+      "mow": {
+        "socialWorker": 0,
+        "careProvider": 0,
+        "users": 0
+      },
+      "actual": {
+        "socialWorkerAllocated": 4,
+        "socialWorkerHired": 4,
+        "careProviderAllocated": 43,
+        "careProviderHired": 43,
+        "usersAllocated": 713,
+        "usersServed": 570
+      }
+    },
+    "lat": 34.9648129166292,
+    "lng": 128.051474490645
+  },
+  {
+    "code": "A48240004",
+    "region": "사천시",
+    "delegationType": "위탁",
+    "delegationPeriod": "2026-01-01 ~ 2030-12-31 (5년)",
+    "yearHistory": {
+      "2020": false,
+      "2021": false,
+      "2022": false,
+      "2023": false,
+      "2024": false,
+      "2025": false,
+      "2026": true
+    },
+    "facilityType": "재가노인복지시설",
+    "services": {
+      "specialized": false,
+      "emergencySafety": false,
+      "homeVisitCare": false,
+      "homeSeniorWelfare": false,
+      "socialServiceCenter": false,
+      "seniorJobDispatch": false
+    },
+    "corporation": {
+      "name": "사천건양주야간보호센터",
+      "registrationNo": "613-82-13122",
+      "uniqueNo": "613-82-13122"
+    },
+    "name": "사천건양주야간보호센터",
+    "director": "이종석",
+    "zipCode": "52515",
+    "address": "경남 사천시 사천읍 구암두문로 338",
+    "contact": {
+      "mainPhone": "055-854-5913",
+      "phone": "055-854-5913",
+      "emergency": "010-5548-3964",
+      "fax": "055-854-5912",
+      "email": "cka2696@naver.com"
+    },
+    "allocation": {
+      "mow": {
+        "socialWorker": 0,
+        "careProvider": 0,
+        "users": 0
+      },
+      "actual": {
+        "socialWorkerAllocated": 3,
+        "socialWorkerHired": 3,
+        "careProviderAllocated": 43,
+        "careProviderHired": 44,
+        "usersAllocated": 662,
+        "usersServed": 640
+      }
+    },
+    "lat": 35.0901535085413,
+    "lng": 128.121639164489
+  },
+  {
+    "code": "A48860001",
+    "region": "산청군",
+    "delegationType": "위탁",
+    "delegationPeriod": "2026-01-01 ~ 2028-12-31 (3년)",
+    "yearHistory": {
+      "2020": true,
+      "2021": true,
+      "2022": true,
+      "2023": true,
+      "2024": true,
+      "2025": true,
+      "2026": true
+    },
+    "facilityType": "재가노인복지시설",
+    "services": {
+      "specialized": false,
+      "emergencySafety": true,
+      "homeVisitCare": false,
+      "homeSeniorWelfare": true,
+      "socialServiceCenter": false,
+      "seniorJobDispatch": false
+    },
+    "corporation": {
+      "name": "사회복지법인 한일복지재단",
+      "registrationNo": "509-82-63963",
+      "uniqueNo": "--"
+    },
+    "name": "산청한일노인통합지원센터",
+    "director": "이현호",
+    "zipCode": "52225",
+    "address": "경상남도 산청군 산청읍 웅석봉로 67번길 24",
+    "contact": {
+      "mainPhone": "055-974-1200",
+      "phone": "055-974-1200",
+      "emergency": "010-4587-5790",
+      "fax": "055-974-1203",
+      "email": "hanil1200@hanmail.net"
+    },
+    "allocation": {
+      "mow": {
+        "socialWorker": 2,
+        "careProvider": 35,
+        "users": 512
+      },
+      "actual": {
+        "socialWorkerAllocated": 2,
+        "socialWorkerHired": 2,
+        "careProviderAllocated": 35,
+        "careProviderHired": 35,
+        "usersAllocated": 512,
+        "usersServed": 501
+      }
+    },
+    "lat": 35.4113967556591,
+    "lng": 127.876009485965
+  },
+  {
+    "code": "A48860002",
+    "region": "산청군",
+    "delegationType": "위탁",
+    "delegationPeriod": "2026-01-01 ~ 2028-12-31 (3년)",
+    "yearHistory": {
+      "2020": true,
+      "2021": true,
+      "2022": true,
+      "2023": true,
+      "2024": true,
+      "2025": true,
+      "2026": true
+    },
+    "facilityType": "재가노인복지시설",
+    "services": {
+      "specialized": false,
+      "emergencySafety": false,
+      "homeVisitCare": false,
+      "homeSeniorWelfare": true,
+      "socialServiceCenter": false,
+      "seniorJobDispatch": false
+    },
+    "corporation": {
+      "name": "사회복지법인 도산",
+      "registrationNo": "613-82-75623",
+      "uniqueNo": "613-82-75623"
+    },
+    "name": "산청복음노인통합지원센터",
+    "director": "이영란",
+    "zipCode": "52251",
+    "address": "경상남도 산청군 단성면 목화로 998",
+    "contact": {
+      "mainPhone": "055-973-5411",
+      "phone": "055-973-7900",
+      "emergency": "010-3831-8374",
+      "fax": "055-973-5415",
+      "email": "sswc5411@naver.com"
+    },
+    "allocation": {
+      "mow": {
+        "socialWorker": 2,
+        "careProvider": 34,
+        "users": 512
+      },
+      "actual": {
+        "socialWorkerAllocated": 2,
+        "socialWorkerHired": 2,
+        "careProviderAllocated": 34,
+        "careProviderHired": 34,
+        "usersAllocated": 512,
+        "usersServed": 496
+      }
+    },
+    "lat": 35.2993490242473,
+    "lng": 127.958963649589
+  },
+  {
+    "code": "A48860003",
+    "region": "산청군",
+    "delegationType": "위탁",
+    "delegationPeriod": "2026-01-01 ~ 2028-12-31 (3년)",
+    "yearHistory": {
+      "2020": true,
+      "2021": true,
+      "2022": true,
+      "2023": true,
+      "2024": true,
+      "2025": true,
+      "2026": true
+    },
+    "facilityType": "재가노인복지시설",
+    "services": {
+      "specialized": true,
+      "emergencySafety": false,
+      "homeVisitCare": false,
+      "homeSeniorWelfare": true,
+      "socialServiceCenter": false,
+      "seniorJobDispatch": false
+    },
+    "corporation": {
+      "name": "사회복지법인 두류복지재단",
+      "registrationNo": "482-82-00265",
+      "uniqueNo": "482-82-00265"
+    },
+    "name": "산청해민노인통합지원센터",
+    "director": "이해령",
+    "zipCode": "52249",
+    "address": "경남 산청군 신안면 원지강변로 119",
+    "contact": {
+      "mainPhone": "055-974-1991",
+      "phone": "055-974-1991",
+      "emergency": "010-8524-4312",
+      "fax": "055-974-1994",
+      "email": "drw111@hanmail.net"
+    },
+    "allocation": {
+      "mow": {
+        "socialWorker": 2,
+        "careProvider": 34,
+        "users": 512
+      },
+      "actual": {
+        "socialWorkerAllocated": 3,
+        "socialWorkerHired": 2,
+        "careProviderAllocated": 36,
+        "careProviderHired": 34,
+        "usersAllocated": 572,
+        "usersServed": 496
+      }
+    },
+    "lat": 35.3005315659649,
+    "lng": 127.976104614392
+  },
+  {
+    "code": "A48860004",
+    "region": "산청군",
+    "delegationType": "위탁",
+    "delegationPeriod": "2026-01-01 ~ 2028-12-31 (3년)",
+    "yearHistory": {
+      "2020": false,
+      "2021": false,
+      "2022": false,
+      "2023": true,
+      "2024": true,
+      "2025": true,
+      "2026": true
+    },
+    "facilityType": "재가노인복지시설",
+    "services": {
+      "specialized": false,
+      "emergencySafety": false,
+      "homeVisitCare": false,
+      "homeSeniorWelfare": true,
+      "socialServiceCenter": false,
+      "seniorJobDispatch": false
+    },
+    "corporation": {
+      "name": "사회복지법인고려산청성모노인통합지원센터",
+      "registrationNo": "658-82-00241",
+      "uniqueNo": "658-82-00241"
+    },
+    "name": "산청성모노인통합지원센터",
+    "director": "권수경",
+    "zipCode": "52230",
+    "address": "경남 산청군 금서면 친환경로 2016 (산청성모노인전문요양원)",
+    "contact": {
+      "mainPhone": "055-974-1095",
+      "phone": "055-974-1095",
+      "emergency": "010-4106-4455",
+      "fax": "055-972-0596",
+      "email": "kr0093@hanmail.net"
+    },
+    "allocation": {
+      "mow": {
+        "socialWorker": 2,
+        "careProvider": 34,
+        "users": 512
+      },
+      "actual": {
+        "socialWorkerAllocated": 2,
+        "socialWorkerHired": 2,
+        "careProviderAllocated": 34,
+        "careProviderHired": 34,
+        "usersAllocated": 512,
+        "usersServed": 496
+      }
+    },
+    "lat": 35.4050602318956,
+    "lng": 127.847500958089
+  },
+  {
+    "code": "A48330001",
+    "region": "양산시",
+    "delegationType": "위탁",
+    "delegationPeriod": "2026-01-01 ~ 2028-12-31 (3년)",
+    "yearHistory": {
+      "2020": true,
+      "2021": true,
+      "2022": true,
+      "2023": true,
+      "2024": true,
+      "2025": true,
+      "2026": true
+    },
+    "facilityType": "재가노인복지시설",
+    "services": {
+      "specialized": true,
+      "emergencySafety": false,
+      "homeVisitCare": true,
+      "homeSeniorWelfare": true,
+      "socialServiceCenter": false,
+      "seniorJobDispatch": false
+    },
+    "corporation": {
+      "name": "사회복지법인신생원",
+      "registrationNo": "621-82-01189",
+      "uniqueNo": "826-82-00150"
+    },
+    "name": "사회복지법인신생원양산재가노인복지센터",
+    "director": "유미주",
+    "zipCode": "50629",
+    "address": "경남 양산시 강변로 441 (중부동, 양산지하철역) 101호",
+    "contact": {
+      "mainPhone": "055-367-8904",
+      "phone": "055-367-8904",
+      "emergency": "010-7100-3025",
+      "fax": "055-367-8906",
+      "email": "ys3678904@daum.net"
+    },
+    "allocation": {
+      "mow": {
+        "socialWorker": 6,
+        "careProvider": 59,
+        "users": 935
+      },
+      "actual": {
+        "socialWorkerAllocated": 6,
+        "socialWorkerHired": 6,
+        "careProviderAllocated": 69,
+        "careProviderHired": 45,
+        "usersAllocated": 1093,
+        "usersServed": 620
+      }
+    },
+    "lat": 35.3387402352291,
+    "lng": 129.026459983234
+  },
+  {
+    "code": "A48330004",
+    "region": "양산시",
+    "delegationType": "위탁",
+    "delegationPeriod": "2023-01-01 ~ 2025-12-31 (3년)",
+    "yearHistory": {
+      "2020": false,
+      "2021": false,
+      "2022": false,
+      "2023": true,
+      "2024": true,
+      "2025": true,
+      "2026": true
+    },
+    "facilityType": "협동조합",
+    "services": {
+      "specialized": false,
+      "emergencySafety": false,
+      "homeVisitCare": false,
+      "homeSeniorWelfare": false,
+      "socialServiceCenter": false,
+      "seniorJobDispatch": false
+    },
+    "corporation": {
+      "name": "양산행복한돌봄 사회적협동조합",
+      "registrationNo": "428-82-00198",
+      "uniqueNo": "--"
+    },
+    "name": "양산행복한돌봄 사회적협동조합",
+    "director": "노춘화",
+    "zipCode": "50616",
+    "address": "경남 양산시 중앙우회로 150 (북부동), 4층 양산행복한돌봄 사회적협동조합",
+    "contact": {
+      "mainPhone": "055-367-3750",
+      "phone": "055-367-3750",
+      "emergency": "010-5525-4377",
+      "fax": "055-366-3760",
+      "email": "hpcare3750@naver.com"
+    },
+    "allocation": {
+      "mow": {
+        "socialWorker": 4,
+        "careProvider": 59,
+        "users": 885
+      },
+      "actual": {
+        "socialWorkerAllocated": 4,
+        "socialWorkerHired": 4,
+        "careProviderAllocated": 54,
+        "careProviderHired": 52,
+        "usersAllocated": 835,
+        "usersServed": 684
+      }
+    },
+    "lat": 35.3486610850912,
+    "lng": 129.037879070306
+  },
+  {
+    "code": "A48330005",
+    "region": "양산시",
+    "delegationType": "위탁",
+    "delegationPeriod": "2026-01-01 ~ 2028-12-31 (3년)",
+    "yearHistory": {
+      "2020": false,
+      "2021": false,
+      "2022": false,
+      "2023": true,
+      "2024": true,
+      "2025": true,
+      "2026": true
+    },
+    "facilityType": "노인주거복지시설",
+    "services": {
+      "specialized": false,
+      "emergencySafety": false,
+      "homeVisitCare": false,
+      "homeSeniorWelfare": false,
+      "socialServiceCenter": false,
+      "seniorJobDispatch": false
+    },
+    "corporation": {
+      "name": "사회복지법인 성요셉의 집",
+      "registrationNo": "621-82-10091",
+      "uniqueNo": "--"
+    },
+    "name": "성요셉소규모노인종합센터",
+    "director": "김희정",
+    "zipCode": "50535",
+    "address": "경남 양산시 대운1길 111 (명동, 성요셉의집)",
+    "contact": {
+      "mainPhone": "055-365-1910",
+      "phone": "055-366-1113",
+      "emergency": "055-365-1910",
+      "fax": "055-365-1907",
+      "email": "stjoseph63@naver.com"
+    },
+    "allocation": {
+      "mow": {
+        "socialWorker": 4,
+        "careProvider": 59,
+        "users": 880
+      },
+      "actual": {
+        "socialWorkerAllocated": 4,
+        "socialWorkerHired": 4,
+        "careProviderAllocated": 54,
+        "careProviderHired": 44,
+        "usersAllocated": 835,
+        "usersServed": 603
+      }
+    },
+    "lat": 35.389438579265,
+    "lng": 129.173316743719
+  },
+  {
+    "code": "A48720001",
+    "region": "의령군",
+    "delegationType": "위탁",
+    "delegationPeriod": "2024-01-01 ~ 2026-12-31 (3년)",
+    "yearHistory": {
+      "2020": true,
+      "2021": true,
+      "2022": true,
+      "2023": true,
+      "2024": true,
+      "2025": true,
+      "2026": true
+    },
+    "facilityType": "재가노인복지시설",
+    "services": {
+      "specialized": true,
+      "emergencySafety": true,
+      "homeVisitCare": false,
+      "homeSeniorWelfare": true,
+      "socialServiceCenter": false,
+      "seniorJobDispatch": true
+    },
+    "corporation": {
+      "name": "사회복지법인 일붕복지관",
+      "registrationNo": "608-82-11909",
+      "uniqueNo": "--"
+    },
+    "name": "의령노인통합지원센터",
+    "director": "정선남",
+    "zipCode": "52115",
+    "address": "경상남도 의령군 궁류면 청정로 1224",
+    "contact": {
+      "mainPhone": "055-572-0079",
+      "phone": "055-572-0991",
+      "emergency": "010-8729-2137",
+      "fax": "055-572-8448",
+      "email": "center0079@daum.net"
+    },
+    "allocation": {
+      "mow": {
+        "socialWorker": 5,
+        "careProvider": 80,
+        "users": 1200
+      },
+      "actual": {
+        "socialWorkerAllocated": 5,
+        "socialWorkerHired": 5,
+        "careProviderAllocated": 69,
+        "careProviderHired": 68,
+        "usersAllocated": 1089,
+        "usersServed": 1041
+      }
+    },
+    "lat": 35.4374806999349,
+    "lng": 128.244079997698
+  },
+  {
+    "code": "A48170001",
+    "region": "진주시",
+    "delegationType": "위탁",
+    "delegationPeriod": "2024-01-01 ~ 2026-12-31 (3년)",
+    "yearHistory": {
+      "2020": true,
+      "2021": true,
+      "2022": true,
+      "2023": true,
+      "2024": true,
+      "2025": true,
+      "2026": true
+    },
+    "facilityType": "재가노인복지시설",
+    "services": {
+      "specialized": false,
+      "emergencySafety": false,
+      "homeVisitCare": false,
+      "homeSeniorWelfare": true,
+      "socialServiceCenter": false,
+      "seniorJobDispatch": false
+    },
+    "corporation": {
+      "name": "사회복지법인 진양복지재단",
+      "registrationNo": "613-82-16148",
+      "uniqueNo": "613-82-16148"
+    },
+    "name": "진양노인통합지원센터",
+    "director": "최미선",
+    "zipCode": "52640",
+    "address": "경상남도 진주시 명석면 진주대로 2116",
+    "contact": {
+      "mainPhone": "055-743-3466",
+      "phone": "070-4035-4513",
+      "emergency": "010-8511-9922",
+      "fax": "055-743-3416",
+      "email": "ah7210@naver.com"
+    },
+    "allocation": {
+      "mow": {
+        "socialWorker": 3,
+        "careProvider": 48,
+        "users": 720
+      },
+      "actual": {
+        "socialWorkerAllocated": 3,
+        "socialWorkerHired": 3,
+        "careProviderAllocated": 48,
+        "careProviderHired": 48,
+        "usersAllocated": 720,
+        "usersServed": 725
+      }
+    },
+    "lat": 35.2408686179199,
+    "lng": 127.996433046917
+  },
+  {
+    "code": "A48170002",
+    "region": "진주시",
+    "delegationType": "위탁",
+    "delegationPeriod": "2024-01-01 ~ 2026-12-31 (3년)",
+    "yearHistory": {
+      "2020": true,
+      "2021": true,
+      "2022": true,
+      "2023": true,
+      "2024": true,
+      "2025": true,
+      "2026": true
+    },
+    "facilityType": "재가노인복지시설",
+    "services": {
+      "specialized": false,
+      "emergencySafety": true,
+      "homeVisitCare": false,
+      "homeSeniorWelfare": true,
+      "socialServiceCenter": false,
+      "seniorJobDispatch": false
+    },
+    "corporation": {
+      "name": "사회복지법인은혜복지재단",
+      "registrationNo": "613-82-12536",
+      "uniqueNo": "613-82-12536"
+    },
+    "name": "진주노인통합지원센터",
+    "director": "김성광",
+    "zipCode": "52730",
+    "address": "경상남도 진주시 장재새미길 53번길 35",
+    "contact": {
+      "mainPhone": "055-761-0086",
+      "phone": "055-761-5172",
+      "emergency": "010-7120-0852",
+      "fax": "055-757-0086",
+      "email": "jinjugapa1@hanmail.net"
+    },
+    "allocation": {
+      "mow": {
+        "socialWorker": 3,
+        "careProvider": 48,
+        "users": 720
+      },
+      "actual": {
+        "socialWorkerAllocated": 3,
+        "socialWorkerHired": 3,
+        "careProviderAllocated": 48,
+        "careProviderHired": 48,
+        "usersAllocated": 720,
+        "usersServed": 723
+      }
+    },
+    "lat": 35.2043449325354,
+    "lng": 128.096454364895
+  },
+  {
+    "code": "A48170003",
+    "region": "진주시",
+    "delegationType": "위탁",
+    "delegationPeriod": "2024-01-01 ~ 2026-12-31 (3년)",
+    "yearHistory": {
+      "2020": true,
+      "2021": true,
+      "2022": true,
+      "2023": true,
+      "2024": true,
+      "2025": true,
+      "2026": true
+    },
+    "facilityType": "재가노인복지시설",
+    "services": {
+      "specialized": false,
+      "emergencySafety": false,
+      "homeVisitCare": false,
+      "homeSeniorWelfare": true,
+      "socialServiceCenter": false,
+      "seniorJobDispatch": false
+    },
+    "corporation": {
+      "name": "사회복지법인 진주복지재단",
+      "registrationNo": "613-82-10218",
+      "uniqueNo": "613-82-12161"
+    },
+    "name": "나누리노인통합지원센터",
+    "director": "김선옥",
+    "zipCode": "52638",
+    "address": "경남 진주시 집현면 신당길 300-50",
+    "contact": {
+      "mainPhone": "055-762-1001",
+      "phone": "055-762-1011",
+      "emergency": "010-8507-5827",
+      "fax": "055-762-2008",
+      "email": "jinjuwf@hanmail.net"
+    },
+    "allocation": {
+      "mow": {
+        "socialWorker": 4,
+        "careProvider": 62,
+        "users": 930
+      },
+      "actual": {
+        "socialWorkerAllocated": 4,
+        "socialWorkerHired": 4,
+        "careProviderAllocated": 62,
+        "careProviderHired": 62,
+        "usersAllocated": 930,
+        "usersServed": 930
+      }
+    },
+    "lat": 35.2184138495065,
+    "lng": 128.122926824233
+  },
+  {
+    "code": "A48170004",
+    "region": "진주시",
+    "delegationType": "위탁",
+    "delegationPeriod": "2024-01-01 ~ 2026-12-31 (3년)",
+    "yearHistory": {
+      "2020": true,
+      "2021": true,
+      "2022": true,
+      "2023": true,
+      "2024": true,
+      "2025": true,
+      "2026": true
+    },
+    "facilityType": "재가노인복지시설",
+    "services": {
+      "specialized": false,
+      "emergencySafety": false,
+      "homeVisitCare": false,
+      "homeSeniorWelfare": true,
+      "socialServiceCenter": false,
+      "seniorJobDispatch": false
+    },
+    "corporation": {
+      "name": "사회복지법인 공덕원",
+      "registrationNo": "613-82-14887",
+      "uniqueNo": "613-82-14887"
+    },
+    "name": "공덕의집노인통합지원센터",
+    "director": "김은경",
+    "zipCode": "52655",
+    "address": "경남 진주시 의병로 65 (상봉동), 2층",
+    "contact": {
+      "mainPhone": "055-744-6556",
+      "phone": "055-744-6557",
+      "emergency": "010-4693-4616",
+      "fax": "055-742-6556",
+      "email": "gdw7446556@daum.net"
+    },
+    "allocation": {
+      "mow": {
+        "socialWorker": 3,
+        "careProvider": 48,
+        "users": 720
+      },
+      "actual": {
+        "socialWorkerAllocated": 3,
+        "socialWorkerHired": 3,
+        "careProviderAllocated": 48,
+        "careProviderHired": 48,
+        "usersAllocated": 720,
+        "usersServed": 736
+      }
+    },
+    "lat": 35.1989088671605,
+    "lng": 128.068025776567
+  },
+  {
+    "code": "A48170005",
+    "region": "진주시",
+    "delegationType": "위탁",
+    "delegationPeriod": "2024-01-01 ~ 2026-12-31 (3년)",
+    "yearHistory": {
+      "2020": false,
+      "2021": false,
+      "2022": false,
+      "2023": false,
+      "2024": true,
+      "2025": true,
+      "2026": true
+    },
+    "facilityType": "재가노인복지시설",
+    "services": {
+      "specialized": false,
+      "emergencySafety": false,
+      "homeVisitCare": false,
+      "homeSeniorWelfare": false,
+      "socialServiceCenter": false,
+      "seniorJobDispatch": false
+    },
+    "corporation": {
+      "name": "사회복지법인 한얼",
+      "registrationNo": "613-82-07203",
+      "uniqueNo": "613-82-12220"
+    },
+    "name": "하늘마음노인통합지원센터",
+    "director": "정희정",
+    "zipCode": "52832",
+    "address": "경남 진주시 문산읍 월아산로 1116 2층",
+    "contact": {
+      "mainPhone": "055-763-2553",
+      "phone": "055-763-2553",
+      "emergency": "010-4216-8532",
+      "fax": "055-795-2553",
+      "email": "jjhanurl0@daum.net"
+    },
+    "allocation": {
+      "mow": {
+        "socialWorker": 3,
+        "careProvider": 48,
+        "users": 720
+      },
+      "actual": {
+        "socialWorkerAllocated": 3,
+        "socialWorkerHired": 3,
+        "careProviderAllocated": 48,
+        "careProviderHired": 48,
+        "usersAllocated": 720,
+        "usersServed": 736
+      }
+    },
+    "lat": 35.1703502900804,
+    "lng": 128.162052622594
+  },
+  {
+    "code": "A48740001",
+    "region": "창녕군",
+    "delegationType": "위탁",
+    "delegationPeriod": "2026-01-01 ~ 2028-12-31 (3년)",
+    "yearHistory": {
+      "2020": true,
+      "2021": true,
+      "2022": true,
+      "2023": true,
+      "2024": true,
+      "2025": true,
+      "2026": true
+    },
+    "facilityType": "지역자활센터",
+    "services": {
+      "specialized": false,
+      "emergencySafety": false,
+      "homeVisitCare": false,
+      "homeSeniorWelfare": false,
+      "socialServiceCenter": false,
+      "seniorJobDispatch": false
+    },
+    "corporation": {
+      "name": "사회적협동조합 이음터",
+      "registrationNo": "773-82-00313",
+      "uniqueNo": "--"
+    },
+    "name": "창녕지역자활센터",
+    "director": "하승범",
+    "zipCode": "50322",
+    "address": "경상남도 창녕군 창녕읍 조산서재골로 7",
+    "contact": {
+      "mainPhone": "055-532-0612",
+      "phone": "055-532-0612",
+      "emergency": "010-4243-2306",
+      "fax": "055-532-8992",
+      "email": "cnjahwal2003@daum.net"
+    },
+    "allocation": {
+      "mow": {
+        "socialWorker": 5,
+        "careProvider": 80,
+        "users": 1200
+      },
+      "actual": {
+        "socialWorkerAllocated": 6,
+        "socialWorkerHired": 6,
+        "careProviderAllocated": 83,
+        "careProviderHired": 83,
+        "usersAllocated": 1299,
+        "usersServed": 1176
+      }
+    },
+    "lat": 35.5379656461651,
+    "lng": 128.485740907481
+  },
+  {
+    "code": "A48740002",
+    "region": "창녕군",
+    "delegationType": "위탁",
+    "delegationPeriod": "2026-01-01 ~ 2028-12-31 (3년)",
+    "yearHistory": {
+      "2020": true,
+      "2021": true,
+      "2022": true,
+      "2023": true,
+      "2024": true,
+      "2025": true,
+      "2026": true
+    },
+    "facilityType": "재가노인복지시설",
+    "services": {
+      "specialized": true,
+      "emergencySafety": true,
+      "homeVisitCare": false,
+      "homeSeniorWelfare": true,
+      "socialServiceCenter": false,
+      "seniorJobDispatch": false
+    },
+    "corporation": {
+      "name": "사회복지법인 새누리복지재단",
+      "registrationNo": "608-82-12489",
+      "uniqueNo": "608-82-12489"
+    },
+    "name": "창녕군새누리노인종합센터",
+    "director": "권미진",
+    "zipCode": "50354",
+    "address": "경상남도 창녕군 남지읍 덕동길 55",
+    "contact": {
+      "mainPhone": "055-526-1796",
+      "phone": "055-526-1796",
+      "emergency": "010-4490-5857",
+      "fax": "055-526-1795",
+      "email": "tosnfl7992@naver.com"
+    },
+    "allocation": {
+      "mow": {
+        "socialWorker": 5,
+        "careProvider": 80,
+        "users": 1200
+      },
+      "actual": {
+        "socialWorkerAllocated": 6,
+        "socialWorkerHired": 6,
+        "careProviderAllocated": 80,
+        "careProviderHired": 80,
+        "usersAllocated": 1200,
+        "usersServed": 1167
+      }
+    },
+    "lat": 35.3961941776052,
+    "lng": 128.460788477262
+  },
+  {
+    "code": "A48120001",
+    "region": "창원시",
+    "delegationType": "위탁",
+    "delegationPeriod": "2025-01-01 ~ 2027-12-31 (3년)",
+    "yearHistory": {
+      "2020": true,
+      "2021": true,
+      "2022": true,
+      "2023": true,
+      "2024": true,
+      "2025": true,
+      "2026": true
+    },
+    "facilityType": "재가노인복지시설",
+    "services": {
+      "specialized": false,
+      "emergencySafety": false,
+      "homeVisitCare": false,
+      "homeSeniorWelfare": false,
+      "socialServiceCenter": false,
+      "seniorJobDispatch": false
+    },
+    "corporation": {
+      "name": "사회복지법인 동진",
+      "registrationNo": "609-82-12861",
+      "uniqueNo": "609-82-12861"
+    },
+    "name": "동진노인통합지원센터",
+    "director": "강외숙",
+    "zipCode": "51115",
+    "address": "경상남도 창원시 의창구 동읍 동읍로 517-14",
+    "contact": {
+      "mainPhone": "055-299-2233",
+      "phone": "055-299-2233",
+      "emergency": "010-4590-2223",
+      "fax": "055-299-0300",
+      "email": "2992233@hanmail.net"
+    },
+    "allocation": {
+      "mow": {
+        "socialWorker": 3,
+        "careProvider": 36,
+        "users": 565
+      },
+      "actual": {
+        "socialWorkerAllocated": 3,
+        "socialWorkerHired": 3,
+        "careProviderAllocated": 35,
+        "careProviderHired": 34,
+        "usersAllocated": 537,
+        "usersServed": 527
+      }
+    },
+    "lat": 35.3127334208082,
+    "lng": 128.656815205842
+  },
+  {
+    "code": "A48120002",
+    "region": "창원시",
+    "delegationType": "위탁",
+    "delegationPeriod": "2022-01-01 ~ 2027-12-31 (6년)",
+    "yearHistory": {
+      "2020": true,
+      "2021": true,
+      "2022": true,
+      "2023": true,
+      "2024": true,
+      "2025": true,
+      "2026": true
+    },
+    "facilityType": "재가노인복지시설",
+    "services": {
+      "specialized": false,
+      "emergencySafety": false,
+      "homeVisitCare": false,
+      "homeSeniorWelfare": true,
+      "socialServiceCenter": false,
+      "seniorJobDispatch": false
+    },
+    "corporation": {
+      "name": "사회적협동조합창원도우누리",
+      "registrationNo": "858-82-00157",
+      "uniqueNo": "--"
+    },
+    "name": "창원도우누리노인통합재가센터",
+    "director": "김미득",
+    "zipCode": "51157",
+    "address": "경상남도 창원시 의창구 대봉로 26번길 4-5, 3층",
+    "contact": {
+      "mainPhone": "055-262-2773",
+      "phone": "055-262-2773",
+      "emergency": "010-3498-9242",
+      "fax": "055-265-2770",
+      "email": "dounuri27@daum.net"
+    },
+    "allocation": {
+      "mow": {
+        "socialWorker": 5,
+        "careProvider": 52,
+        "users": 805
+      },
+      "actual": {
+        "socialWorkerAllocated": 5,
+        "socialWorkerHired": 5,
+        "careProviderAllocated": 53,
+        "careProviderHired": 54,
+        "usersAllocated": 837,
+        "usersServed": 781
+      }
+    },
+    "lat": 35.2512641632827,
+    "lng": 128.667677360312
+  },
+  {
+    "code": "A48120004",
+    "region": "창원시",
+    "delegationType": "위탁",
+    "delegationPeriod": "2025-01-01 ~ 2027-12-31 (3년)",
+    "yearHistory": {
+      "2020": true,
+      "2021": true,
+      "2022": true,
+      "2023": true,
+      "2024": true,
+      "2025": true,
+      "2026": true
+    },
+    "facilityType": "재가노인복지시설",
+    "services": {
+      "specialized": false,
+      "emergencySafety": false,
+      "homeVisitCare": true,
+      "homeSeniorWelfare": true,
+      "socialServiceCenter": false,
+      "seniorJobDispatch": false
+    },
+    "corporation": {
+      "name": "명진복지재단",
+      "registrationNo": "608-82-16506",
+      "uniqueNo": "--"
+    },
+    "name": "명진노인통합지원센터",
+    "director": "이형숙",
+    "zipCode": "51781",
+    "address": "경상남도 창원시 마산합포구 구산면 마전길 335-1",
+    "contact": {
+      "mainPhone": "055-271-0483",
+      "phone": "055-271-0483",
+      "emergency": "010-7472-6321",
+      "fax": "055-271-0484",
+      "email": "mjwelfare6023@hanmail.net"
+    },
+    "allocation": {
+      "mow": {
+        "socialWorker": 3,
+        "careProvider": 43,
+        "users": 645
+      },
+      "actual": {
+        "socialWorkerAllocated": 3,
+        "socialWorkerHired": 3,
+        "careProviderAllocated": 44,
+        "careProviderHired": 43,
+        "usersAllocated": 662,
+        "usersServed": 640
+      }
+    },
+    "lat": 35.1305950269579,
+    "lng": 128.531856723676
+  },
+  {
+    "code": "A48120005",
+    "region": "창원시",
+    "delegationType": "위탁",
+    "delegationPeriod": "2025-01-01 ~ 2027-12-31 (3년)",
+    "yearHistory": {
+      "2020": true,
+      "2021": true,
+      "2022": true,
+      "2023": true,
+      "2024": true,
+      "2025": true,
+      "2026": true
+    },
+    "facilityType": "협동조합",
+    "services": {
+      "specialized": false,
+      "emergencySafety": false,
+      "homeVisitCare": true,
+      "homeSeniorWelfare": false,
+      "socialServiceCenter": false,
+      "seniorJobDispatch": false
+    },
+    "corporation": {
+      "name": "플러스희망 사회적협동조합",
+      "registrationNo": "418-82-09440",
+      "uniqueNo": "--"
+    },
+    "name": "마산희망지역자활센터",
+    "director": "최미혜",
+    "zipCode": "51731",
+    "address": "경남 창원시 마산합포구 동서북7길 49 (남성동) 2층",
+    "contact": {
+      "mainPhone": "070-4708-3402",
+      "phone": "055-224-2510",
+      "emergency": "010-7367-6685",
+      "fax": "055-602-2511",
+      "email": "plushp2015@naver.com"
+    },
+    "allocation": {
+      "mow": {
+        "socialWorker": 4,
+        "careProvider": 45,
+        "users": 700
+      },
+      "actual": {
+        "socialWorkerAllocated": 4,
+        "socialWorkerHired": 4,
+        "careProviderAllocated": 47,
+        "careProviderHired": 47,
+        "usersAllocated": 717,
+        "usersServed": 683
+      }
+    },
+    "lat": 35.2040109967629,
+    "lng": 128.575546286601
+  },
+  {
+    "code": "A48120008",
+    "region": "창원시",
+    "delegationType": "위탁",
+    "delegationPeriod": "2025-01-01 ~ 2027-12-31 (3년)",
+    "yearHistory": {
+      "2020": true,
+      "2021": true,
+      "2022": true,
+      "2023": true,
+      "2024": true,
+      "2025": true,
+      "2026": true
+    },
+    "facilityType": "재가노인복지시설",
+    "services": {
+      "specialized": true,
+      "emergencySafety": false,
+      "homeVisitCare": true,
+      "homeSeniorWelfare": true,
+      "socialServiceCenter": false,
+      "seniorJobDispatch": false
+    },
+    "corporation": {
+      "name": "인애복지재단",
+      "registrationNo": "608-82-13061",
+      "uniqueNo": "608-82-13061"
+    },
+    "name": "경남노인통합지원센터",
+    "director": "김양언",
+    "zipCode": "51351",
+    "address": "경상남도 창원시 마산회원구 팔용로 272",
+    "contact": {
+      "mainPhone": "055-298-8602",
+      "phone": "055-298-8602",
+      "emergency": "010-5501-0425",
+      "fax": "055-243-1390",
+      "email": "knsw04@knsw.or.kr"
+    },
+    "allocation": {
+      "mow": {
+        "socialWorker": 4,
+        "careProvider": 47,
+        "users": 730
+      },
+      "actual": {
+        "socialWorkerAllocated": 5,
+        "socialWorkerHired": 4,
+        "careProviderAllocated": 47,
+        "careProviderHired": 47,
+        "usersAllocated": 747,
+        "usersServed": 702
+      }
+    },
+    "lat": 35.248278884796,
+    "lng": 128.600951954876
+  },
+  {
+    "code": "A48120011",
+    "region": "창원시",
+    "delegationType": "위탁",
+    "delegationPeriod": "2025-01-01 ~ 2027-12-31 (3년)",
+    "yearHistory": {
+      "2020": false,
+      "2021": false,
+      "2022": true,
+      "2023": true,
+      "2024": true,
+      "2025": true,
+      "2026": true
+    },
+    "facilityType": "협동조합",
+    "services": {
+      "specialized": false,
+      "emergencySafety": false,
+      "homeVisitCare": false,
+      "homeSeniorWelfare": false,
+      "socialServiceCenter": false,
+      "seniorJobDispatch": false
+    },
+    "corporation": {
+      "name": "정현사회적협동조합",
+      "registrationNo": "376-82-00427",
+      "uniqueNo": "376-82-00427"
+    },
+    "name": "정현사회적협동조합",
+    "director": "한연화",
+    "zipCode": "51792",
+    "address": "경남 창원시 마산합포구 진동면 서촌길 7 (2층)",
+    "contact": {
+      "mainPhone": "055-271-9913",
+      "phone": "055-271-9913",
+      "emergency": "010-6511-9635",
+      "fax": "055-271-9914",
+      "email": "junghyeon_2020@naver.com"
+    },
+    "allocation": {
+      "mow": {
+        "socialWorker": 4,
+        "careProvider": 55,
+        "users": 829
+      },
+      "actual": {
+        "socialWorkerAllocated": 4,
+        "socialWorkerHired": 4,
+        "careProviderAllocated": 54,
+        "careProviderHired": 53,
+        "usersAllocated": 817,
+        "usersServed": 817
+      }
+    },
+    "lat": 35.1134424478129,
+    "lng": 128.48599642506
+  },
+  {
+    "code": "A48120012",
+    "region": "창원시",
+    "delegationType": "위탁",
+    "delegationPeriod": "2025-01-01 ~ 2027-12-31 (3년)",
+    "yearHistory": {
+      "2020": false,
+      "2021": false,
+      "2022": true,
+      "2023": true,
+      "2024": true,
+      "2025": true,
+      "2026": true
+    },
+    "facilityType": "노인여가복지시설",
+    "services": {
+      "specialized": false,
+      "emergencySafety": false,
+      "homeVisitCare": false,
+      "homeSeniorWelfare": false,
+      "socialServiceCenter": false,
+      "seniorJobDispatch": false
+    },
+    "corporation": {
+      "name": "재단법인 한가람문화재단",
+      "registrationNo": "308-82-72331",
+      "uniqueNo": "--"
+    },
+    "name": "진해서부노인종합복지관",
+    "director": "조영순",
+    "zipCode": "51682",
+    "address": "경남 창원시 진해구 태평로 96 (태평동)",
+    "contact": {
+      "mainPhone": "055-547-8004",
+      "phone": "055-547-8004",
+      "emergency": "010-4915-8501",
+      "fax": "055-552-8004",
+      "email": "jhsbcare@naver.com"
+    },
+    "allocation": {
+      "mow": {
+        "socialWorker": 3,
+        "careProvider": 52,
+        "users": 778
+      },
+      "actual": {
+        "socialWorkerAllocated": 3,
+        "socialWorkerHired": 3,
+        "careProviderAllocated": 48,
+        "careProviderHired": 48,
+        "usersAllocated": 727,
+        "usersServed": 727
+      }
+    },
+    "lat": 35.1444488051767,
+    "lng": 128.669367804394
+  },
+  {
+    "code": "A48120013",
+    "region": "창원시",
+    "delegationType": "위탁",
+    "delegationPeriod": "2025-01-01 ~ 2027-12-31 (3년)",
+    "yearHistory": {
+      "2020": false,
+      "2021": false,
+      "2022": true,
+      "2023": true,
+      "2024": true,
+      "2025": true,
+      "2026": true
+    },
+    "facilityType": "노인여가복지시설",
+    "services": {
+      "specialized": false,
+      "emergencySafety": false,
+      "homeVisitCare": false,
+      "homeSeniorWelfare": false,
+      "socialServiceCenter": false,
+      "seniorJobDispatch": false
+    },
+    "corporation": {
+      "name": "진해노인종합복지관",
+      "registrationNo": "609-82-10714",
+      "uniqueNo": "--"
+    },
+    "name": "진해노인종합복지관",
+    "director": "권현수",
+    "zipCode": "51630",
+    "address": "경남 창원시 진해구 천자로 434 (풍호동, 진해노인종합복지관)",
+    "contact": {
+      "mainPhone": "055-544-7155",
+      "phone": "055-544-7153",
+      "emergency": "010-7157-9188",
+      "fax": "055-716-2388",
+      "email": "jinhaesw@naver.com"
+    },
+    "allocation": {
+      "mow": {
+        "socialWorker": 4,
+        "careProvider": 46,
+        "users": 715
+      },
+      "actual": {
+        "socialWorkerAllocated": 4,
+        "socialWorkerHired": 4,
+        "careProviderAllocated": 45,
+        "careProviderHired": 43,
+        "usersAllocated": 717,
+        "usersServed": 645
+      }
+    },
+    "lat": 35.134606137939,
+    "lng": 128.711670363028
+  },
+  {
+    "code": "A48120014",
+    "region": "창원시",
+    "delegationType": "위탁",
+    "delegationPeriod": "2025-01-01 ~ 2027-12-31 (3년)",
+    "yearHistory": {
+      "2020": false,
+      "2021": false,
+      "2022": false,
+      "2023": false,
+      "2024": false,
+      "2025": true,
+      "2026": true
+    },
+    "facilityType": "사단법인",
+    "services": {
+      "specialized": false,
+      "emergencySafety": false,
+      "homeVisitCare": false,
+      "homeSeniorWelfare": false,
+      "socialServiceCenter": false,
+      "seniorJobDispatch": false
+    },
+    "corporation": {
+      "name": "경남고용복지센터",
+      "registrationNo": "609-82-62420",
+      "uniqueNo": "609-82-62420"
+    },
+    "name": "경남고용복지센터",
+    "director": "정동화",
+    "zipCode": "51411",
+    "address": "경남 창원시 성산구 원이대로 450 (중앙동), 창원종합운동장 149-1호",
+    "contact": {
+      "mainPhone": "055-261-8533",
+      "phone": "055-261-8533",
+      "emergency": "010-3886-1944",
+      "fax": "055-261-8570",
+      "email": "knct8533@naver.com"
+    },
+    "allocation": {
+      "mow": {
+        "socialWorker": 4,
+        "careProvider": 39,
+        "users": 610
+      },
+      "actual": {
+        "socialWorkerAllocated": 4,
+        "socialWorkerHired": 4,
+        "careProviderAllocated": 45,
+        "careProviderHired": 39,
+        "usersAllocated": 747,
+        "usersServed": 597
+      }
+    },
+    "lat": 35.2340071310692,
+    "lng": 128.664735369535
+  },
+  {
+    "code": "A48120015",
+    "region": "창원시",
+    "delegationType": "위탁",
+    "delegationPeriod": "2025-01-01 ~ 2027-12-31 (3년)",
+    "yearHistory": {
+      "2020": false,
+      "2021": false,
+      "2022": false,
+      "2023": false,
+      "2024": false,
+      "2025": true,
+      "2026": true
+    },
+    "facilityType": "사회복지관",
+    "services": {
+      "specialized": false,
+      "emergencySafety": false,
+      "homeVisitCare": false,
+      "homeSeniorWelfare": false,
+      "socialServiceCenter": false,
+      "seniorJobDispatch": false
+    },
+    "corporation": {
+      "name": "사회복지법인 대한불교 천태종복지재단",
+      "registrationNo": "605-82-83840",
+      "uniqueNo": "605-82-83840"
+    },
+    "name": "마산회원노인종합복지관",
+    "director": "정응석",
+    "zipCode": "51313",
+    "address": "경남 창원시 마산회원구 삼호로 227 (석전동, 마산회원노인종합복지관)",
+    "contact": {
+      "mainPhone": "055-713-6890",
+      "phone": "070-5156-2443",
+      "emergency": "010-2393-4175",
+      "fax": "055-715-6890",
+      "email": "mhswc055@with99.org"
+    },
+    "allocation": {
+      "mow": {
+        "socialWorker": 2,
+        "careProvider": 29,
+        "users": 431
+      },
+      "actual": {
+        "socialWorkerAllocated": 2,
+        "socialWorkerHired": 2,
+        "careProviderAllocated": 29,
+        "careProviderHired": 26,
+        "usersAllocated": 447,
+        "usersServed": 375
+      }
+    },
+    "lat": 35.2305701094834,
+    "lng": 128.569487652482
+  },
+  {
+    "code": "A48220002",
+    "region": "통영시",
+    "delegationType": "위탁",
+    "delegationPeriod": "2025-01-01 ~ 2026-10-26 (2년)",
+    "yearHistory": {
+      "2020": true,
+      "2021": true,
+      "2022": true,
+      "2023": true,
+      "2024": true,
+      "2025": true,
+      "2026": true
+    },
+    "facilityType": "사회복지관",
+    "services": {
+      "specialized": false,
+      "emergencySafety": false,
+      "homeVisitCare": false,
+      "homeSeniorWelfare": false,
+      "socialServiceCenter": false,
+      "seniorJobDispatch": false
+    },
+    "corporation": {
+      "name": "사회복지법인 천주교마산교구사회복지회",
+      "registrationNo": "608-82-15531",
+      "uniqueNo": "612-82-70057"
+    },
+    "name": "통영시종합사회복지관",
+    "director": "박철현",
+    "zipCode": "53038",
+    "address": "경상남도 통영시 안개4길 94",
+    "contact": {
+      "mainPhone": "055-640-7700",
+      "phone": "055-640-7728",
+      "emergency": "010-2000-1969",
+      "fax": "055-646-4446",
+      "email": "tywelfare@hanmail.net"
+    },
+    "allocation": {
+      "mow": {
+        "socialWorker": 4,
+        "careProvider": 63,
+        "users": 945
+      },
+      "actual": {
+        "socialWorkerAllocated": 4,
+        "socialWorkerHired": 4,
+        "careProviderAllocated": 59,
+        "careProviderHired": 58,
+        "usersAllocated": 897,
+        "usersServed": 835
+      }
+    },
+    "lat": 34.8592325927213,
+    "lng": 128.432397092343
+  },
+  {
+    "code": "A48220003",
+    "region": "통영시",
+    "delegationType": "위탁",
+    "delegationPeriod": "2025-01-01 ~ 2026-10-26 (2년)",
+    "yearHistory": {
+      "2020": false,
+      "2021": false,
+      "2022": false,
+      "2023": true,
+      "2024": true,
+      "2025": true,
+      "2026": true
+    },
+    "facilityType": "재가노인복지시설",
+    "services": {
+      "specialized": true,
+      "emergencySafety": true,
+      "homeVisitCare": true,
+      "homeSeniorWelfare": true,
+      "socialServiceCenter": false,
+      "seniorJobDispatch": true
+    },
+    "corporation": {
+      "name": "(사)통영YWCA",
+      "registrationNo": "612-82-69749",
+      "uniqueNo": "--"
+    },
+    "name": "통영노인통합지원센터",
+    "director": "조혜원",
+    "zipCode": "53054",
+    "address": "경남 통영시 동충1길 4 (항남동, 통영YWCA) 만석수산3층",
+    "contact": {
+      "mainPhone": "055-641-6170",
+      "phone": "055-641-6170",
+      "emergency": "010-5329-3627",
+      "fax": "055-641-6174",
+      "email": "totalsilver@hanmail.net"
+    },
+    "allocation": {
+      "mow": {
+        "socialWorker": 7,
+        "careProvider": 77,
+        "users": 1205
+      },
+      "actual": {
+        "socialWorkerAllocated": 6,
+        "socialWorkerHired": 7,
+        "careProviderAllocated": 77,
+        "careProviderHired": 72,
+        "usersAllocated": 1228,
+        "usersServed": 1031
+      }
+    },
+    "lat": 34.8398212034024,
+    "lng": 128.4221462408
+  },
+  {
+    "code": "A48850001",
+    "region": "하동군",
+    "delegationType": "위탁",
+    "delegationPeriod": "2025-01-01 ~ 2027-12-31 (3년)",
+    "yearHistory": {
+      "2020": true,
+      "2021": true,
+      "2022": true,
+      "2023": true,
+      "2024": true,
+      "2025": true,
+      "2026": true
+    },
+    "facilityType": "재가노인복지시설",
+    "services": {
+      "specialized": true,
+      "emergencySafety": false,
+      "homeVisitCare": false,
+      "homeSeniorWelfare": true,
+      "socialServiceCenter": false,
+      "seniorJobDispatch": false
+    },
+    "corporation": {
+      "name": "경남복지재단",
+      "registrationNo": "613-82-13947",
+      "uniqueNo": "--"
+    },
+    "name": "하동노인통합지원센터",
+    "director": "이용백",
+    "zipCode": "52329",
+    "address": "경상남도 하동군 하동읍 중앙2길10-9(3층)",
+    "contact": {
+      "mainPhone": "055-884-7078",
+      "phone": "055-884-7078",
+      "emergency": "010-5053-6955",
+      "fax": "055-884-1203",
+      "email": "gnw1203@naver.com"
+    },
+    "allocation": {
+      "mow": {
+        "socialWorker": 4,
+        "careProvider": 54,
+        "users": 810
+      },
+      "actual": {
+        "socialWorkerAllocated": 5,
+        "socialWorkerHired": 4,
+        "careProviderAllocated": 55,
+        "careProviderHired": 55,
+        "usersAllocated": 845,
+        "usersServed": 837
+      }
+    },
+    "lat": 35.069958826658,
+    "lng": 127.746676865862
+  },
+  {
+    "code": "A48850002",
+    "region": "하동군",
+    "delegationType": "위탁",
+    "delegationPeriod": "2025-01-01 ~ 2027-12-31 (3년)",
+    "yearHistory": {
+      "2020": true,
+      "2021": true,
+      "2022": true,
+      "2023": true,
+      "2024": true,
+      "2025": true,
+      "2026": true
+    },
+    "facilityType": "지역자활센터",
+    "services": {
+      "specialized": true,
+      "emergencySafety": false,
+      "homeVisitCare": true,
+      "homeSeniorWelfare": false,
+      "socialServiceCenter": false,
+      "seniorJobDispatch": false
+    },
+    "corporation": {
+      "name": "(재)마산교구천주교회유지재단",
+      "registrationNo": "613-82-60528",
+      "uniqueNo": "--"
+    },
+    "name": "경남하동지역자활센터",
+    "director": "손호연",
+    "zipCode": "52326",
+    "address": "경상남도 하동군 하동읍 청년회관길 12",
+    "contact": {
+      "mainPhone": "055-884-6955",
+      "phone": "055-884-6955",
+      "emergency": "010-3834-4757",
+      "fax": "055-884-6957",
+      "email": "hdjahwal@hanmail.net"
+    },
+    "allocation": {
+      "mow": {
+        "socialWorker": 3,
+        "careProvider": 52,
+        "users": 780
+      },
+      "actual": {
+        "socialWorkerAllocated": 4,
+        "socialWorkerHired": 4,
+        "careProviderAllocated": 54,
+        "careProviderHired": 54,
+        "usersAllocated": 810,
+        "usersServed": 754
+      }
+    },
+    "lat": 35.0717229280635,
+    "lng": 127.748185625492
+  },
+  {
+    "code": "A48730001",
+    "region": "함안군",
+    "delegationType": "위탁",
+    "delegationPeriod": "2024-01-01 ~ 2026-12-31 (3년)",
+    "yearHistory": {
+      "2020": true,
+      "2021": true,
+      "2022": true,
+      "2023": true,
+      "2024": true,
+      "2025": true,
+      "2026": true
+    },
+    "facilityType": "사단법인",
+    "services": {
+      "specialized": false,
+      "emergencySafety": true,
+      "homeVisitCare": false,
+      "homeSeniorWelfare": false,
+      "socialServiceCenter": false,
+      "seniorJobDispatch": false
+    },
+    "corporation": {
+      "name": "(사)대한노인회함안군지회",
+      "registrationNo": "608-82-64032",
+      "uniqueNo": "608-82-64032"
+    },
+    "name": "(사)대한노인회함안군지회",
+    "director": "이학동",
+    "zipCode": "52046",
+    "address": "경상남도 함안군 가야읍 중앙남길 67",
+    "contact": {
+      "mainPhone": "055-585-8505",
+      "phone": "055-585-8505",
+      "emergency": "010-9924-0621",
+      "fax": "055-585-8507",
+      "email": "haman8505@hanmail.net"
+    },
+    "allocation": {
+      "mow": {
+        "socialWorker": 4,
+        "careProvider": 69,
+        "users": 1035
+      },
+      "actual": {
+        "socialWorkerAllocated": 4,
+        "socialWorkerHired": 4,
+        "careProviderAllocated": 67,
+        "careProviderHired": 62,
+        "usersAllocated": 1005,
+        "usersServed": 959
+      }
+    },
+    "lat": 35.2754702185994,
+    "lng": 128.410600869654
+  },
+  {
+    "code": "A48730002",
+    "region": "함안군",
+    "delegationType": "위탁",
+    "delegationPeriod": "2024-01-01 ~ 2026-12-31 (3년)",
+    "yearHistory": {
+      "2020": true,
+      "2021": true,
+      "2022": true,
+      "2023": true,
+      "2024": true,
+      "2025": true,
+      "2026": true
+    },
+    "facilityType": "재가노인복지시설",
+    "services": {
+      "specialized": true,
+      "emergencySafety": true,
+      "homeVisitCare": false,
+      "homeSeniorWelfare": true,
+      "socialServiceCenter": false,
+      "seniorJobDispatch": false
+    },
+    "corporation": {
+      "name": "사회복지법인새누리복지재단",
+      "registrationNo": "608-82-11461",
+      "uniqueNo": "--"
+    },
+    "name": "함안군재가노인통합지원센터",
+    "director": "진정옥",
+    "zipCode": "52004",
+    "address": "경상남도 함안군 칠서면 이룡3길 25-43",
+    "contact": {
+      "mainPhone": "055-586-1236",
+      "phone": "055-586-1236",
+      "emergency": "010-3822-1353",
+      "fax": "055-586-1238",
+      "email": "silver1236@hanmail.net"
+    },
+    "allocation": {
+      "mow": {
+        "socialWorker": 4,
+        "careProvider": 69,
+        "users": 1035
+      },
+      "actual": {
+        "socialWorkerAllocated": 5,
+        "socialWorkerHired": 5,
+        "careProviderAllocated": 62,
+        "careProviderHired": 62,
+        "usersAllocated": 930,
+        "usersServed": 918
+      }
+    },
+    "lat": 35.3844221239927,
+    "lng": 128.51143184256
+  },
+  {
+    "code": "A48870002",
+    "region": "함양군",
+    "delegationType": "위탁",
+    "delegationPeriod": "2024-01-01 ~ 2026-12-31 (3년)",
+    "yearHistory": {
+      "2020": false,
+      "2021": false,
+      "2022": false,
+      "2023": false,
+      "2024": true,
+      "2025": true,
+      "2026": true
+    },
+    "facilityType": "사단법인",
+    "services": {
+      "specialized": true,
+      "emergencySafety": false,
+      "homeVisitCare": false,
+      "homeSeniorWelfare": false,
+      "socialServiceCenter": false,
+      "seniorJobDispatch": false
+    },
+    "corporation": {
+      "name": "사단법인 대한노인회 함양군지회",
+      "registrationNo": "611-82-06173",
+      "uniqueNo": "611-82-06173"
+    },
+    "name": "사단법인 대한노인회 함양군지회",
+    "director": "이영일",
+    "zipCode": "50043",
+    "address": "경남 함양군 함양읍 함양남서로 1245 3층",
+    "contact": {
+      "mainPhone": "055-963-4165",
+      "phone": "055-964-9921",
+      "emergency": "010-5055-8206",
+      "fax": "055-963-4166",
+      "email": "dn9921@naver.com"
+    },
+    "allocation": {
+      "mow": {
+        "socialWorker": 6,
+        "careProvider": 96,
+        "users": 1440
+      },
+      "actual": {
+        "socialWorkerAllocated": 6,
+        "socialWorkerHired": 6,
+        "careProviderAllocated": 84,
+        "careProviderHired": 84,
+        "usersAllocated": 1440,
+        "usersServed": 1284
+      }
+    },
+    "lat": 35.5205449031268,
+    "lng": 127.718295452113
+  },
+  {
+    "code": "A48890003",
+    "region": "합천군",
+    "delegationType": "위탁",
+    "delegationPeriod": "2024-01-01 ~ 2026-12-31 (3년)",
+    "yearHistory": {
+      "2020": true,
+      "2021": true,
+      "2022": true,
+      "2023": true,
+      "2024": true,
+      "2025": true,
+      "2026": true
+    },
+    "facilityType": "재가노인복지시설",
+    "services": {
+      "specialized": false,
+      "emergencySafety": false,
+      "homeVisitCare": false,
+      "homeSeniorWelfare": true,
+      "socialServiceCenter": false,
+      "seniorJobDispatch": false
+    },
+    "corporation": {
+      "name": "사회복지법인 회암",
+      "registrationNo": "611-82-06834",
+      "uniqueNo": "587-82-00240"
+    },
+    "name": "미타재가복지센터",
+    "director": "성병태",
+    "zipCode": "50247",
+    "address": "경상남도 합천군 적중면 우회로 1198",
+    "contact": {
+      "mainPhone": "055-931-2233",
+      "phone": "055-931-9121",
+      "emergency": "010-3252-0708",
+      "fax": "055-932-9122",
+      "email": "mitasan9029@naver.com"
+    },
+    "allocation": {
+      "mow": {
+        "socialWorker": 3,
+        "careProvider": 48,
+        "users": 720
+      },
+      "actual": {
+        "socialWorkerAllocated": 3,
+        "socialWorkerHired": 3,
+        "careProviderAllocated": 48,
+        "careProviderHired": 48,
+        "usersAllocated": 735,
+        "usersServed": 733
+      }
+    },
+    "lat": 35.551232204486,
+    "lng": 128.292964515195
+  },
+  {
+    "code": "A48890004",
+    "region": "합천군",
+    "delegationType": "위탁",
+    "delegationPeriod": "2024-01-01 ~ 2026-12-31 (3년)",
+    "yearHistory": {
+      "2020": false,
+      "2021": false,
+      "2022": true,
+      "2023": true,
+      "2024": true,
+      "2025": true,
+      "2026": true
+    },
+    "facilityType": "재가노인복지시설",
+    "services": {
+      "specialized": false,
+      "emergencySafety": true,
+      "homeVisitCare": false,
+      "homeSeniorWelfare": true,
+      "socialServiceCenter": false,
+      "seniorJobDispatch": false
+    },
+    "corporation": {
+      "name": "사회복지법인 해창복지재단",
+      "registrationNo": "854-82-00382",
+      "uniqueNo": "--"
+    },
+    "name": "합천노인통합지원센터",
+    "director": "서문교",
+    "zipCode": "50224",
+    "address": "경상남도 합천군 삼가면 삼가로 10-13",
+    "contact": {
+      "mainPhone": "055-931-1014",
+      "phone": "055-931-1014",
+      "emergency": "010-8930-1680",
+      "fax": "055-931-1017",
+      "email": "hcsilver1@naver.com"
+    },
+    "allocation": {
+      "mow": {
+        "socialWorker": 4,
+        "careProvider": 64,
+        "users": 960
+      },
+      "actual": {
+        "socialWorkerAllocated": 4,
+        "socialWorkerHired": 4,
+        "careProviderAllocated": 64,
+        "careProviderHired": 63,
+        "usersAllocated": 977,
+        "usersServed": 965
+      }
+    },
+    "lat": 35.3828119088841,
+    "lng": 128.117098166324
+  },
+  {
+    "code": "A48890005",
+    "region": "합천군",
+    "delegationType": "위탁",
+    "delegationPeriod": "2024-01-01 ~ 2026-12-31 (3년)",
+    "yearHistory": {
+      "2020": true,
+      "2021": true,
+      "2022": true,
+      "2023": true,
+      "2024": true,
+      "2025": true,
+      "2026": true
+    },
+    "facilityType": "사회복지법인",
+    "services": {
+      "specialized": false,
+      "emergencySafety": false,
+      "homeVisitCare": false,
+      "homeSeniorWelfare": true,
+      "socialServiceCenter": false,
+      "seniorJobDispatch": false
+    },
+    "corporation": {
+      "name": "대한불교조계종사회복지재단",
+      "registrationNo": "611-80-03487",
+      "uniqueNo": "611-80-03487"
+    },
+    "name": "코끼리행복복지센터",
+    "director": "엄동수",
+    "zipCode": "50201",
+    "address": "경남 합천군 가야면 가야시장로 98",
+    "contact": {
+      "mainPhone": "055-932-3141",
+      "phone": "055-932-3141",
+      "emergency": "010-9611-7762",
+      "fax": "055-932-3143",
+      "email": "co3144@hanmail.net"
+    },
+    "allocation": {
+      "mow": {
+        "socialWorker": 4,
+        "careProvider": 50,
+        "users": 750
+      },
+      "actual": {
+        "socialWorkerAllocated": 4,
+        "socialWorkerHired": 4,
+        "careProviderAllocated": 50,
+        "careProviderHired": 50,
+        "usersAllocated": 767,
+        "usersServed": 791
+      }
+    },
+    "lat": 35.7633387082867,
+    "lng": 128.139493831754
+  },
+  {
+    "code": "A48890006",
+    "region": "합천군",
+    "delegationType": "위탁",
+    "delegationPeriod": "2024-01-01 ~ 2026-12-31 (3년)",
+    "yearHistory": {
+      "2020": false,
+      "2021": false,
+      "2022": true,
+      "2023": true,
+      "2024": true,
+      "2025": true,
+      "2026": true
+    },
+    "facilityType": "협동조합",
+    "services": {
+      "specialized": true,
+      "emergencySafety": true,
+      "homeVisitCare": false,
+      "homeSeniorWelfare": false,
+      "socialServiceCenter": false,
+      "seniorJobDispatch": false
+    },
+    "corporation": {
+      "name": "사회적협동조합 합천지역자활센터",
+      "registrationNo": "604-82-63098",
+      "uniqueNo": "604-82-63098"
+    },
+    "name": "사회적협동조합 합천종합복지공동체",
+    "director": "심춘덕",
+    "zipCode": "50239",
+    "address": "경남 합천군 대양면 대야로 462 (합천종합복지공동체)",
+    "contact": {
+      "mainPhone": "055-933-3933",
+      "phone": "055-933-3933",
+      "emergency": "010-5730-0920",
+      "fax": "055-933-3932",
+      "email": "ilovehcjh@hanmail.net"
+    },
+    "allocation": {
+      "mow": {
+        "socialWorker": 6,
+        "careProvider": 85,
+        "users": 1275
+      },
+      "actual": {
+        "socialWorkerAllocated": 6,
+        "socialWorkerHired": 6,
+        "careProviderAllocated": 85,
+        "careProviderHired": 85,
+        "usersAllocated": 1275,
+        "usersServed": 1334
+      }
+    },
+    "lat": 35.5321470486498,
+    "lng": 128.171390843971
+  }
+]

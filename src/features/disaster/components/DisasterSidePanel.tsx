@@ -1,3 +1,4 @@
+import React from 'react';
 import { X, CloudRain, Wind, Zap, AlertTriangle, Info, Waves } from "lucide-react";
 import type { DisasterRegionStats, DisasterAlert, DisasterType } from "../lib/disaster-types";
 
@@ -123,8 +124,8 @@ function AlertRow({ alert }: { alert: DisasterAlert }) {
         <div className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg transition-colors border border-transparent hover:border-gray-100">
             <div className="flex items-center gap-3">
                 <span className={`text-[10px] px-1.5 py-0.5 rounded border ${alert.alertLevel === 'warning'
-                        ? 'bg-red-50 text-red-600 border-red-100'
-                        : 'bg-orange-50 text-orange-600 border-orange-100'
+                    ? 'bg-red-50 text-red-600 border-red-100'
+                    : 'bg-orange-50 text-orange-600 border-orange-100'
                     }`}>
                     {alert.alertLevel === 'warning' ? '경보' : '주의보'}
                 </span>

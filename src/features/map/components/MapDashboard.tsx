@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, WifiOff } from "lucide-react";
 import GyeongnamMap from "./GyeongnamMap";
 import MapTooltip from "./MapTooltip";
 import MapSidePanel from "./MapSidePanel";
@@ -14,6 +14,7 @@ import {
     useAssignmentChanges,
 } from "../hooks/useMapData";
 import { getInstitutionStatuses, getInstitutionDetail, getInstitutionDetails, useRegionStats } from "../hooks/useRegionStats";
+import { useInstitutionProfiles, useInstitutionProfile } from "../hooks/useInstitutionProfiles";
 import type { TooltipData, MapMode, MapTheme } from "../lib/map-types";
 
 export default function MapDashboard() {
@@ -25,9 +26,10 @@ export default function MapDashboard() {
     const [mapTheme, setMapTheme] = useState<MapTheme>("sky");
 
     const { data: availableMonths = [], isLoading: isLoadingMonths } = useAvailableMonths();
-    const { data: surveys, isLoading: isLoadingSurveys } = useSurveys(selectedMonth);
+    const { data: surveys, isLoading: isLoadingSurveys, isFallback } = useSurveys(selectedMonth);
     const { data: discrepancies = [] } = useDiscrepancies(selectedMonth);
     const { data: assignmentChanges = [] } = useAssignmentChanges(selectedMonth);
+    const { data: institutionProfiles } = useInstitutionProfiles();
 
     useEffect(() => {
         if (!selectedMonth && availableMonths.length > 0) {
@@ -63,6 +65,7 @@ export default function MapDashboard() {
         () => (selectedInstitutionCode ? getInstitutionDetail(selectedInstitutionCode, surveys) : null),
         [selectedInstitutionCode, surveys]
     );
+    const selectedProfile = useInstitutionProfile(selectedInstitutionCode, institutionProfiles);
 
     const handleRegionClick = useCallback((regionName: string) => {
         setSelectedRegion((prev) => (prev === regionName ? null : regionName));
@@ -102,6 +105,12 @@ export default function MapDashboard() {
     return (
         <div className={`min-h-screen py-8 px-4 transition-colors duration-500 flex flex-col ${isDark ? "bg-[#0a0b1e] text-white" : "bg-gray-50 text-gray-900"}`}>
             <div className="max-w-7xl mx-auto w-full">
+                {isFallback && (
+                    <div className="mb-4 flex items-center gap-2 px-4 py-2.5 bg-amber-50 border border-amber-300 rounded-xl text-amber-800 text-sm font-medium">
+                        <WifiOff className="h-4 w-4 flex-shrink-0" />
+                        ⚠️ 서버 연결 없음 — 최근 저장된 데이터를 표시 중입니다
+                    </div>
+                )}
                 <MapHeader
                     selectedMonth={selectedMonth}
                     availableMonths={availableMonths}
@@ -151,6 +160,7 @@ export default function MapDashboard() {
                                     onClose={handleClosePanel}
                                     onSelectInstitution={handleSelectInstitution}
                                     selectedInstitution={selectedInstitution}
+                                    institutionProfile={selectedProfile}
                                     onBackToRegion={handleBackToRegion}
                                     discrepancies={discrepancies}
                                     assignmentChanges={assignmentChanges}

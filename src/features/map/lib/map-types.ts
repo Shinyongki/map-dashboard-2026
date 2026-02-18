@@ -151,6 +151,54 @@ export interface AssignmentChangeData {
   변경일자?: string;
 }
 
+export interface InstitutionProfile {
+  code: string;
+  region: string;
+  delegationType: string;
+  delegationPeriod: string;
+  yearHistory: Record<string, boolean>;
+  facilityType: string;
+  services: {
+    specialized: boolean;
+    emergencySafety: boolean;
+    homeVisitCare: boolean;
+    homeSeniorWelfare: boolean;
+    socialServiceCenter: boolean;
+    seniorJobDispatch: boolean;
+  };
+  corporation: {
+    name: string;
+    registrationNo: string;
+    uniqueNo: string;
+  };
+  name: string;
+  director: string;
+  zipCode: string;
+  address: string;
+  contact: {
+    mainPhone: string;
+    phone: string;
+    emergency: string;
+    fax: string;
+    email: string;
+  };
+  allocation: {
+    mow: {
+      socialWorker: number;
+      careProvider: number;
+      users: number;
+    };
+    actual: {
+      socialWorkerAllocated: number;
+      socialWorkerHired: number;
+      careProviderAllocated: number;
+      careProviderHired: number;
+      usersAllocated: number;
+      usersServed: number;
+    };
+  };
+}
+
 export interface TooltipData {
   region: string;
   stats: RegionStats;

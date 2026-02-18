@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { X, CheckCircle2, AlertCircle, ChevronLeft, AlertTriangle, ArrowUp, ArrowDown } from "lucide-react";
+import { X, CheckCircle2, AlertCircle, ChevronLeft, AlertTriangle, ArrowUp, ArrowDown, Building2, Phone, Mail, Shield } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type {
   RegionStats,
   InstitutionStatus,
   InstitutionDetail,
+  InstitutionProfile,
   DiscrepancyData,
   AssignmentChangeData,
   MapMode,
@@ -19,6 +20,7 @@ interface MapSidePanelProps {
   onClose: () => void;
   onSelectInstitution: (code: string) => void;
   selectedInstitution: InstitutionDetail | null;
+  institutionProfile: InstitutionProfile | null;
   onBackToRegion: () => void;
   discrepancies: DiscrepancyData[];
   assignmentChanges: AssignmentChangeData[];
@@ -31,6 +33,7 @@ export default function MapSidePanel({
   onClose,
   onSelectInstitution,
   selectedInstitution,
+  institutionProfile,
   onBackToRegion,
   discrepancies,
   assignmentChanges,
@@ -43,6 +46,7 @@ export default function MapSidePanel({
     return (
       <InstitutionDetailView
         detail={selectedInstitution}
+        profile={institutionProfile}
         discrepancies={discrepancies.filter(d => d.기관코드 === selectedInstitution.기관코드)}
         assignmentChanges={assignmentChanges.filter(a => a.기관코드 === selectedInstitution.기관코드)}
         onBack={onBackToRegion}
@@ -326,12 +330,14 @@ function RegionSummaryView({
 // ───────────────────────────────────────────
 function InstitutionDetailView({
   detail: d,
+  profile: p,
   discrepancies,
   assignmentChanges,
   onBack,
   onClose,
 }: {
   detail: InstitutionDetail;
+  profile: InstitutionProfile | null;
   discrepancies: DiscrepancyData[];
   assignmentChanges: AssignmentChangeData[];
   onBack: () => void;
@@ -341,6 +347,8 @@ function InstitutionDetailView({
   const totalShortUsers = d.단기_남 + d.단기_여;
   const totalTermGen = (d.종결자_남_사망 || 0) + (d.종결자_남_서비스거부 || 0) + (d.종결자_남_기타 || 0)
     + (d.종결자_여_사망 || 0) + (d.종결자_여_서비스거부 || 0) + (d.종결자_여_기타 || 0);
+
+  const [showProfile, setShowProfile] = useState(false);
 
   return (
     <div className="h-full flex flex-col bg-white">
@@ -373,6 +381,93 @@ function InstitutionDetailView({
 
       <ScrollArea className="flex-1">
         <div className="p-4 space-y-4">
+
+          {/* ── 기관 프로필 ── */}
+          {p && (
+            <div className="border border-indigo-200 rounded-lg overflow-hidden">
+              <button
+                onClick={() => setShowProfile(!showProfile)}
+                className="w-full flex items-center justify-between px-3 py-2.5 bg-indigo-50 hover:bg-indigo-100 transition-colors text-left"
+              >
+                <span className="text-sm font-semibold text-indigo-700 flex items-center gap-1.5">
+                  <Building2 className="h-4 w-4" />
+                  기관 프로필
+                </span>
+                <svg className={`w-4 h-4 text-indigo-400 transition-transform ${showProfile ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              {showProfile && (
+                <div className="px-3 py-3 space-y-3">
+                  {/* 기본 정보 */}
+                  <div className="bg-white border border-gray-100 rounded-md p-2.5 text-xs space-y-1.5">
+                    <div className="flex justify-between"><span className="text-gray-500">기관장</span><span className="font-medium text-gray-900">{p.director}</span></div>
+                    <div className="flex justify-between"><span className="text-gray-500">시설유형</span><span className="font-medium text-gray-900">{p.facilityType}</span></div>
+                    <div className="flex justify-between"><span className="text-gray-500">위수탁</span><span className="font-medium text-gray-900">{p.delegationType}</span></div>
+                    <div className="flex justify-between items-start"><span className="text-gray-500 shrink-0">위수탁기간</span><span className="font-medium text-gray-900 text-right ml-2">{p.delegationPeriod}</span></div>
+                    <div className="flex justify-between"><span className="text-gray-500">수탁법인</span><span className="font-medium text-gray-900">{p.corporation.name}</span></div>
+                    {p.address && <div className="text-gray-500 pt-1 border-t border-gray-50">{p.address}</div>}
+                  </div>
+
+                  {/* 연락처 */}
+                  <div className="bg-white border border-gray-100 rounded-md p-2.5 text-xs space-y-1.5">
+                    <div className="text-[11px] font-semibold text-gray-600 mb-1 flex items-center gap-1"><Phone className="h-3 w-3" /> 연락처</div>
+                    {p.contact.phone && <div className="flex justify-between"><span className="text-gray-500">메인연락처</span><span className="font-medium">{p.contact.phone}</span></div>}
+                    {p.contact.emergency && <div className="flex justify-between"><span className="text-gray-500">긴급연락처</span><span className="font-medium">{p.contact.emergency}</span></div>}
+                    {p.contact.fax && <div className="flex justify-between"><span className="text-gray-500">팩스</span><span className="font-medium">{p.contact.fax}</span></div>}
+                    {p.contact.email && <div className="flex justify-between"><span className="text-gray-500">이메일</span><span className="font-medium text-indigo-600">{p.contact.email}</span></div>}
+                  </div>
+
+                  {/* 특화서비스 뱃지 */}
+                  {Object.values(p.services).some(v => v) && (
+                    <div>
+                      <div className="text-[11px] font-semibold text-gray-600 mb-1.5 flex items-center gap-1"><Shield className="h-3 w-3" /> 수행 서비스</div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {p.services.specialized && <ServiceBadge label="특화서비스" color="purple" />}
+                        {p.services.emergencySafety && <ServiceBadge label="응급안전안심" color="red" />}
+                        {p.services.homeVisitCare && <ServiceBadge label="방문요양" color="blue" />}
+                        {p.services.homeSeniorWelfare && <ServiceBadge label="재가노인복지" color="green" />}
+                        {p.services.socialServiceCenter && <ServiceBadge label="사회서비스원" color="amber" />}
+                        {p.services.seniorJobDispatch && <ServiceBadge label="노인일자리파견" color="teal" />}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 배정 vs 채용 비교 */}
+                  {(p.allocation.mow.socialWorker > 0 || p.allocation.mow.careProvider > 0 || p.allocation.mow.users > 0) && (
+                    <div>
+                      <div className="text-[11px] font-semibold text-gray-600 mb-1.5">복지부 배정 vs 실제 채용</div>
+                      <div className="space-y-2">
+                        {p.allocation.mow.socialWorker > 0 && (
+                          <AllocationBar label="전담사회복지사" allocated={p.allocation.mow.socialWorker} hired={p.allocation.actual.socialWorkerHired} />
+                        )}
+                        {p.allocation.mow.careProvider > 0 && (
+                          <AllocationBar label="생활지원사" allocated={p.allocation.mow.careProvider} hired={p.allocation.actual.careProviderHired} />
+                        )}
+                        {p.allocation.mow.users > 0 && (
+                          <AllocationBar label="대상자" allocated={p.allocation.mow.users} hired={p.allocation.actual.usersServed} />
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 사업 수행 이력 타임라인 */}
+                  <div>
+                    <div className="text-[11px] font-semibold text-gray-600 mb-1.5">사업 수행 이력</div>
+                    <div className="flex gap-1">
+                      {Object.entries(p.yearHistory).map(([year, active]) => (
+                        <div key={year} className="flex flex-col items-center gap-0.5">
+                          <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold ${active ? "bg-indigo-500 text-white" : "bg-gray-100 text-gray-400"}`}>
+                            {year.slice(2)}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* 제출 정보 */}
           <div className="bg-gray-50 rounded-lg p-3 text-xs space-y-1">
@@ -626,6 +721,41 @@ function ChangeRow({ label, value }: { label: string; value: number }) {
         {value < 0 && <ArrowDown className="h-3 w-3" />}
         {value > 0 ? "+" : ""}{value}
       </span>
+    </div>
+  );
+}
+
+const SERVICE_BADGE_COLORS: Record<string, string> = {
+  purple: "bg-purple-100 text-purple-700 border-purple-200",
+  red: "bg-red-100 text-red-700 border-red-200",
+  blue: "bg-blue-100 text-blue-700 border-blue-200",
+  green: "bg-green-100 text-green-700 border-green-200",
+  amber: "bg-amber-100 text-amber-700 border-amber-200",
+  teal: "bg-teal-100 text-teal-700 border-teal-200",
+};
+
+function ServiceBadge({ label, color }: { label: string; color: string }) {
+  return (
+    <span className={`inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full border ${SERVICE_BADGE_COLORS[color] || SERVICE_BADGE_COLORS.blue}`}>
+      {label}
+    </span>
+  );
+}
+
+function AllocationBar({ label, allocated, hired }: { label: string; allocated: number; hired: number }) {
+  const rate = allocated > 0 ? Math.round((hired / allocated) * 100) : 0;
+  const barWidth = Math.min(rate, 100);
+  const barColor = rate >= 100 ? "bg-green-500" : rate >= 70 ? "bg-amber-400" : "bg-red-400";
+
+  return (
+    <div className="text-xs">
+      <div className="flex justify-between mb-0.5">
+        <span className="text-gray-600">{label}</span>
+        <span className="font-medium text-gray-900">{hired}/{allocated} <span className={`font-bold ${rate >= 100 ? "text-green-600" : rate >= 70 ? "text-amber-600" : "text-red-600"}`}>({rate}%)</span></span>
+      </div>
+      <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+        <div className={`h-full rounded-full transition-all ${barColor}`} style={{ width: `${barWidth}%` }} />
+      </div>
     </div>
   );
 }

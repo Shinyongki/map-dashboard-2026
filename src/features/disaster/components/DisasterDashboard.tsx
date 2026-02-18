@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { Loader2 } from "lucide-react";
 import type { DisasterMapMode } from "../lib/disaster-types";
 import { useDisasterData } from "../hooks/useDisasterData";
@@ -9,6 +9,7 @@ import DisasterLegend from "./DisasterLegend";
 import DisasterTooltip from "./DisasterTooltip";
 import DisasterSidePanel from "./DisasterSidePanel";
 import DisasterAnalytics from "./DisasterAnalytics";
+import ClimateCareBriefing from "@/features/climate/components/ClimateCareBriefing";
 
 export default function DisasterDashboard() {
     const [disasterMode, setDisasterMode] = useState<DisasterMapMode>("total");
@@ -26,6 +27,28 @@ export default function DisasterDashboard() {
     const disasterStatsMap = useDisasterRegionStats(alerts, yearRange);
 
     const selectedStats = selectedRegion ? disasterStatsMap.get(selectedRegion) ?? null : null;
+
+    // 최근 연도 재난 발생 시군 추출
+    const alertRegions = useMemo(() => {
+        const currentYear = yearRange[1];
+        const regions: string[] = [];
+        disasterStatsMap.forEach((stats, region) => {
+            const yearData = stats.yearlyBreakdown.find(
+                (y) => y.year === currentYear
+            );
+            if (yearData && yearData.totalCount > 0) {
+                regions.push(region);
+            }
+        });
+        return regions;
+    }, [disasterStatsMap, yearRange]);
+
+    // 현재 모드에서 alertType 결정
+    const alertType = useMemo(() => {
+        if (disasterMode === "typhoon") return "태풍" as const;
+        if (disasterMode === "earthquake") return "지진" as const;
+        return "호우" as const;
+    }, [disasterMode]);
 
     const handleRegionClick = useCallback((regionName: string) => {
         setSelectedRegion((prev) => (prev === regionName ? null : regionName));
@@ -51,6 +74,12 @@ export default function DisasterDashboard() {
                     onDisasterModeChange={setDisasterMode}
                     yearRange={yearRange}
                     onYearRangeChange={setYearRange}
+                />
+
+                {/* 재난 발생 시군 돌봄 현황 브리핑 */}
+                <ClimateCareBriefing
+                    alertRegions={alertRegions}
+                    alertType={alertType}
                 />
             </div>
 
@@ -107,3 +136,4 @@ export default function DisasterDashboard() {
         </div>
     );
 }
+

@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { Loader2 } from "lucide-react";
 import type { ClimateMapMode } from "../lib/climate-types";
 import { useClimateData } from "../hooks/useClimateData";
@@ -9,6 +9,7 @@ import ClimateLegend from "./ClimateLegend";
 import ClimateTooltip from "./ClimateTooltip";
 import ClimateAnalytics from "./ClimateAnalytics";
 import ClimateSidePanel from "./ClimateSidePanel";
+import ClimateCareBriefing from "./ClimateCareBriefing";
 
 export default function ClimateDashboard() {
     const [climateMode, setClimateMode] = useState<ClimateMapMode>("total");
@@ -26,6 +27,32 @@ export default function ClimateDashboard() {
     const climateStatsMap = useClimateRegionStats(alerts, yearRange);
 
     const selectedStats = selectedRegion ? climateStatsMap.get(selectedRegion) ?? null : null;
+
+    // 최근 연도 특보 발령 시군 추출
+    const alertRegions = useMemo(() => {
+        const currentYear = yearRange[1];
+        const regions: string[] = [];
+        climateStatsMap.forEach((stats, region) => {
+            const yearData = stats.yearlyBreakdown.find(
+                (y) => y.year === currentYear
+            );
+            if (yearData && yearData.totalCount > 0) {
+                regions.push(region);
+            }
+        });
+        return regions;
+    }, [climateStatsMap, yearRange]);
+
+    // 현재 모드에서 alertType 결정
+    const alertType = useMemo(() => {
+        if (
+            climateMode === "cold_advisory" ||
+            climateMode === "cold_warning" ||
+            climateMode === "all_cold"
+        )
+            return "한파" as const;
+        return "폭염" as const;
+    }, [climateMode]);
 
     const handleRegionClick = useCallback((regionName: string) => {
         setSelectedRegion((prev) => (prev === regionName ? null : regionName));
@@ -51,6 +78,12 @@ export default function ClimateDashboard() {
                     onClimateModeChange={setClimateMode}
                     yearRange={yearRange}
                     onYearRangeChange={setYearRange}
+                />
+
+                {/* 특보 발령 시군 돌봄 현황 브리핑 */}
+                <ClimateCareBriefing
+                    alertRegions={alertRegions}
+                    alertType={alertType}
                 />
             </div>
 
@@ -107,3 +140,4 @@ export default function ClimateDashboard() {
         </div>
     );
 }
+

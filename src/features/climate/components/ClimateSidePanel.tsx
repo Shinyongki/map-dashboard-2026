@@ -1,3 +1,4 @@
+import React from 'react';
 import { X, Snowflake, Sun, AlertTriangle, Info } from "lucide-react";
 import type { ClimateRegionStats, WeatherAlert, AlertType } from "../lib/climate-types";
 
