@@ -7,7 +7,7 @@ import {
     FileText,
     LayoutList,
     MapPin,
-    Zap,
+    ArrowLeft,
 } from "lucide-react";
 import { useAuth } from "@/features/qna/hooks/useAuth";
 import { useQuestions } from "@/features/qna/hooks/useQuestions";
@@ -19,9 +19,9 @@ import QuestionForm from "@/features/qna/components/QuestionForm";
 import QuestionDetail from "@/features/qna/components/QuestionDetail";
 import AdminPanel from "@/features/qna/components/AdminPanel";
 import DocumentManager from "@/features/qna/components/DocumentManager";
-import InstantQuery from "@/features/qna/components/InstantQuery";
+import DocumentGrid from "@/features/qna/components/DocumentGrid";
 
-type UserView = "instant" | "list" | "form" | "detail";
+type UserView = "documents" | "list" | "form" | "detail";
 type AdminTab = "questions" | "documents";
 
 export default function QnADashboard() {
@@ -33,25 +33,22 @@ export default function QnADashboard() {
         approveAnswer,
         closeQuestion,
         removeQuestion,
-        refresh,
     } = useQuestions();
     const {
         documents,
         loading: docsLoading,
         uploading,
         upload,
+        update: docsUpdate,
         remove: removeDoc,
         setValidUntil,
     } = useDocuments();
 
     // User view state
-    const [userView, setUserView] = useState<UserView>("instant");
-    const [selectedQuestion, setSelectedQuestion] = useState<Question | null>(
-        null
-    );
-    const [statusFilter, setStatusFilter] = useState<QuestionStatus | "all">(
-        "all"
-    );
+    const [userView, setUserView] = useState<UserView>("documents");
+    const [selectedQuestion, setSelectedQuestion] = useState<Question | null>(null);
+    const [selectedDocId, setSelectedDocId] = useState<string | null>(null);
+    const [statusFilter, setStatusFilter] = useState<QuestionStatus | "all">("all");
     const [searchQuery, setSearchQuery] = useState("");
 
     // Admin tab state
@@ -70,6 +67,11 @@ export default function QnADashboard() {
         setUserView("detail");
     };
 
+    const handleSelectDocument = (docId: string | null) => {
+        setSelectedDocId(docId);
+        setUserView("list");
+    };
+
     const handleSubmitQuestion = async (
         data: Parameters<typeof submitQuestion>[0]
     ) => {
@@ -81,6 +83,13 @@ export default function QnADashboard() {
         q.relatedDocumentId
             ? documents.find((d) => d.id === q.relatedDocumentId) ?? null
             : null;
+
+    // Filter questions based on selected document
+    const filteredQuestions = questions.filter(q =>
+        selectedDocId ? q.relatedDocumentId === selectedDocId : !q.relatedDocumentId
+    );
+
+    const selectedDoc = documents.find(d => d.id === selectedDocId);
 
     return (
         <div className="max-w-7xl mx-auto px-4 py-6">
@@ -115,24 +124,14 @@ export default function QnADashboard() {
                     {!isAdmin && (
                         <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-0.5">
                             <button
-                                onClick={() => setUserView("instant")}
-                                className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${userView === "instant"
-                                    ? "bg-white text-violet-700 shadow-sm"
-                                    : "text-gray-500 hover:text-gray-700"
-                                    }`}
-                            >
-                                <Zap className="h-3.5 w-3.5" />
-                                즉시 질의
-                            </button>
-                            <button
-                                onClick={() => setUserView("list")}
-                                className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${userView === "list" || userView === "detail"
+                                onClick={() => setUserView("documents")}
+                                className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${userView === "documents"
                                     ? "bg-white text-emerald-700 shadow-sm"
                                     : "text-gray-500 hover:text-gray-700"
                                     }`}
                             >
                                 <LayoutList className="h-3.5 w-3.5" />
-                                질문 목록
+                                공문 목록
                             </button>
                             <button
                                 onClick={() => setUserView("form")}
@@ -199,6 +198,7 @@ export default function QnADashboard() {
                             loading={docsLoading}
                             uploading={uploading}
                             onUpload={upload}
+                            onUpdate={docsUpdate}
                             onDelete={removeDoc}
                             onSetValidUntil={setValidUntil}
                             uploadedBy={session.name}
@@ -208,14 +208,62 @@ export default function QnADashboard() {
             ) : (
                 /* User view */
                 <div>
-                    {userView === "instant" ? (
-                        <InstantQuery documents={documents} />
+                    {userView === "documents" ? (
+                        <div className="space-y-4">
+                            <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl flex items-start gap-3">
+                                <div className="p-2 bg-blue-100 rounded-lg">
+                                    <FileText className="h-5 w-5 text-blue-600" />
+                                </div>
+                                <div>
+                                    <h3 className="text-blue-900 font-bold text-sm">공문별 질의응답</h3>
+                                    <p className="text-blue-700 text-xs mt-1">
+                                        문의하고자 하는 공문을 선택하면, 해당 공문의 담당자와 기존 질의응답을 확인할 수 있습니다.
+                                    </p>
+                                </div>
+                            </div>
+                            <DocumentGrid
+                                documents={documents}
+                                questions={questions}
+                                onSelect={handleSelectDocument}
+                            />
+                        </div>
+                    ) : userView === "list" ? (
+                        <div className="space-y-4">
+                            <div className="flex items-center gap-2 mb-2">
+                                <button
+                                    onClick={() => setUserView("documents")}
+                                    className="p-1 hover:bg-gray-100 rounded-full text-gray-400 hover:text-gray-600"
+                                >
+                                    <ArrowLeft className="h-5 w-5" />
+                                </button>
+                                <h2 className="text-lg font-bold text-gray-900">
+                                    {selectedDoc ? selectedDoc.title : "일반 질의응답"}
+                                </h2>
+                                {selectedDoc && (
+                                    <span className="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-0.5 rounded">
+                                        {selectedDoc.documentNumber}
+                                    </span>
+                                )}
+                            </div>
+                            <QuestionList
+                                questions={filteredQuestions}
+                                loading={loading}
+                                onSelect={handleSelectQuestion}
+                                selectedId={selectedQuestion?.id}
+                                statusFilter={statusFilter}
+                                onStatusFilterChange={setStatusFilter}
+                                searchQuery={searchQuery}
+                                onSearchChange={setSearchQuery}
+                                isAdmin={false}
+                            />
+                        </div>
                     ) : userView === "form" ? (
                         <QuestionForm
                             documents={documents}
                             authorName={session.name}
                             authorOrg={session.orgCode}
                             authorOrgName={session.orgName}
+                            defaultDocumentId={selectedDocId}
                             onSubmit={handleSubmitQuestion}
                             onCancel={() => setUserView("list")}
                         />
@@ -229,18 +277,7 @@ export default function QnADashboard() {
                                 setSelectedQuestion(null);
                             }}
                         />
-                    ) : (
-                        <QuestionList
-                            questions={questions}
-                            loading={loading}
-                            onSelect={handleSelectQuestion}
-                            selectedId={selectedQuestion?.id}
-                            statusFilter={statusFilter}
-                            onStatusFilterChange={setStatusFilter}
-                            searchQuery={searchQuery}
-                            onSearchChange={setSearchQuery}
-                        />
-                    )}
+                    ) : null}
                 </div>
             )}
         </div>

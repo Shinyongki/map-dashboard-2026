@@ -27,6 +27,9 @@ export default function QuestionDetail({
         question.status === "answered" || question.status === "closed";
     const showAiDraft = isAdmin && question.aiDraftAnswer;
 
+    // Mask AI draft status for non-admins
+    const displayStatus = !isAdmin && question.status === "ai_draft" ? "pending" : question.status;
+
     return (
         <div className="bg-white rounded-xl border border-gray-200 p-6">
             {/* Header */}
@@ -59,14 +62,14 @@ export default function QuestionDetail({
                     {question.authorOrgName} · {question.authorName}
                 </span>
                 <span
-                    className={`px-2 py-0.5 rounded text-xs font-medium ${question.status === "answered"
-                            ? "bg-green-100 text-green-700"
-                            : question.status === "ai_draft"
-                                ? "bg-blue-100 text-blue-700"
-                                : "bg-yellow-100 text-yellow-700"
+                    className={`px-2 py-0.5 rounded text-xs font-medium ${displayStatus === "answered"
+                        ? "bg-green-100 text-green-700"
+                        : displayStatus === "ai_draft"
+                            ? "bg-blue-100 text-blue-700"
+                            : "bg-yellow-100 text-yellow-700"
                         }`}
                 >
-                    {STATUS_LABELS[question.status]}
+                    {STATUS_LABELS[displayStatus]}
                 </span>
             </div>
 

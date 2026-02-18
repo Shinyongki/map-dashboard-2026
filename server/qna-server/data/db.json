@@ -1,0 +1,43 @@
+{
+  "questions": [],
+  "resources": [],
+  "notices": [
+    {
+      "content": "공지공지",
+      "category": "general",
+      "isActive": true,
+      "relatedDocumentId": "doc4",
+      "id": "f797ecab-9a29-4bb2-97d8-31051e5ad100",
+      "createdAt": "2026-02-18T12:31:35.397Z",
+      "updatedAt": "2026-02-18T12:31:35.397Z"
+    },
+    {
+      "content": "Test Notice for Document Integration",
+      "category": "general",
+      "isActive": true,
+      "relatedDocumentId": "doc1",
+      "id": "399f7204-3e2a-4a19-8522-cd89ef1d17f1",
+      "createdAt": "2026-02-18T11:44:24.578Z",
+      "updatedAt": "2026-02-18T11:44:24.578Z"
+    },
+    {
+      "id": "notice-001",
+      "content": "인수증 제출 기한은 원칙적으로 당일이나, 천재지변 등 불가피한 사유 발생 시 최대 7일까지 연장 가능합니다.",
+      "isActive": true,
+      "category": "exception",
+      "createdAt": "2026-02-18T11:27:21.439Z",
+      "updatedAt": "2026-02-18T11:27:21.439Z"
+    }
+  ],
+  "documents": [
+    {
+      "id": "doc-001",
+      "title": "2026년도 노인맞춤돌봄서비스 사업안내",
+      "content": "사업안내서 본문입니다...",
+      "category": "지침",
+      "managerName": "김지방",
+      "managerPhone": "051-123-4567",
+      "uploadedAt": "2026-02-18T11:38:04.870Z"
+    }
+  ]
+}

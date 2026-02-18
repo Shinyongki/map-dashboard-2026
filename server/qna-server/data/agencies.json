@@ -1,0 +1,272 @@
+[
+    {
+        "region": "거제시",
+        "orgCode": "A48110001",
+        "orgName": "거제시종합사회복지관"
+    },
+    {
+        "region": "거제시",
+        "orgCode": "A48110003",
+        "orgName": "거제사랑노인복지센터"
+    },
+    {
+        "region": "거제시",
+        "orgCode": "A48110002",
+        "orgName": "옥포종합사회복지관"
+    },
+    {
+        "region": "거제시",
+        "orgCode": "A48110004",
+        "orgName": "선인노인통합지원센터"
+    },
+    {
+        "region": "거창군",
+        "orgCode": "A48880001",
+        "orgName": "거창노인통합지원센터"
+    },
+    {
+        "region": "거창군",
+        "orgCode": "A48880003",
+        "orgName": "거창효노인통합지원센터"
+    },
+    {
+        "region": "거창군",
+        "orgCode": "A48880004",
+        "orgName": "이웃사랑복지센터"
+    },
+    {
+        "region": "고성군",
+        "orgCode": "A48820001",
+        "orgName": "작은예수의집(분)고성군노인통합지원센터"
+    },
+    {
+        "region": "고성군",
+        "orgCode": "A48820002",
+        "orgName": "사회복지법인 정토만일회"
+    },
+    {
+        "region": "김해시",
+        "orgCode": "A48250001",
+        "orgName": "효능원노인통합지원센터"
+    },
+    {
+        "region": "김해시",
+        "orgCode": "A48250004",
+        "orgName": "노인종합복지관"
+    },
+    {
+        "region": "김해시",
+        "orgCode": "A48250002",
+        "orgName": "김해시종합사회복지관"
+    },
+    {
+        "region": "김해시",
+        "orgCode": "A48250006",
+        "orgName": "보현행원노인통합지원센터"
+    },
+    {
+        "region": "김해시",
+        "orgCode": "A48250005",
+        "orgName": "김해노인통합지원센터"
+    },
+    {
+        "region": "남해군",
+        "orgCode": "A48860001",
+        "orgName": "화방남해노인통합지원센터"
+    },
+    {
+        "region": "남해군",
+        "orgCode": "A48860002",
+        "orgName": "남해복지재단"
+    },
+    {
+        "region": "밀양시",
+        "orgCode": "A48270001",
+        "orgName": "밀양시종합사회복지관"
+    },
+    {
+        "region": "밀양시",
+        "orgCode": "A48270002",
+        "orgName": "밀양노인통합지원센터"
+    },
+    {
+        "region": "밀양시",
+        "orgCode": "A48270003",
+        "orgName": "무안노인통합지원센터"
+    },
+    {
+        "region": "사천시",
+        "orgCode": "A48240001",
+        "orgName": "사천노인복지센터"
+    },
+    {
+        "region": "사천시",
+        "orgCode": "A48240002",
+        "orgName": "사천노인통합지원센터"
+    },
+    {
+        "region": "사천시",
+        "orgCode": "A48240003",
+        "orgName": "삼천포노인복지관"
+    },
+    {
+        "region": "사천시",
+        "orgCode": "A48240004",
+        "orgName": "사천시건강가정다문화가족지원센터"
+    },
+    {
+        "region": "산청군",
+        "orgCode": "A48890001",
+        "orgName": "산청노인통합지원센터"
+    },
+    {
+        "region": "산청군",
+        "orgCode": "A48890002",
+        "orgName": "산청복음노인통합지원센터"
+    },
+    {
+        "region": "산청군",
+        "orgCode": "A48890003",
+        "orgName": "산청한방노인통합지원센터"
+    },
+    {
+        "region": "산청군",
+        "orgCode": "A48890004",
+        "orgName": "산청군가족센터"
+    },
+    {
+        "region": "양산시",
+        "orgCode": "A48330001",
+        "orgName": "사회복지법인통도사자비원양산노인통합지원센터"
+    },
+    {
+        "region": "양산시",
+        "orgCode": "A48330004",
+        "orgName": "웅상종합사회복지관"
+    },
+    {
+        "region": "양산시",
+        "orgCode": "A48330002",
+        "orgName": "양산시노인종합복지관"
+    },
+    {
+        "region": "의령군",
+        "orgCode": "A48720001",
+        "orgName": "의령노인통합지원센터"
+    },
+    {
+        "region": "진주시",
+        "orgCode": "A48170001",
+        "orgName": "진주노인통합지원센터"
+    },
+    {
+        "region": "진주시",
+        "orgCode": "A48170002",
+        "orgName": "진주노인통합지원센터"
+    },
+    {
+        "region": "진주시",
+        "orgCode": "A48170003",
+        "orgName": "나나노인통합지원센터"
+    },
+    {
+        "region": "창원시",
+        "orgCode": "A48120005",
+        "orgName": "금강노인통합지원센터"
+    },
+    {
+        "region": "창원시",
+        "orgCode": "A48120001",
+        "orgName": "동진노인통합지원센터"
+    },
+    {
+        "region": "창원시",
+        "orgCode": "A48120002",
+        "orgName": "마산합포노인통합지원센터"
+    },
+    {
+        "region": "창원시",
+        "orgCode": "A48120003",
+        "orgName": "진해노인통합지원센터"
+    },
+    {
+        "region": "창원시",
+        "orgCode": "A48120004",
+        "orgName": "성산노인통합지원센터"
+    },
+    {
+        "region": "창원시",
+        "orgCode": "A48120011",
+        "orgName": "창원시 의창노인종합복지관"
+    },
+    {
+        "region": "창원시",
+        "orgCode": "A48120012",
+        "orgName": "진해노인종합복지관"
+    },
+    {
+        "region": "창원시",
+        "orgCode": "A48120013",
+        "orgName": "마산회원노인종합복지관"
+    },
+    {
+        "region": "통영시",
+        "orgCode": "A48220001",
+        "orgName": "통영노인통합지원센터"
+    },
+    {
+        "region": "통영시",
+        "orgCode": "A48220003",
+        "orgName": "도남사회복지관"
+    },
+    {
+        "region": "통영시",
+        "orgCode": "A48220002",
+        "orgName": "통영시종합사회복지관"
+    },
+    {
+        "region": "하동군",
+        "orgCode": "A48850001",
+        "orgName": "하동노인통합지원센터"
+    },
+    {
+        "region": "하동군",
+        "orgCode": "A48850002",
+        "orgName": "알프스하동종합복지관"
+    },
+    {
+        "region": "함안군",
+        "orgCode": "A48730001",
+        "orgName": "함안군노인통합지원센터"
+    },
+    {
+        "region": "함안군",
+        "orgCode": "A48730002",
+        "orgName": "함안군지역사회보장협의체"
+    },
+    {
+        "region": "함양군",
+        "orgCode": "A48870002",
+        "orgName": "함양군노인통합지원센터"
+    },
+    {
+        "region": "합천군",
+        "orgCode": "A48930004",
+        "orgName": "합천군가족센터"
+    },
+    {
+        "region": "합천군",
+        "orgCode": "A48930001",
+        "orgName": "합천노인통합지원센터"
+    },
+    {
+        "region": "합천군",
+        "orgCode": "A48930002",
+        "orgName": "합천댐효나눔복지관"
+    },
+    {
+        "region": "합천군",
+        "orgCode": "A48930003",
+        "orgName": "합천군지역사회보장협의체"
+    }
+]

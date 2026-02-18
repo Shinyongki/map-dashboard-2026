@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { api } from "@/features/qna/api/client";
 import type { Question, QuestionStatus } from "@/features/qna/lib/types";
 
-export function useQuestions(filters?: { status?: QuestionStatus }) {
+export function useQuestions(filters?: { status?: QuestionStatus; relatedDocumentId?: string }) {
     const [questions, setQuestions] = useState<Question[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -12,6 +12,7 @@ export function useQuestions(filters?: { status?: QuestionStatus }) {
         try {
             const params = new URLSearchParams();
             if (filters?.status) params.set("status", filters.status);
+            if (filters?.relatedDocumentId) params.set("relatedDocumentId", filters.relatedDocumentId);
             const path = `/questions${params.toString() ? `?${params}` : ""}`;
             const data = await api.get<Question[]>(path);
             setQuestions(data);
@@ -21,7 +22,7 @@ export function useQuestions(filters?: { status?: QuestionStatus }) {
         } finally {
             setLoading(false);
         }
-    }, [filters?.status]);
+    }, [filters?.status, filters?.relatedDocumentId]);
 
     useEffect(() => {
         refresh();
@@ -46,10 +47,12 @@ export function useQuestions(filters?: { status?: QuestionStatus }) {
     );
 
     const approveAnswer = useCallback(
-        async (id: string, finalAnswer: string, answeredBy: string) => {
+        async (id: string, answer: string, author: string) => {
+            // Backend expects 'answer' field for final answer, and 'answerAuthor' for author
+            // Based on db.ts Question interface: answer?: string; answerAuthor?: string;
             await api.patch(`/questions/${id}`, {
-                finalAnswer,
-                answeredBy,
+                answer,
+                answerAuthor: author,
                 status: "answered",
             });
             await refresh();

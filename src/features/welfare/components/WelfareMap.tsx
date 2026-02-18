@@ -1,6 +1,6 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import { Search } from "lucide-react";
+import { Search, Plus, ShieldAlert } from "lucide-react";
 import type { WelfareFacility, WelfareGroup } from "@/features/welfare/lib/welfare-types";
 import {
     getCategoryGroup,
@@ -8,7 +8,11 @@ import {
     extractSigun,
     WELFARE_GROUPS,
 } from "@/features/welfare/lib/welfare-types";
+
 import ResourcePathFinder from "./ResourcePathFinder";
+import { useResourceDiscovery } from "../hooks/useResourceDiscovery";
+import ResourceRequestModal from "./ResourceRequestModal";
+import ResourceAdminPanel from "./ResourceAdminPanel";
 
 // The subset of groups used from existing data files
 const ACTIVE_GROUPS: WelfareGroup[] = [
@@ -36,6 +40,11 @@ export default function WelfareMap() {
 
     // Path Finder panel
     const [showPathFinder, setShowPathFinder] = useState(false);
+
+    // Resource Discovery State
+    const [showRequestModal, setShowRequestModal] = useState(false);
+    const [showAdminPanel, setShowAdminPanel] = useState(false);
+    const { requests, submitRequest, approveRequest, rejectRequest, stats } = useResourceDiscovery();
 
     const activeInfoWindow = useRef<any>(null);
     const markersRef = useRef<any[]>([]);
@@ -418,6 +427,16 @@ export default function WelfareMap() {
                                 </p>
                             )}
                         </div>
+
+                        {/* Resource Discovery Stats */}
+                        <div className="pt-3 border-t border-gray-100">
+                            <p className="flex justify-between items-center text-xs">
+                                <span className="text-gray-500">이달의 발굴 자원</span>
+                                <span className="font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
+                                    +{stats.approved}건
+                                </span>
+                            </p>
+                        </div>
                     </div>
                 )}
             </div>
@@ -426,13 +445,50 @@ export default function WelfareMap() {
             <button
                 onClick={() => setShowPathFinder(!showPathFinder)}
                 className={`absolute bottom-6 right-6 z-20 flex items-center gap-2 px-5 py-3 rounded-full shadow-2xl text-sm font-bold transition-all hover:scale-105 ${showPathFinder
-                    ? "bg-gray-800 text-white"
-                    : "bg-blue-600 text-white hover:bg-blue-700"
+                        ? "bg-gray-800 text-white"
+                        : "bg-blue-600 text-white hover:bg-blue-700"
                     }`}
             >
                 <Search className="h-4 w-4" />
                 {showPathFinder ? "패널 닫기" : "🔍 경로 찾기"}
             </button>
+
+            {/* Resource Discovery Actions */}
+            <div className="absolute bottom-6 left-6 z-20 flex flex-col gap-2">
+                <button
+                    onClick={() => setShowRequestModal(true)}
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-full shadow-lg bg-green-600 text-white text-sm font-bold hover:bg-green-700 transition-all hover:scale-105"
+                >
+                    <Plus className="h-4 w-4" />
+                    신규 자원 제안
+                </button>
+                <button
+                    onClick={() => setShowAdminPanel(!showAdminPanel)}
+                    className={`flex items-center gap-2 px-4 py-2.5 rounded-full shadow-lg text-sm font-bold transition-all hover:scale-105 ${showAdminPanel ? "bg-gray-800 text-white" : "bg-white text-gray-700 hover:bg-gray-50"
+                        }`}
+                >
+                    <ShieldAlert className="h-4 w-4" />
+                    {showAdminPanel ? "관리자 닫기" : "자원 발굴 관리"}
+                </button>
+            </div>
+
+            {/* Admin Panel Overlay */}
+            {showAdminPanel && (
+                <div className="absolute top-24 left-6 z-30 w-80 h-[500px] animate-in slide-in-from-left-4 duration-300">
+                    <ResourceAdminPanel
+                        requests={requests}
+                        onApprove={approveRequest}
+                        onReject={rejectRequest}
+                    />
+                </div>
+            )}
+
+            {/* Request Modal */}
+            <ResourceRequestModal
+                open={showRequestModal}
+                onClose={() => setShowRequestModal(false)}
+                onSubmit={submitRequest}
+            />
 
             {/* ResourcePathFinder Slide Panel */}
             {showPathFinder && (

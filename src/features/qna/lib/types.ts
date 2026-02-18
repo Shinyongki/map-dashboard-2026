@@ -36,6 +36,8 @@ export interface OfficialDocument {
   uploadedAt: any;
   uploadedBy: string;
   validUntil?: string;
+  managerName?: string;
+  managerPhone?: string;
 }
 
 export interface UserSession {
@@ -61,3 +63,13 @@ export const STATUS_LABELS: Record<QuestionStatus, string> = {
   answered: "답변완료",
   closed: "종료",
 };
+
+export interface Notice {
+  id: string;
+  content: string;
+  isActive: boolean;
+  category: "general" | "urgent" | "exception";
+  relatedDocumentId?: string;
+  createdAt: string;
+  updatedAt: string;
+}

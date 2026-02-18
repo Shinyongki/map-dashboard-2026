@@ -21,6 +21,17 @@ export function useAuth() {
         }
     });
 
+    const [token, setToken] = useState<string | null>(() => {
+        try {
+            const stored = localStorage.getItem(STORAGE_KEY);
+            if (!stored) return null;
+            const parsed = JSON.parse(stored) as StoredSession;
+            return parsed.token;
+        } catch {
+            return null;
+        }
+    });
+
     const login = useCallback(
         async (code: string, name: string) => {
             const result = await api.post<{ token: string; user: UserSession }>(
@@ -33,6 +44,7 @@ export function useAuth() {
             };
             localStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
             setSession(result.user);
+            setToken(result.token);
             return result.user;
         },
         []
@@ -41,8 +53,9 @@ export function useAuth() {
     const logout = useCallback(() => {
         localStorage.removeItem(STORAGE_KEY);
         setSession(null);
+        setToken(null);
     }, []);
 
-    return { session, login, logout, isAdmin: session?.role === "admin" };
+    return { session, token, login, logout, isAdmin: session?.role === "admin" };
 }
 

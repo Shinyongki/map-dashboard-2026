@@ -141,15 +141,16 @@ RAG 청크 최적화: 관련 문서만 정밀 검색하여 컨텍스트 최소�
 
 # 8. 기술 요구사항
 
-| Frontend (Main App) | React, TypeScript, Vite |
-| --- | --- |
-| Frontend (Map Dashboard) | React, TypeScript, Vite (독립 프로젝트) |
-| Backend | Node.js, Google Sheets API |
-| LLM | Claude API (RAG 파이프라인) |
-| Vector DB | 지식 베이스 임베딩 저장 (Pinecone / Supabase pgvector 등) |
-| Data Integration | 표준화 API + JSON 프록시 |
-| 기상 API | 기상청 특보 API |
-| 인증 | 관리자: 암호(1672) / 현장: 기관코드 |
+| 구분 | 기술 스택 | 비고 |
+| --- | --- | --- |
+| Frontend | React, TypeScript, Vite | Tailwind CSS, Lucide React |
+| Backend Runtime | Node.js (Express) | qna-server (독립 서버) |
+| Database | **Firebase Firestore** | NoSQL 기반 실시간 데이터베이스 |
+| File Storage | **Firebase Storage** | 공문 PDF 파일 저장 |
+| LLM | **Google Gemini 1.5 Pro/Flash** | 텍스트 추출, 요약, Q&A 초안 생성 |
+| PDF Processing | `pdf-parse` (Node.js) | 서버측 텍스트 추출 파이프라인 |
+| Authentication | JWT (Json Web Token) | 관리자/기관코드 기반 보안 |
+| Map Dashboard | React, TypeScript | 독립 프로젝트 (Vite) |
 
 
 
@@ -158,7 +159,7 @@ RAG 청크 최적화: 관련 문서만 정밀 검색하여 컨텍스트 최소�
 
 ## Phase 1 — 기반 구축
 기관코드 기반 권한 시스템 구현
-지식 베이스 DB 설계 및 초기 데이터 적재 (공문, 사업안내서)
+- [x] Firebase DB 설계 및 초기 데이터 적재 (Firestore, Storage) <!-- id: 16 -->
 공문서 업로드 → FAQ 생성 → 승인 → 현장 공개 워크플로우
 기존 현황 제출 시스템 안정화
 

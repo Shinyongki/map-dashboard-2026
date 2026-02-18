@@ -1,17 +1,24 @@
 import { useState } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { MapPin, CloudSun, AlertTriangle, Building, MessageSquareText } from "lucide-react";
+import { MapPin, CloudSun, AlertTriangle, Building, MessageSquareText, FileText, Search } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import MapDashboard from "@/features/map/components/MapDashboard";
 import WelfareMap from "@/features/welfare/components/WelfareMap";
 import ClimateDashboard from "@/features/climate/components/ClimateDashboard";
 import DisasterDashboard from "@/features/disaster/components/DisasterDashboard";
 import FloatingAIChat from "@/features/ai/components/FloatingAIChat";
 import QnADashboard from "@/features/qna/components/QnADashboard";
+import AIReportGenerator from "@/features/ai/components/AIReportGenerator";
+import DocumentFeedback from "@/features/ai/components/DocumentFeedback";
+
 
 type DashboardTab = "care" | "welfare" | "climate" | "disaster" | "qna";
 
 export default function DashboardLayout() {
     const [activeTab, setActiveTab] = useState<DashboardTab>("care");
+    const [showReportGenerator, setShowReportGenerator] = useState(false);
+    const [showDocumentFeedback, setShowDocumentFeedback] = useState(false);
+
 
     return (
         <div className="min-h-screen bg-gray-50">
@@ -71,6 +78,27 @@ export default function DashboardLayout() {
                             <div />
                         </TabsContent>
                     </Tabs>
+                    <div className="absolute top-2 right-4 flex gap-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setShowDocumentFeedback(true)}
+                            className="bg-white/80 backdrop-blur-sm border-indigo-200 text-indigo-700 hover:bg-indigo-50 hover:text-indigo-800 gap-2 shadow-sm"
+                        >
+                            <Search className="h-4 w-4" />
+                            <span className="font-semibold">공문서 검토</span>
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setShowReportGenerator(true)}
+
+                            className="bg-white/80 backdrop-blur-sm border-purple-200 text-purple-700 hover:bg-purple-50 hover:text-purple-800 gap-2 shadow-sm"
+                        >
+                            <FileText className="h-4 w-4" />
+                            <span className="font-semibold">AI 보고서 작성</span>
+                        </Button>
+                    </div>
                 </div>
             </div>
             {activeTab === "care" && <MapDashboard />}
@@ -79,6 +107,9 @@ export default function DashboardLayout() {
             {activeTab === "disaster" && <DisasterDashboard />}
             {activeTab === "qna" && <QnADashboard />}
             <FloatingAIChat activeTab={activeTab} />
+            <AIReportGenerator open={showReportGenerator} onClose={() => setShowReportGenerator(false)} />
+            <DocumentFeedback open={showDocumentFeedback} onClose={() => setShowDocumentFeedback(false)} />
         </div>
     );
+
 }

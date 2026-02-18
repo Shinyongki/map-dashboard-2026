@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { Question, OfficialDocument, FaqItem } from "../types";
+import { generateGeminiContent, getGeminiClient } from "./gemini";
 
 let client: Anthropic | null = null;
 
@@ -11,16 +12,19 @@ function getClient(): Anthropic | null {
   return client;
 }
 
+import { vectorStore } from "./vector-store";
+
 function buildSystemPrompt(
   relatedDoc: OfficialDocument | null,
-  similarQAs: Question[]
+  similarQAs: Question[],
+  contextChunks: string[] = []
 ): string {
   let prompt = `당신은 경상남도 광역지원기관의 공문 Q&A 담당 AI 어시스턴트입니다.
-사회복지사들의 질문에 대해 공문 원문을 참조하여 정확하고 친절한 답변 초안을 작성합니다.
+사회복지사들의 질문에 대해 공문 원문 및 내부 지식 베이스를 참조하여 정확하고 친절한 답변 초안을 작성합니다.
 
 답변 작성 시 주의사항:
-- 공문 원문에 근거한 답변만 작성하세요
-- 원문에 없는 내용은 "해당 내용은 공문에 명시되어 있지 않습니다"라고 안내하세요
+- 제공된 [관련 공문] 및 [내부 지식 베이스]에 근거한 답변만 작성하세요
+- 근거가 없는 내용은 "해당 내용은 확인되지 않습니다"라고 안내하세요
 - 답변은 마크다운 형식으로 구조화해주세요
 - 관련 조항이나 항목을 구체적으로 인용하세요
 - 추가 확인이 필요한 사항은 명시해주세요
@@ -34,6 +38,13 @@ function buildSystemPrompt(
 ### 공문 원문 내용:
 ${relatedDoc.content}
 `;
+  }
+
+  if (contextChunks.length > 0) {
+    prompt += `\n## 내부 지식 베이스 (참고 자료)\n다음은 질문과 관련된 매뉴얼 및 규정 내용입니다:\n`;
+    contextChunks.forEach((chunk, index) => {
+      prompt += `\n[참고 ${index + 1}]\n${chunk}\n`;
+    });
   }
 
   if (similarQAs.length > 0) {
@@ -51,32 +62,18 @@ export async function generateAIDraft(
   relatedDoc: OfficialDocument | null,
   similarQAs: Question[]
 ): Promise<string> {
-  const anthropic = getClient();
-
-  if (!anthropic) {
-    // Mock response when API key is not configured
-    const mockAnswers: Record<string, string> = {
-      사업지침: `공문 원문을 검토한 결과, 질문하신 내용에 대해 다음과 같이 안내드립니다.
-
-**주요 답변 내용:**
-1. 해당 사업지침에 따르면, 관련 규정이 적용됩니다
-2. 세부 사항은 사업안내서를 참고해주세요
-3. 추가 문의사항이 있으시면 광역지원기관으로 연락 부탁드립니다
-
-> 이 답변은 AI가 자동 생성한 초안입니다. 관리자 검토 후 최종 답변이 전달됩니다.`,
-      행정절차: `행정절차 관련 문의에 대해 안내드립니다.
-
-**처리 절차:**
-1. 해당 서류를 준비하여 제출합니다
-2. 담당부서에서 검토 후 결과를 통보합니다
-3. 처리 기간은 통상 7~14일 소요됩니다
-
-> 이 답변은 AI가 자동 생성한 초안입니다. 관리자 검토 후 최종 답변이 전달됩니다.`,
-    };
-    return mockAnswers[question.category] || mockAnswers["사업지침"];
+  // RAG: Load vector store and search for context
+  let contextChunks: string[] = [];
+  try {
+    await vectorStore.load();
+    const results = await vectorStore.search(question.content + " " + question.title, 3);
+    contextChunks = results.map(r => r.text);
+    console.log(`RAG: Found ${results.length} relevant chunks for question "${question.title}"`);
+  } catch (err) {
+    console.warn("RAG: Failed to search vector store:", err);
   }
 
-  const systemPrompt = buildSystemPrompt(relatedDoc, similarQAs);
+  const systemPrompt = buildSystemPrompt(relatedDoc, similarQAs, contextChunks);
   const userMessage = `## 질문
 **제목**: ${question.title}
 **카테고리**: ${question.category}
@@ -87,19 +84,55 @@ ${question.content}
 
 위 질문에 대한 답변 초안을 작성해주세요.`;
 
-  const response = await anthropic.messages.create({
-    model: "claude-sonnet-4-5-20250929",
-    max_tokens: 2048,
-    system: systemPrompt,
-    messages: [{ role: "user", content: userMessage }],
-  });
-
-  const textBlock = response.content.find((b) => b.type === "text");
-  if (!textBlock || textBlock.type !== "text") {
-    throw new Error("AI 응답이 비어있습니다");
+  // Try Gemini First
+  const gemini = getGeminiClient();
+  if (gemini) {
+    try {
+      console.log("AI: Generating draft using Gemini...");
+      return await generateGeminiContent(systemPrompt, userMessage);
+    } catch (err) {
+      console.error("Gemini failed, trying Claude fallback...", err);
+    }
   }
 
-  return textBlock.text;
+  // Fallback to Claude
+  const anthropic = getClient();
+  if (anthropic) {
+    console.log("AI: Generating draft using Claude...");
+    const response = await anthropic.messages.create({
+      model: "claude-3-5-sonnet-20240620",
+      max_tokens: 2048,
+      system: systemPrompt,
+      messages: [{ role: "user", content: userMessage }],
+    });
+    const textBlock = response.content.find((b: any) => b.type === "text");
+    if (textBlock && textBlock.type === "text") return textBlock.text;
+  }
+
+  // Mock response when no API keys are configured
+  const ragContextNote = contextChunks.length > 0
+    ? `\n\n(참고: 내부 지식 베이스에서 ${contextChunks.length}개의 관련 규정을 확인했습니다.)`
+    : "";
+
+  const mockAnswers: Record<string, string> = {
+    사업지침: `공문 원문 및 지식 베이스를 검토한 결과, 질문하신 내용에 대해 다음과 같이 안내드립니다.
+
+**주요 답변 내용:**
+1. 해당 사업지침에 따르면, 관련 규정이 적용됩니다
+2. 세부 사항은 사업안내서를 참고해주세요
+3. 추가 문의사항이 있으시면 광역지원기관으로 연락 부탁드립니다
+
+> 이 답변은 AI가 자동 생성한 초안입니다. 관리자 검토 후 최종 답변이 전달됩니다.${ragContextNote}`,
+    행정절차: `행정절차 관련 문의에 대해 안내드립니다.
+
+**처리 절차:**
+1. 해당 서류를 준비하여 제출합니다
+2. 담당부서에서 검토 후 결과를 통보합니다
+3. 처리 기간은 통상 7~14일 소요됩니다
+
+> 이 답변은 AI가 자동 생성한 초안입니다. 관리자 검토 후 최종 답변이 전달됩니다.${ragContextNote}`,
+  };
+  return mockAnswers[question.category] || mockAnswers["사업지침"];
 }
 
 // ─── Document Summary Generation ─────────────────────────────
@@ -112,30 +145,6 @@ export interface DocumentSummaryResult {
 export async function generateDocumentSummary(
   content: string
 ): Promise<DocumentSummaryResult> {
-  const anthropic = getClient();
-
-  if (!anthropic) {
-    // Mock response when API key is not configured
-    return {
-      summary: `[AI 자동 요약] ${content.slice(0, 100)}...`,
-      targetType: "전체",
-      faqDrafts: [
-        {
-          question: "이 공문의 주요 변경사항은 무엇인가요?",
-          answer: `공문 내용에 따르면 주요 변경사항은 다음과 같습니다:\n${content.slice(0, 200)}`,
-        },
-        {
-          question: "적용 시기는 언제인가요?",
-          answer: "공문 발송일 기준으로 즉시 적용됩니다. 세부 일정은 공문 본문을 참고해주세요.",
-        },
-        {
-          question: "추가 문의는 어디로 하면 되나요?",
-          answer: "추가 문의사항은 경상남도 광역지원기관 담당자에게 연락 부탁드립니다.",
-        },
-      ],
-    };
-  }
-
   const systemPrompt = `당신은 경상남도 노인맞춤돌봄서비스 광역지원기관의 공문 분석 AI입니다.
 공문 내용을 분석하여 다음 정보를 JSON 형식으로 반환하세요:
 
@@ -149,38 +158,53 @@ export async function generateDocumentSummary(
 
 반드시 유효한 JSON만 반환하세요. 마크다운 코드블록이나 설명 텍스트 없이 순수 JSON만 출력하세요.`;
 
-  const response = await anthropic.messages.create({
-    model: "claude-sonnet-4-5-20250929",
-    max_tokens: 2048,
-    system: systemPrompt,
-    messages: [
+  const userPrompt = `다음 공문 내용을 분석해주세요:\n\n${content}`;
+
+  // Try Gemini
+  const gemini = getGeminiClient();
+  if (gemini) {
+    try {
+      const responseText = await generateGeminiContent(systemPrompt, userPrompt);
+      // Gemini sometimes includes markdown code blocks, strip them
+      const cleanedJson = responseText.replace(/```json\n?|\n?```/g, "").trim();
+      const parsed = JSON.parse(cleanedJson) as DocumentSummaryResult;
+      if (["전체", "거점", "일반"].includes(parsed.targetType)) return parsed;
+    } catch (err) {
+      console.error("Gemini summary failed:", err);
+    }
+  }
+
+  // Fallback to Claude
+  const anthropic = getClient();
+  if (anthropic) {
+    try {
+      const response = await anthropic.messages.create({
+        model: "claude-3-5-sonnet-20240620",
+        max_tokens: 2048,
+        system: systemPrompt,
+        messages: [{ role: "user", content: userPrompt }],
+      });
+      const textBlock = response.content.find((b: any) => b.type === "text");
+      if (textBlock && textBlock.type === "text") {
+        const parsed = JSON.parse(textBlock.text) as DocumentSummaryResult;
+        return parsed;
+      }
+    } catch (err) {
+      console.error("Claude summary failed:", err);
+    }
+  }
+
+  // Mock response
+  return {
+    summary: `[AI 자동 요약] ${content.slice(0, 100)}... (API 키 미설정)`,
+    targetType: "전체",
+    faqDrafts: [
       {
-        role: "user",
-        content: `다음 공문 내용을 분석해주세요:\n\n${content}`,
+        question: "이 공문의 주요 변경사항은 무엇인가요?",
+        answer: `공문 내용에 따르면 주요 변경사항은 다음과 같습니다:\n${content.slice(0, 200)}`,
       },
     ],
-  });
-
-  const textBlock = response.content.find((b) => b.type === "text");
-  if (!textBlock || textBlock.type !== "text") {
-    throw new Error("AI 응답이 비어있습니다");
-  }
-
-  try {
-    const parsed = JSON.parse(textBlock.text) as DocumentSummaryResult;
-    // Validate targetType
-    if (!["전체", "거점", "일반"].includes(parsed.targetType)) {
-      parsed.targetType = "전체";
-    }
-    return parsed;
-  } catch {
-    // Fallback if JSON parsing fails
-    return {
-      summary: textBlock.text.slice(0, 500),
-      targetType: "전체",
-      faqDrafts: [],
-    };
-  }
+  };
 }
 
 // ─── FAQ Cache Matching ──────────────────────────────────────
@@ -230,13 +254,7 @@ export async function generateInstantAnswer(
   document: OfficialDocument,
   approvedFaqs: { question: string; answer: string }[]
 ): Promise<string> {
-  const anthropic = getClient();
-
-  if (!anthropic) {
-    return `**[AI 답변]**\n\n${document.title} 공문을 기준으로 답변드립니다.\n\n질문하신 "${question}"에 대해:\n공문 원문에 따르면, 해당 내용은 다음과 같습니다.\n\n${document.content.slice(0, 300)}\n\n> 자세한 사항은 공문 원문을 참고해주세요.\n\n[${document.documentNumber} 공문 기준]`;
-  }
-
-  let systemPrompt = `당신은 경상남도 광역지원기관의 공문 Q&A 담당 AI입니다.
+  const systemPrompt = `당신은 경상남도 광역지원기관의 공문 Q&A 담당 AI입니다.
 반드시 공문 원문에 근거해서 답변하세요.
 원문에 없는 내용은 답변하지 말고 '해당 내용은 공문에 명시되어 있지 않습니다'라고 안내하세요.
 답변 끝에 항상 '[${document.documentNumber} 공문 기준]' 출처를 표시하세요.
@@ -249,26 +267,39 @@ export async function generateInstantAnswer(
 ${document.content}
 `;
 
+  let fullPrompt = question;
   if (approvedFaqs.length > 0) {
-    systemPrompt += `\n## 기존 승인된 FAQ (참고용)\n`;
-    for (const faq of approvedFaqs.slice(0, 3)) {
-      systemPrompt += `\nQ: ${faq.question}\nA: ${faq.answer}\n`;
+    fullPrompt = `참고할 만한 기존 FAQ:\n${approvedFaqs.map(f => `Q: ${f.question}\nA: ${f.answer}`).join("\n")}\n\n질문: ${question}`;
+  }
+
+  // Try Gemini
+  const gemini = getGeminiClient();
+  if (gemini) {
+    try {
+      return await generateGeminiContent(systemPrompt, fullPrompt);
+    } catch (err) {
+      console.error("Gemini instant answer failed:", err);
     }
   }
 
-  const response = await anthropic.messages.create({
-    model: "claude-sonnet-4-5-20250929",
-    max_tokens: 1500,
-    system: systemPrompt,
-    messages: [{ role: "user", content: question }],
-  });
-
-  const textBlock = response.content.find((b) => b.type === "text");
-  if (!textBlock || textBlock.type !== "text") {
-    throw new Error("AI 응답이 비어있습니다");
+  // Fallback to Claude
+  const anthropic = getClient();
+  if (anthropic) {
+    try {
+      const response = await anthropic.messages.create({
+        model: "claude-3-5-sonnet-20240620",
+        max_tokens: 1500,
+        system: systemPrompt,
+        messages: [{ role: "user", content: fullPrompt }],
+      });
+      const textBlock = response.content.find((b: any) => b.type === "text");
+      if (textBlock && textBlock.type === "text") return textBlock.text;
+    } catch (err) {
+      console.error("Claude instant answer failed:", err);
+    }
   }
 
-  return textBlock.text;
+  return `**[AI 답변]**\n\n${document.title} 공문을 기준으로 답변드립니다.\n\n질문하신 "${question}"에 대해:\n공문 원문에 따르면, 해당 내용은 다음과 같습니다.\n\n${document.content.slice(0, 300)}\n\n> 자세한 사항은 공문 원문을 참고해주세요.\n\n[${document.documentNumber} 공문 기준]`;
 }
 
 

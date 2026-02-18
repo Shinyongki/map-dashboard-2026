@@ -10,8 +10,8 @@ System Architecture v1.0
 | 계층 | 구성 요소 |
 | --- | --- |
 | Layer 0: 수집 | 기관 현황 제출 / 복지자원 DB / 기상청 API / 공문서 업로드 |
-| Layer 1: 저장 | Google Sheets (현황) + Vector DB (지식 베이스) + RDB (자원/기관 마스터) |
-| Layer 2: 처리 | RAG 파이프라인 + LLM (Claude API) + FAQ 캐시 + 이상치 감지 엔진 |
+| Layer 1: 저장 | Firebase Firestore (실계정) + Firebase Storage (파일) |
+| Layer 2: 처리 | Gemini LLM Engine + RAG 파이프라인 + PDF 추출 엔진 |
 | Layer 3: 표현 | Map Dashboard / 광역 관리 UI / 현장 사회복지사 포털 |
 
 
@@ -57,14 +57,14 @@ RDB에서 해당 시군 돌봄 현황 JOIN (독거노인 수, 담당 종사자)
 
 # 3. 핵심 컴포넌트 명세
 
-## 3.1 RAG 파이프라인
+## 3.1 LLM 및 지식 처리 파이프라인
 
-| 임베딩 모델 | text-embedding-3-small 또는 동급 (비용 효율) |
+| 엔진 | Google Gemini 1.5 Pro / Flash |
 | --- | --- |
-| Vector DB | Supabase pgvector (기존 인프라 활용 권장) 또는 Pinecone |
-| 청크 전략 | 공문: 조항 단위 분할 / 사업안내서: 섹션 단위 |
-| 검색 방식 | Hybrid Search (벡터 + 키워드) 권장 |
-| 컨텍스트 창 | 질의 관련 상위 5개 청크만 LLM에 전달 (비용 최소화) |
+| 텍스트 추출 | `pdf-parse` (Node.js) |
+| 요약 전략 | 문맥 보존형 3줄 요약 + 기관 대상 자동 분류 |
+| 검색 방식 | Firestore 기반 메타데이터 검색 & RAG 컨텍스트 결합 |
+| 컨텍스트 창 | 공문 원문 전체 (128k+ 토큰 지원으로 정밀 처리 가능) |
 
 
 
@@ -112,14 +112,15 @@ RDB에서 해당 시군 돌봄 현황 JOIN (독거노인 수, 담당 종사자)
 
 | 컬럼명 | 타입 | 설명 |
 | --- | --- | --- |
-| doc_id | VARCHAR PK | 공문 고유 ID |
-| title | VARCHAR | 공문 제목 |
-| issued_date | DATE | 발송일 |
-| valid_until | DATE | 질의응답 유효 기간 |
-| target_type | VARCHAR | 대상 기관 유형 (전체/거점/일반) |
-| summary | TEXT | LLM 자동 요약 |
-| faq_status | VARCHAR | FAQ 승인 상태 (대기/승인/반려) |
-| vector_indexed | BOOLEAN | Vector DB 임베딩 완료 여부 |
+| id | string | Firestore Document ID |
+| title | string | 공문 제목 |
+| documentNumber| string | 공문 번호 |
+| fileUrl | string | Storage 저장 경로 (Signed URL) |
+| content | string | PDF에서 추출된 전체 텍스트 |
+| aiSummary | string | Gemini가 생성한 3줄 요약 |
+| uploadedAt | timestamp | 업로드 일시 |
+| faqStatus | string | FAQ 공개 상태 (승인 / 비공개) |
+| faqItems | array | {question, answer, status} 구조의 FAQ 목록 |
 
 
 

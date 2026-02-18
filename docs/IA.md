@@ -10,20 +10,23 @@
     - **Tab 1: 돌봄현황 (Care Status)**
         - 통계 요약 및 상세 지표 (제출, 인력, 균형 등 8개 모드).
         - **[NEW] 관내 노인의료복지시설 목록 (Side Panel)**.
-        - **[NEW] 관리자 대시보드 연동 버튼**.
-    - **[NEW] Tab 2: 기후대응 (Climate Response)**
+    - **Tab 2: 기후대응 (Climate Response)**
         - 폭염/한파 특보 현황 (기상청 API).
         - 온열/한랭 질환자 모니터링 시각화.
-    - **[NEW] Tab 3: 자연재난 (Disaster Response)**
+    - **Tab 3: 자연재난 (Disaster Response)**
         - 태풍/호우/지진 발생 이력 분석.
-        - 재난 위험 지역 시각화.
-    - **[NEW] Tab 4: AI 분석 (AI Insights)**
-        - (Future Planner) 데이터 기반 예측 및 제언.
+    - **[NEW] Tab 4: 지능형 Q&A (AI Q&A)**
+        - **공문 관리 (Admin Only)**: PDF 업로드, AI 요약 확인, FAQ 승인.
+        - **질문하기 (All)**: 공문 기반 상담, AI 답변 초안 생성, 질의응답 이력.
 
 ## 2. 데이터 구조 (Data Schema)
-- **기관 마스터**: 시군, 기관명, 기관코드, 거점여부.
-- **월별 제출 데이터**: 성별/유형별 종사자 및 대상자 수, 단기집중 단계별 현황.
-- **배정 인력 데이터**: 정부 배정 인원, 변경 이력.
-- **지도 데이터**: 경남 18개 시군 공간 정보 (SVG Path), 시군별 통계 매핑 데이터.
-- **[NEW] 사회복지자원 데이터**: 노인의료복지시설 기본 정보 (약 270개소 CSV).
+- **기관 마스터 (Google Sheets/Firestore)**: 시군, 기관명, 기관코드, 거점여부.
+- **월별 제출 데이터 (Google Sheets)**: 성별/유형별 종사자 및 대상자 수.
+- **지도 데이터 (JSON/SVG)**: 경남 18개 시군 공간 정보.
+- **[NEW] 공문서 DB (Firestore - `documents`)**:
+    - `title`, `documentNumber`, `fileUrl`, `content`(추출 텍스트), `aiSummary`, `faqItems`
+- **[NEW] 질의응답 DB (Firestore - `questions`)**:
+    - `title`, `content`, `status`, `aiDraftAnswer`, `relatedDocumentId`, `authorOrg`
+- **[NEW] 공문 파일 저장소 (Firebase Storage - `documents/`)**:
+    - 원본 PDF 파일 보관.
 - **[NEW] 기상/재난 데이터**: 기상청 특보 코드 및 재난 발생 이력 (API).

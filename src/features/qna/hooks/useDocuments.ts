@@ -31,6 +31,8 @@ export function useDocuments() {
             metadata: {
                 title: string;
                 documentNumber: string;
+                managerName?: string;
+                managerPhone?: string;
                 uploadedBy: string;
             },
             manualContent?: string
@@ -41,6 +43,8 @@ export function useDocuments() {
                 formData.append("file", file);
                 formData.append("title", metadata.title);
                 formData.append("documentNumber", metadata.documentNumber);
+                if (metadata.managerName) formData.append("managerName", metadata.managerName);
+                if (metadata.managerPhone) formData.append("managerPhone", metadata.managerPhone);
                 if (manualContent) {
                     formData.append("content", manualContent);
                 }
@@ -53,6 +57,19 @@ export function useDocuments() {
                 throw err;
             } finally {
                 setUploading(false);
+            }
+        },
+        [refresh]
+    );
+
+    const update = useCallback(
+        async (id: string, data: Partial<OfficialDocument>) => {
+            try {
+                await api.patch(`/documents/${id}`, data);
+                await refresh();
+            } catch (err) {
+                setError(err instanceof Error ? err.message : "수정 실패");
+                throw err;
             }
         },
         [refresh]
@@ -74,5 +91,5 @@ export function useDocuments() {
         [refresh]
     );
 
-    return { documents, loading, uploading, error, refresh, upload, remove, setValidUntil };
+    return { documents, loading, uploading, error, refresh, upload, update, remove, setValidUntil };
 }

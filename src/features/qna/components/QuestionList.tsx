@@ -11,6 +11,7 @@ interface QuestionListProps {
     onStatusFilterChange: (status: QuestionStatus | "all") => void;
     searchQuery: string;
     onSearchChange: (query: string) => void;
+    isAdmin?: boolean;
 }
 
 const STATUS_ICON: Record<QuestionStatus, React.ReactNode> = {
@@ -36,6 +37,7 @@ export default function QuestionList({
     onStatusFilterChange,
     searchQuery,
     onSearchChange,
+    isAdmin = false,
 }: QuestionListProps) {
     const filtered = questions.filter((q) => {
         if (statusFilter !== "all" && q.status !== statusFilter) return false;
@@ -50,6 +52,12 @@ export default function QuestionList({
         return true;
     });
 
+    // Helper to mask status for non-admins
+    const getDisplayStatus = (status: QuestionStatus): QuestionStatus => {
+        if (!isAdmin && status === "ai_draft") return "pending";
+        return status;
+    };
+
     return (
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
             {/* Filters */}
@@ -62,20 +70,20 @@ export default function QuestionList({
                     className="w-full px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                 />
                 <div className="flex gap-1 flex-wrap">
-                    {(["all", "pending", "ai_draft", "answered", "closed"] as const).map(
-                        (s) => (
+                    {(["all", "pending", "ai_draft", "answered", "closed"] as const)
+                        .filter(s => isAdmin || s !== "ai_draft") // Hide 'ai_draft' filter for non-admins
+                        .map((s) => (
                             <button
                                 key={s}
                                 onClick={() => onStatusFilterChange(s)}
                                 className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${statusFilter === s
-                                        ? "bg-emerald-100 text-emerald-700"
-                                        : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                                    ? "bg-emerald-100 text-emerald-700"
+                                    : "bg-gray-100 text-gray-500 hover:bg-gray-200"
                                     }`}
                             >
                                 {s === "all" ? "전체" : STATUS_LABELS[s]}
                             </button>
-                        )
-                    )}
+                        ))}
                 </div>
             </div>
 
@@ -90,41 +98,44 @@ export default function QuestionList({
                         질문이 없습니다
                     </div>
                 ) : (
-                    filtered.map((q) => (
-                        <button
-                            key={q.id}
-                            onClick={() => onSelect(q)}
-                            className={`w-full text-left p-3 border-b border-gray-50 hover:bg-gray-50 transition-colors ${selectedId === q.id
+                    filtered.map((q) => {
+                        const displayStatus = getDisplayStatus(q.status);
+                        return (
+                            <button
+                                key={q.id}
+                                onClick={() => onSelect(q)}
+                                className={`w-full text-left p-3 border-b border-gray-50 hover:bg-gray-50 transition-colors ${selectedId === q.id
                                     ? "bg-emerald-50 border-l-2 border-l-emerald-500"
                                     : ""
-                                }`}
-                        >
-                            <div className="flex items-start justify-between gap-2">
-                                <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-1.5 mb-1">
-                                        {STATUS_ICON[q.status]}
-                                        <span className="text-sm font-medium text-gray-900 truncate">
-                                            {q.title}
-                                        </span>
-                                    </div>
-                                    <p className="text-xs text-gray-500 truncate">{q.content}</p>
-                                    <div className="flex items-center gap-2 mt-1.5">
-                                        <span className="text-xs text-gray-400">
-                                            {q.authorOrgName} · {q.authorName}
-                                        </span>
-                                        <span
-                                            className={`inline-flex px-1.5 py-0.5 rounded text-xs font-medium ${STATUS_BADGE_VARIANT[q.status]}`}
-                                        >
-                                            {STATUS_LABELS[q.status]}
-                                        </span>
-                                        <span className="inline-flex px-1.5 py-0.5 rounded border border-gray-200 text-xs text-gray-600">
-                                            {q.category}
-                                        </span>
+                                    }`}
+                            >
+                                <div className="flex items-start justify-between gap-2">
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-1.5 mb-1">
+                                            {STATUS_ICON[displayStatus]}
+                                            <span className="text-sm font-medium text-gray-900 truncate">
+                                                {q.title}
+                                            </span>
+                                        </div>
+                                        <p className="text-xs text-gray-500 truncate">{q.content}</p>
+                                        <div className="flex items-center gap-2 mt-1.5">
+                                            <span className="text-xs text-gray-400">
+                                                {q.authorOrgName} · {q.authorName}
+                                            </span>
+                                            <span
+                                                className={`inline-flex px-1.5 py-0.5 rounded text-xs font-medium ${STATUS_BADGE_VARIANT[displayStatus]}`}
+                                            >
+                                                {STATUS_LABELS[displayStatus]}
+                                            </span>
+                                            <span className="inline-flex px-1.5 py-0.5 rounded border border-gray-200 text-xs text-gray-600">
+                                                {q.category}
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        </button>
-                    ))
+                            </button>
+                        );
+                    })
                 )}
             </div>
         </div>

@@ -1,7 +1,8 @@
-import { Router, Request, Response, NextFunction } from "express";
+import { Router as ExpressRouter, Request as ExpressRequest, Response as ExpressResponse, NextFunction } from "express";
 import express from "express";
 import jwt from "jsonwebtoken";
 import multer from "multer";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { getOrganizationByCode } from "../lib/organization-data";
 
 // ─── Types ───────────────────────────────────────────────────
@@ -40,6 +41,9 @@ interface MockDocument {
     fileUrl: string;
     uploadedAt: string;
     uploadedBy: string;
+    managerName?: string;
+    managerPhone?: string;
+    validUntil?: string;
 }
 
 // ─── Config ──────────────────────────────────────────────────
@@ -107,6 +111,8 @@ let mockDocuments: MockDocument[] = [
         fileUrl: "",
         uploadedAt: new Date(Date.now() - 86400000 * 7).toISOString(),
         uploadedBy: "관리자",
+        managerName: "김지방",
+        managerPhone: "051-123-4567",
     },
     {
         id: "doc2",
@@ -117,18 +123,43 @@ let mockDocuments: MockDocument[] = [
         fileUrl: "",
         uploadedAt: new Date(Date.now() - 86400000 * 14).toISOString(),
         uploadedBy: "관리자",
+        managerName: "이복지",
+        managerPhone: "051-765-4321",
     },
 ];
 
 let nextQuestionId = 4;
 let nextDocumentId = 3;
 
+// ─── AI Service (Integrated) ──────────────────────────────
+async function generateAIDraft(title: string, content: string): Promise<string> {
+    const apiKey = process.env.GOOGLE_GEMINI_API_KEY;
+    if (!apiKey) {
+        return `[AI 자동 생성 초안 (가상)]\n\n"${title}"에 대한 답변입니다.\n\n관련 사업지침 및 규정을 검토한 결과, 다음과 같이 안내드립니다:\n\n1. ${content.slice(0, 50)}에 대해서는 해당 사업지침을 참고해주시기 바랍니다.\n2. 추가적인 문의사항이 있으시면 담당자에게 연락 부탁드립니다.\n\n※ 이 답변은 AI가 자동 생성한 초안이며, 관리자 검토 후 최종 답변이 전달됩니다.`;
+    }
+
+    try {
+        const genAI = new GoogleGenerativeAI(apiKey);
+        const model = genAI.getGenerativeModel({
+            model: "gemini-1.5-flash",
+            systemInstruction: "당신은 경상남도 광역지원기관의 공문 Q&A 담당 AI 어시스턴트입니다. 사회복지사들의 질문에 대해 정확하고 친절한 답변 초안을 작성합니다. 답변은 마크다운 형식으로 작성하세요."
+        });
+
+        const prompt = `질문 제목: ${title}\n질문 내용: ${content}\n\n위 질문에 대한 답변 초안을 작성해주세요.`;
+        const result = await model.generateContent(prompt);
+        return result.response.text();
+    } catch (err) {
+        console.error("Middleware AI Error:", err);
+        return "AI 답변 생성 중 오류가 발생했습니다.";
+    }
+}
+
 // ─── Auth Middleware ─────────────────────────────────────────
-function authenticateToken(req: Request, res: Response, next: NextFunction): void {
-    const authHeader = req.headers.authorization;
-    const token = authHeader?.split(" ")[1];
+function authenticateToken(req: ExpressRequest, res: ExpressResponse, next: NextFunction): void {
+    const authHeader = (req as any).headers?.authorization;
+    const token = typeof authHeader === 'string' ? authHeader.split(" ")[1] : null;
     if (!token) {
-        res.status(401).json({ error: "인증이 필요합니다." });
+        (res as any).status(401).json({ error: "인증이 필요합니다." });
         return;
     }
     try {
@@ -136,18 +167,18 @@ function authenticateToken(req: Request, res: Response, next: NextFunction): voi
         (req as any).user = decoded;
         next();
     } catch {
-        res.status(403).json({ error: "유효하지 않은 토큰입니다." });
+        (res as any).status(403).json({ error: "유효하지 않은 토큰입니다." });
     }
 }
 
 // ─── Create Router ───────────────────────────────────────────
-export function createQnARouter(): Router {
-    const router = Router();
+export function createQnARouter(): ExpressRouter {
+    const router = express.Router();
     const upload = multer({ storage: multer.memoryStorage() });
 
     // ── Auth ──
-    router.post("/auth/login", (req: Request, res: Response) => {
-        const { code, name } = req.body;
+    router.post("/auth/login", (req: ExpressRequest, res: ExpressResponse) => {
+        const { code, name } = (req as any).body || {};
         if (!code || !name) {
             res.status(400).json({ error: "기관코드와 이름을 입력해주세요." });
             return;
@@ -187,8 +218,8 @@ export function createQnARouter(): Router {
     });
 
     // ── Questions ──
-    router.get("/questions", authenticateToken, (_req: Request, res: Response) => {
-        const { status, search } = _req.query;
+    router.get("/questions", authenticateToken, (req: ExpressRequest, res: ExpressResponse) => {
+        const { status, search } = (req as any).query || {};
         let result = [...mockQuestions];
         if (status && status !== "all") {
             result = result.filter((q) => q.status === status);
@@ -205,8 +236,8 @@ export function createQnARouter(): Router {
         res.json(result);
     });
 
-    router.get("/questions/:id", authenticateToken, (req: Request, res: Response) => {
-        const q = mockQuestions.find((q) => q.id === req.params.id);
+    router.get("/questions/:id", authenticateToken, (req: ExpressRequest, res: ExpressResponse) => {
+        const q = mockQuestions.find((q) => q.id === (req as any).params?.id);
         if (!q) {
             res.status(404).json({ error: "질문을 찾을 수 없습니다." });
             return;
@@ -214,8 +245,8 @@ export function createQnARouter(): Router {
         res.json(q);
     });
 
-    router.post("/questions", authenticateToken, (req: Request, res: Response) => {
-        const { title, content, category, relatedDocumentId, authorName, authorOrg, authorOrgName, isPublic } = req.body;
+    router.post("/questions", authenticateToken, (req: ExpressRequest, res: ExpressResponse) => {
+        const { title, content, category, relatedDocumentId, authorName, authorOrg, authorOrgName, isPublic } = (req as any).body || {};
         const id = `q${nextQuestionId++}`;
         const newQuestion: MockQuestion = {
             id,
@@ -232,33 +263,33 @@ export function createQnARouter(): Router {
         };
         mockQuestions.unshift(newQuestion);
 
-        // Simulate AI draft (2s delay)
-        setTimeout(() => {
+        // Generate AI draft
+        generateAIDraft(title, content).then(draft => {
             const q = mockQuestions.find((q) => q.id === id);
             if (q && q.status === "pending") {
                 q.status = "ai_draft";
-                q.aiDraftAnswer = `[AI 자동 생성 초안]\n\n"${title}"에 대한 답변입니다.\n\n관련 사업지침 및 규정을 검토한 결과, 다음과 같이 안내드립니다:\n\n1. ${content.slice(0, 50)}에 대해서는 해당 사업지침을 참고해주시기 바랍니다.\n2. 추가적인 문의사항이 있으시면 담당자에게 연락 부탁드립니다.\n\n※ 이 답변은 AI가 자동 생성한 초안이며, 관리자 검토 후 최종 답변이 전달됩니다.`;
+                q.aiDraftAnswer = draft;
             }
-        }, 2000);
+        });
 
         res.json({ id });
     });
 
-    router.patch("/questions/:id", authenticateToken, (req: Request, res: Response) => {
-        const q = mockQuestions.find((q) => q.id === req.params.id);
+    router.patch("/questions/:id", authenticateToken, (req: ExpressRequest, res: ExpressResponse) => {
+        const q = mockQuestions.find((q) => q.id === (req as any).params?.id);
         if (!q) {
             res.status(404).json({ error: "질문을 찾을 수 없습니다." });
             return;
         }
-        Object.assign(q, req.body);
-        if (req.body.status === "answered") {
+        Object.assign(q, (req as any).body || {});
+        if ((req as any).body?.status === "answered") {
             q.answeredAt = new Date().toISOString();
         }
         res.json(q);
     });
 
-    router.delete("/questions/:id", authenticateToken, (req: Request, res: Response) => {
-        const idx = mockQuestions.findIndex((q) => q.id === req.params.id);
+    router.delete("/questions/:id", authenticateToken, (req: ExpressRequest, res: ExpressResponse) => {
+        const idx = mockQuestions.findIndex((q) => q.id === (req as any).params?.id);
         if (idx === -1) {
             res.status(404).json({ error: "질문을 찾을 수 없습니다." });
             return;
@@ -268,12 +299,12 @@ export function createQnARouter(): Router {
     });
 
     // ── Documents ──
-    router.get("/documents", authenticateToken, (_req: Request, res: Response) => {
+    router.get("/documents", authenticateToken, (_req: ExpressRequest, res: ExpressResponse) => {
         res.json(mockDocuments);
     });
 
-    router.post("/documents", authenticateToken, upload.single("file"), (req: Request, res: Response) => {
-        const { title, documentNumber, content } = req.body;
+    router.post("/documents", authenticateToken, upload.single("file"), (req: ExpressRequest, res: ExpressResponse) => {
+        const { title, documentNumber, content, managerName, managerPhone } = (req as any).body || {};
         const id = `doc${nextDocumentId++}`;
         const newDoc: MockDocument = {
             id,
@@ -283,13 +314,40 @@ export function createQnARouter(): Router {
             fileUrl: "",
             uploadedAt: new Date().toISOString(),
             uploadedBy: (req as any).user?.name || "unknown",
+            managerName,
+            managerPhone,
         };
         mockDocuments.unshift(newDoc);
         res.json({ id });
     });
 
-    router.delete("/documents/:id", authenticateToken, (req: Request, res: Response) => {
-        const idx = mockDocuments.findIndex((d) => d.id === req.params.id);
+    router.patch("/documents/:id", authenticateToken, (req: ExpressRequest, res: ExpressResponse) => {
+        const doc = mockDocuments.find((d) => d.id === (req as any).params?.id);
+        if (!doc) {
+            res.status(404).json({ error: "문서를 찾을 수 없습니다." });
+            return;
+        }
+        const { title, documentNumber, managerName, managerPhone } = (req as any).body || {};
+        if (title) doc.title = title;
+        if (documentNumber) doc.documentNumber = documentNumber;
+        if (managerName !== undefined) doc.managerName = managerName;
+        if (managerPhone !== undefined) doc.managerPhone = managerPhone;
+
+        res.json(doc);
+    });
+
+    router.patch("/documents/:id/valid-until", authenticateToken, (req: ExpressRequest, res: ExpressResponse) => {
+        const doc = mockDocuments.find((d) => d.id === (req as any).params?.id);
+        if (!doc) {
+            res.status(404).json({ error: "문서를 찾을 수 없습니다." });
+            return;
+        }
+        doc.validUntil = (req as any).body?.validUntil;
+        res.json(doc);
+    });
+
+    router.delete("/documents/:id", authenticateToken, (req: ExpressRequest, res: ExpressResponse) => {
+        const idx = mockDocuments.findIndex((d) => d.id === (req as any).params?.id);
         if (idx === -1) {
             res.status(404).json({ error: "문서를 찾을 수 없습니다." });
             return;
@@ -299,7 +357,7 @@ export function createQnARouter(): Router {
     });
 
     // ── Health check ──
-    router.get("/health", (_req: Request, res: Response) => {
+    router.get("/health", (_req: ExpressRequest, res: ExpressResponse) => {
         res.json({ status: "ok", mode: "integrated" });
     });
 

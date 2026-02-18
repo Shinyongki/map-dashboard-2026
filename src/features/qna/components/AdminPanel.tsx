@@ -3,11 +3,16 @@ import {
     BotMessageSquare,
     Clock,
     CheckCircle,
+    Megaphone,
+    ArrowLeft,
+    FileText,
 } from "lucide-react";
 import type { Question, OfficialDocument } from "@/features/qna/lib/types";
 import { STATUS_LABELS } from "@/features/qna/lib/types";
 import AdminAnswerEditor from "@/features/qna/components/AdminAnswerEditor";
 import QuestionDetail from "@/features/qna/components/QuestionDetail";
+import NoticeManager from "@/features/qna/components/NoticeManager";
+import DocumentGrid from "@/features/qna/components/DocumentGrid";
 
 interface AdminPanelProps {
     questions: Question[];
@@ -23,7 +28,7 @@ interface AdminPanelProps {
     onDelete: (questionId: string) => Promise<void>;
 }
 
-type AdminView = "list" | "edit" | "detail";
+type AdminView = "documents" | "list" | "edit" | "detail" | "notices";
 
 export default function AdminPanel({
     questions,
@@ -34,27 +39,67 @@ export default function AdminPanel({
     onClose,
     onDelete,
 }: AdminPanelProps) {
-    const [view, setView] = useState<AdminView>("list");
-    const [selectedQuestion, setSelectedQuestion] = useState<Question | null>(
-        null
-    );
+    const [view, setView] = useState<AdminView>("documents");
+    const [selectedQuestion, setSelectedQuestion] = useState<Question | null>(null);
+    const [selectedDocId, setSelectedDocId] = useState<string | null>(null);
     const [statusFilter, setStatusFilter] = useState<string>("all");
 
-    const filtered =
-        statusFilter === "all"
-            ? questions
-            : questions.filter((q) => q.status === statusFilter);
+    // Filter by Document + Status
+    const filtered = questions.filter((q) => {
+        const matchDoc = selectedDocId ? q.relatedDocumentId === selectedDocId : !q.relatedDocumentId;
+        const matchStatus = statusFilter === "all" || q.status === statusFilter;
+        return matchDoc && matchStatus;
+    });
 
-    const pendingCount = questions.filter((q) => q.status === "pending").length;
-    const draftCount = questions.filter((q) => q.status === "ai_draft").length;
-    const answeredCount = questions.filter(
-        (q) => q.status === "answered"
-    ).length;
+    const pendingCount = filtered.filter((q) => q.status === "pending").length;
+    const draftCount = filtered.filter((q) => q.status === "ai_draft").length;
+    const answeredCount = filtered.filter((q) => q.status === "answered").length;
+
+    const selectedDoc = documents.find(d => d.id === selectedDocId);
 
     const getRelatedDoc = (q: Question) =>
         q.relatedDocumentId
             ? documents.find((d) => d.id === q.relatedDocumentId) ?? null
             : null;
+
+    if (view === "documents") {
+        return (
+            <div className="space-y-4">
+                <div className="flex justify-between items-center mb-4">
+                    <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl flex items-start gap-3 flex-1 mr-4">
+                        <div className="p-2 bg-blue-100 rounded-lg">
+                            <FileText className="h-5 w-5 text-blue-600" />
+                        </div>
+                        <div>
+                            <h3 className="text-blue-900 font-bold text-sm">공문별 질문 관리</h3>
+                            <p className="text-blue-700 text-xs mt-1">
+                                관리할 공문을 선택하세요. 선택된 공문의 질문만 필터링하여 관리할 수 있습니다.
+                            </p>
+                        </div>
+                    </div>
+                    <button
+                        onClick={() => setView("notices")}
+                        className="bg-purple-50 border border-purple-200 rounded-lg p-4 text-center hover:bg-purple-100 transition-colors h-full flex flex-col items-center justify-center min-w-[120px]"
+                    >
+                        <div className="flex items-center justify-center gap-1 mb-1">
+                            <Megaphone className="h-5 w-5 text-purple-500" />
+                            <span className="text-sm font-medium text-purple-700">공지관리</span>
+                        </div>
+                    </button>
+                </div>
+
+                <DocumentGrid
+                    documents={documents}
+                    questions={questions}
+                    onSelect={(docId) => {
+                        setSelectedDocId(docId);
+                        setView("list");
+                    }}
+                    isAdmin={true}
+                />
+            </div>
+        );
+    }
 
     if (view === "edit" && selectedQuestion) {
         return (
@@ -89,8 +134,40 @@ export default function AdminPanel({
         );
     }
 
+    if (view === "notices") {
+        return (
+            <div className="space-y-4">
+                <button
+                    onClick={() => setView("documents")}
+                    className="text-sm text-gray-500 hover:text-gray-900 flex items-center gap-1"
+                >
+                    <ArrowLeft className="h-4 w-4" /> 목록으로 돌아가기
+                </button>
+                <NoticeManager />
+            </div>
+        );
+    }
+
+    // List View
     return (
         <div className="space-y-4">
+            <div className="flex items-center gap-2 mb-2">
+                <button
+                    onClick={() => setView("documents")}
+                    className="p-1 hover:bg-gray-100 rounded-full text-gray-400 hover:text-gray-600"
+                >
+                    <ArrowLeft className="h-5 w-5" />
+                </button>
+                <h2 className="text-lg font-bold text-gray-900">
+                    {selectedDoc ? selectedDoc.title : "일반 질의응답"} 관리
+                </h2>
+                {selectedDoc && (
+                    <span className="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-0.5 rounded">
+                        {selectedDoc.documentNumber}
+                    </span>
+                )}
+            </div>
+
             {/* Stats */}
             <div className="grid grid-cols-3 gap-3">
                 <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-center">
@@ -139,8 +216,8 @@ export default function AdminPanel({
                         key={f.key}
                         onClick={() => setStatusFilter(f.key)}
                         className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${statusFilter === f.key
-                                ? "bg-emerald-100 text-emerald-700"
-                                : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                            ? "bg-emerald-100 text-emerald-700"
+                            : "bg-gray-100 text-gray-500 hover:bg-gray-200"
                             }`}
                     >
                         {f.label}
@@ -191,12 +268,12 @@ export default function AdminPanel({
                                 <div className="flex items-center gap-2 flex-shrink-0">
                                     <span
                                         className={`px-2 py-1 rounded text-xs font-medium ${q.status === "ai_draft"
-                                                ? "bg-blue-100 text-blue-700"
-                                                : q.status === "answered"
-                                                    ? "bg-green-100 text-green-700"
-                                                    : q.status === "pending"
-                                                        ? "bg-yellow-100 text-yellow-700"
-                                                        : "bg-gray-100 text-gray-500"
+                                            ? "bg-blue-100 text-blue-700"
+                                            : q.status === "answered"
+                                                ? "bg-green-100 text-green-700"
+                                                : q.status === "pending"
+                                                    ? "bg-yellow-100 text-yellow-700"
+                                                    : "bg-gray-100 text-gray-500"
                                             }`}
                                     >
                                         {STATUS_LABELS[q.status]}

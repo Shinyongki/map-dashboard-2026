@@ -2,7 +2,7 @@ import dotenv from "dotenv";
 import path from "path";
 
 // Load .env from project root
-dotenv.config({ path: path.resolve(__dirname, "../../.env") });
+dotenv.config({ path: path.resolve(__dirname, "../../../.env") });
 
 import express from "express";
 import cors from "cors";
@@ -10,6 +10,7 @@ import { initializeFirebase, isFirebaseConfigured } from "./firebase";
 import authRouter from "./routes/auth";
 import questionsRouter from "./routes/questions";
 import documentsRouter from "./routes/documents";
+import noticesRouter from "./routes/notices";
 
 // Initialize Firebase
 initializeFirebase();
@@ -25,6 +26,7 @@ app.use(express.json());
 app.use("/api/auth", authRouter);
 app.use("/api/questions", questionsRouter);
 app.use("/api/documents", documentsRouter);
+app.use("/api/notices", noticesRouter);
 
 // Health check
 app.get("/api/health", (_req, res) => {

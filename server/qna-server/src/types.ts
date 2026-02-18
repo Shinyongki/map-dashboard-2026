@@ -49,6 +49,8 @@ export interface OfficialDocument {
   validUntil?: string;
   faqStatus?: "대기" | "승인" | "비공개";
   faqItems?: FaqItem[];
+  managerName?: string;
+  managerPhone?: string;
 }
 
 export interface UserSession {
