@@ -13,6 +13,7 @@ import AdminAnswerEditor from "@/features/qna/components/AdminAnswerEditor";
 import QuestionDetail from "@/features/qna/components/QuestionDetail";
 import NoticeManager from "@/features/qna/components/NoticeManager";
 import DocumentGrid from "@/features/qna/components/DocumentGrid";
+import KnowledgeManager from "@/features/qna/components/KnowledgeManager";
 
 interface AdminPanelProps {
     questions: Question[];
@@ -28,7 +29,7 @@ interface AdminPanelProps {
     onDelete: (questionId: string) => Promise<void>;
 }
 
-type AdminView = "documents" | "list" | "edit" | "detail" | "notices";
+type AdminView = "documents" | "list" | "edit" | "detail" | "notices" | "knowledge";
 
 export default function AdminPanel({
     questions,
@@ -86,6 +87,15 @@ export default function AdminPanel({
                             <span className="text-sm font-medium text-purple-700">공지관리</span>
                         </div>
                     </button>
+                    <button
+                        onClick={() => setView("knowledge")}
+                        className="bg-teal-50 border border-teal-200 rounded-lg p-4 text-center hover:bg-teal-100 transition-colors h-full flex flex-col items-center justify-center min-w-[120px]"
+                    >
+                        <div className="flex items-center justify-center gap-1 mb-1">
+                            <FileText className="h-5 w-5 text-teal-500" />
+                            <span className="text-sm font-medium text-teal-700">지식관리</span>
+                        </div>
+                    </button>
                 </div>
 
                 <DocumentGrid
@@ -131,6 +141,20 @@ export default function AdminPanel({
                     setView("edit");
                 }}
             />
+        );
+    }
+
+    if (view === "knowledge") {
+        return (
+            <div className="space-y-4">
+                <button
+                    onClick={() => setView("documents")}
+                    className="text-sm text-gray-500 hover:text-gray-900 flex items-center gap-1"
+                >
+                    <ArrowLeft className="h-4 w-4" /> 목록으로 돌아가기
+                </button>
+                <KnowledgeManager />
+            </div>
         );
     }
 

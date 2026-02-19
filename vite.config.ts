@@ -26,6 +26,7 @@ export default defineConfig({
         },
     },
     server: {
+        host: true,
         proxy: {
             "/api": {
                 target: "https://jongsaja.vercel.app",

@@ -4,6 +4,44 @@ import jwt from "jsonwebtoken";
 import multer from "multer";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { getOrganizationByCode } from "../lib/organization-data";
+import * as admin from "firebase-admin";
+
+// ─── Firebase ────────────────────────────────────────────────
+let firebaseInitialized = false;
+
+function initFirebase(): void {
+    if (firebaseInitialized) return;
+    const projectId = process.env.FIREBASE_PROJECT_ID;
+    const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+    const privateKey = process.env.FIREBASE_PRIVATE_KEY
+        ? process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, "\n")
+        : undefined;
+
+    if (projectId && clientEmail && privateKey) {
+        try {
+            if (admin.apps.length === 0) {
+                admin.initializeApp({
+                    credential: admin.credential.cert({ projectId, clientEmail, privateKey }),
+                    storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
+                });
+            }
+            console.log("[QnA] Firebase Admin SDK initialized");
+        } catch (err) {
+            console.warn("[QnA] Firebase init error:", err);
+        }
+    } else {
+        console.warn("[QnA] Firebase not configured — knowledge uses memory only");
+    }
+    firebaseInitialized = true;
+}
+
+function isFirebaseReady(): boolean {
+    return !!(admin && admin.apps && admin.apps.length > 0);
+}
+
+function getDb(): FirebaseFirestore.Firestore {
+    return admin.firestore();
+}
 
 // ─── Types ───────────────────────────────────────────────────
 interface JwtPayload {
@@ -44,6 +82,18 @@ interface MockDocument {
     managerName?: string;
     managerPhone?: string;
     validUntil?: string;
+}
+
+type KnowledgeCategory = "사업지침" | "행정절차" | "매뉴얼" | "규정" | "기타";
+
+interface MockKnowledgeItem {
+    id: string;
+    title: string;
+    category: KnowledgeCategory;
+    content: string;
+    source: string; // "직접입력" | 파일명
+    createdAt: string;
+    chunkCount: number;
 }
 
 // ─── Config ──────────────────────────────────────────────────
@@ -130,19 +180,71 @@ let mockDocuments: MockDocument[] = [
 
 let nextQuestionId = 4;
 let nextDocumentId = 3;
+let nextKnowledgeId = 1;
+
+let mockKnowledgeItems: MockKnowledgeItem[] = [];
+let knowledgeLoaded = false;
+
+async function loadKnowledgeFromFirestore(): Promise<void> {
+    if (knowledgeLoaded || !isFirebaseReady()) return;
+    try {
+        const snapshot = await getDb().collection("knowledge").orderBy("createdAt", "desc").get();
+        mockKnowledgeItems = snapshot.docs.map((doc) => {
+            const data = doc.data();
+            return {
+                id: doc.id,
+                title: data.title || "",
+                category: data.category || "기타",
+                content: data.content || "",
+                source: data.source || "직접입력",
+                createdAt: data.createdAt || new Date().toISOString(),
+                chunkCount: data.chunkCount || 1,
+            } as MockKnowledgeItem;
+        });
+        nextKnowledgeId = mockKnowledgeItems.length + 1;
+        knowledgeLoaded = true;
+        console.log(`[QnA] Firestore에서 지식 ${mockKnowledgeItems.length}건 로드 완료`);
+    } catch (err) {
+        console.error("[QnA] Firestore 지식 로드 실패:", err);
+    }
+}
 
 // ─── AI Service (Integrated) ──────────────────────────────
+function buildKnowledgeContext(): string {
+    if (mockKnowledgeItems.length === 0) return "";
+    let context = "\n\n## 내부 지식 베이스 (참고 자료)\n다음은 구축된 지식체계 정보입니다:\n";
+    for (const item of mockKnowledgeItems) {
+        context += `\n### [${item.category}] ${item.title}\n${item.content}\n`;
+    }
+    return context;
+}
+
 async function generateAIDraft(title: string, content: string): Promise<string> {
     const apiKey = process.env.GOOGLE_GEMINI_API_KEY;
+    const knowledgeContext = buildKnowledgeContext();
+
     if (!apiKey) {
-        return `[AI 자동 생성 초안 (가상)]\n\n"${title}"에 대한 답변입니다.\n\n관련 사업지침 및 규정을 검토한 결과, 다음과 같이 안내드립니다:\n\n1. ${content.slice(0, 50)}에 대해서는 해당 사업지침을 참고해주시기 바랍니다.\n2. 추가적인 문의사항이 있으시면 담당자에게 연락 부탁드립니다.\n\n※ 이 답변은 AI가 자동 생성한 초안이며, 관리자 검토 후 최종 답변이 전달됩니다.`;
+        const knowledgeNote = mockKnowledgeItems.length > 0
+            ? `\n\n(참고: 내부 지식 베이스에서 ${mockKnowledgeItems.length}개의 지식 항목을 참조했습니다.)`
+            : "";
+        return `[AI 자동 생성 초안 (가상)]\n\n"${title}"에 대한 답변입니다.\n\n관련 사업지침 및 규정을 검토한 결과, 다음과 같이 안내드립니다:\n\n1. ${content.slice(0, 50)}에 대해서는 해당 사업지침을 참고해주시기 바랍니다.\n2. 추가적인 문의사항이 있으시면 담당자에게 연락 부탁드립니다.\n\n※ 이 답변은 AI가 자동 생성한 초안이며, 관리자 검토 후 최종 답변이 전달됩니다.${knowledgeNote}`;
     }
 
     try {
         const genAI = new GoogleGenerativeAI(apiKey);
+        const systemInstruction = `당신은 경상남도 광역지원기관의 공문 Q&A 담당 AI 어시스턴트입니다.
+사회복지사들의 질문에 대해 공문 내용과 내부 지식 베이스를 참조하여 정확하고 친절한 답변 초안을 작성합니다.
+
+답변 작성 시 주의사항:
+- 제공된 지식 베이스에 근거한 답변만 작성하세요
+- 근거가 없는 내용은 "해당 내용은 확인되지 않습니다"라고 안내하세요
+- 답변은 마크다운 형식으로 구조화해주세요
+- 관련 조항이나 항목을 구체적으로 인용하세요
+${knowledgeContext}`;
+
         const model = genAI.getGenerativeModel({
             model: "gemini-1.5-flash",
-            systemInstruction: "당신은 경상남도 광역지원기관의 공문 Q&A 담당 AI 어시스턴트입니다. 사회복지사들의 질문에 대해 정확하고 친절한 답변 초안을 작성합니다. 답변은 마크다운 형식으로 작성하세요."
+            systemInstruction
         });
 
         const prompt = `질문 제목: ${title}\n질문 내용: ${content}\n\n위 질문에 대한 답변 초안을 작성해주세요.`;
@@ -356,9 +458,105 @@ export function createQnARouter(): ExpressRouter {
         res.json({ success: true });
     });
 
+    // ── Knowledge Base (Firebase Firestore) ──
+    router.get("/knowledge", authenticateToken, async (_req: ExpressRequest, res: ExpressResponse) => {
+        try {
+            await loadKnowledgeFromFirestore();
+            res.json(mockKnowledgeItems);
+        } catch (err) {
+            res.json(mockKnowledgeItems);
+        }
+    });
+
+    router.post("/knowledge", authenticateToken, upload.single("file"), async (req: ExpressRequest, res: ExpressResponse) => {
+        const user = (req as any).user as JwtPayload;
+        if (user.role !== "admin") {
+            res.status(403).json({ error: "관리자만 지식을 등록할 수 있습니다." });
+            return;
+        }
+
+        const { title, category, content: textContent } = (req as any).body || {};
+        const file = (req as any).file;
+
+        if (!title || !category) {
+            res.status(400).json({ error: "제목과 카테고리는 필수입니다." });
+            return;
+        }
+
+        let finalContent = textContent || "";
+        let source = "직접입력";
+
+        if (file) {
+            finalContent = file.buffer.toString("utf-8");
+            source = file.originalname || "파일업로드";
+        }
+
+        if (!finalContent.trim()) {
+            res.status(400).json({ error: "내용을 입력하거나 파일을 업로드해주세요." });
+            return;
+        }
+
+        // 텍스트를 청크로 분할 (약 500자 단위)
+        const chunks = finalContent.match(/[\s\S]{1,500}/g) || [finalContent];
+
+        const id = isFirebaseReady() ? `kb_${Date.now()}` : `kb${nextKnowledgeId++}`;
+        const newItem: MockKnowledgeItem = {
+            id,
+            title,
+            category: category as KnowledgeCategory,
+            content: finalContent,
+            source,
+            createdAt: new Date().toISOString(),
+            chunkCount: chunks.length,
+        };
+        mockKnowledgeItems.unshift(newItem);
+
+        // Firestore에 저장
+        if (isFirebaseReady()) {
+            try {
+                await getDb().collection("knowledge").doc(id).set(newItem);
+                console.log(`[QnA] Firestore에 지식 저장: "${title}"`);
+            } catch (err) {
+                console.error("[QnA] Firestore 저장 실패:", err);
+            }
+        }
+
+        console.log(`지식 등록: "${title}" (${chunks.length}개 청크, 출처: ${source})`);
+        res.json({ id, chunkCount: chunks.length });
+    });
+
+    router.delete("/knowledge/:id", authenticateToken, async (req: ExpressRequest, res: ExpressResponse) => {
+        const user = (req as any).user as JwtPayload;
+        if (user.role !== "admin") {
+            res.status(403).json({ error: "관리자만 지식을 삭제할 수 있습니다." });
+            return;
+        }
+
+        const id = (req as any).params?.id;
+        const idx = mockKnowledgeItems.findIndex((k) => k.id === id);
+        if (idx === -1) {
+            res.status(404).json({ error: "지식 항목을 찾을 수 없습니다." });
+            return;
+        }
+        const removed = mockKnowledgeItems.splice(idx, 1)[0];
+
+        // Firestore에서 삭제
+        if (isFirebaseReady()) {
+            try {
+                await getDb().collection("knowledge").doc(id).delete();
+                console.log(`[QnA] Firestore에서 지식 삭제: "${removed.title}"`);
+            } catch (err) {
+                console.error("[QnA] Firestore 삭제 실패:", err);
+            }
+        }
+
+        console.log(`지식 삭제: "${removed.title}"`);
+        res.json({ success: true });
+    });
+
     // ── Health check ──
     router.get("/health", (_req: ExpressRequest, res: ExpressResponse) => {
-        res.json({ status: "ok", mode: "integrated" });
+        res.json({ status: "ok", mode: "integrated", knowledgeCount: mockKnowledgeItems.length });
     });
 
     return router;
@@ -366,6 +564,7 @@ export function createQnARouter(): ExpressRouter {
 
 // ─── Create full Express app ─────────────────────────────────
 export function createQnAApp() {
+    initFirebase();
     const app = express();
     app.use(express.json());
     app.use(createQnARouter());
