@@ -8,7 +8,7 @@ interface DocumentManagerProps {
     loading: boolean;
     uploading: boolean;
     onUpload: (
-        file: File,
+        files: File[],
         metadata: {
             title: string;
             documentNumber: string;
@@ -17,7 +17,7 @@ interface DocumentManagerProps {
             uploadedBy: string;
         },
         manualContent?: string
-    ) => Promise<string>;
+    ) => Promise<any>;
     onUpdate: (id: string, data: Partial<OfficialDocument>) => Promise<void>;
     onDelete: (id: string) => Promise<void>;
     onSetValidUntil: (id: string, validUntil: string) => Promise<void>;
@@ -49,7 +49,7 @@ export default function DocumentManager({
     const [managerName, setManagerName] = useState("");
     const [managerPhone, setManagerPhone] = useState("");
     const [manualContent, setManualContent] = useState("");
-    const [file, setFile] = useState<File | null>(null);
+    const [files, setFiles] = useState<File[]>([]);
     const [error, setError] = useState("");
     const [editingValidUntil, setEditingValidUntil] = useState<string | null>(null);
     const [validUntilInput, setValidUntilInput] = useState("");
@@ -66,16 +66,36 @@ export default function DocumentManager({
     // Notice management expansion
     const [expandedDocId, setExpandedDocId] = useState<string | null>(null);
 
+    const [isDragging, setIsDragging] = useState(false);
+
+    const handleDragOver = (e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDragging(true);
+    };
+
+    const handleDragLeave = (e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDragging(false);
+    };
+
+    const handleDrop = (e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDragging(false);
+        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            setFiles(Array.from(e.dataTransfer.files));
+        }
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!file || !title.trim() || !documentNumber.trim() || !managerName.trim() || !managerPhone.trim()) {
-            setError("파일, 제목, 공문번호, 담당자 정보를 모두 입력해주세요.");
+        if (files.length === 0 || !title.trim() || !documentNumber.trim() || !managerName.trim() || !managerPhone.trim()) {
+            setError("파일(최소 1개), 제목, 공문번호, 담당자 정보를 모두 입력해주세요.");
             return;
         }
         setError("");
         try {
             await onUpload(
-                file,
+                files,
                 {
                     title: title.trim(),
                     documentNumber: documentNumber.trim(),
@@ -90,7 +110,7 @@ export default function DocumentManager({
             setManagerName("");
             setManagerPhone("");
             setManualContent("");
-            setFile(null);
+            setFiles([]);
             setShowForm(false);
         } catch (err) {
             setError(err instanceof Error ? err.message : "업로드 실패");
@@ -220,14 +240,63 @@ export default function DocumentManager({
 
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                                파일 (PDF)
+                                파일 (PDF, MD, TXT / 다중 선택 및 드래그 가능)
                             </label>
-                            <input
-                                type="file"
-                                accept=".pdf,.doc,.docx,.hwp"
-                                onChange={(e) => setFile(e.target.files?.[0] || null)}
-                                className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100"
-                            />
+                            <div
+                                onDragOver={handleDragOver}
+                                onDragLeave={handleDragLeave}
+                                onDrop={handleDrop}
+                                className={`relative border-2 border-dashed rounded-lg p-6 text-center transition-all ${isDragging
+                                        ? "border-emerald-500 bg-emerald-50"
+                                        : "border-gray-300 hover:border-emerald-400"
+                                    }`}
+                            >
+                                <input
+                                    type="file"
+                                    accept=".pdf,.doc,.docx,.hwp,.md,.txt"
+                                    multiple
+                                    onChange={(e) => {
+                                        if (e.target.files) {
+                                            setFiles(Array.from(e.target.files));
+                                        }
+                                    }}
+                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                />
+                                <div className="space-y-2 pointer-events-none">
+                                    <Upload className={`h-8 w-8 mx-auto mb-2 transition-colors ${isDragging ? "text-emerald-500" : "text-gray-400"}`} />
+                                    <p className="text-sm text-gray-600">
+                                        {files.length > 0 ? (
+                                            <span className="text-emerald-600 font-medium">
+                                                {files.length}개의 파일 선택됨
+                                            </span>
+                                        ) : (
+                                            <>
+                                                <span className="font-medium text-emerald-600">클릭하여 업로드</span>
+                                                <span className="text-gray-500"> 하거나 파일을 여기로 끌어다 놓으세요</span>
+                                            </>
+                                        )}
+                                    </p>
+                                    <p className="text-xs text-gray-400">
+                                        PDF, MD, TXT, HWP 등 지원
+                                    </p>
+                                </div>
+                            </div>
+
+                            {files.length > 0 && (
+                                <div className="mt-3 space-y-1 max-h-32 overflow-y-auto pr-1">
+                                    {files.map((f, i) => (
+                                        <div key={i} className="text-xs text-gray-600 flex items-center justify-between bg-gray-50 px-3 py-2 rounded-lg border border-gray-100">
+                                            <div className="flex items-center gap-2 truncate">
+                                                <FileText className="h-3.5 w-3.5 text-emerald-500 flex-shrink-0" />
+                                                <span className="truncate">{f.name}</span>
+                                            </div>
+                                            <span className="text-[10px] text-gray-400 ml-2 flex-shrink-0">
+                                                {(f.size / 1024).toFixed(1)} KB
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
 
                         <div>

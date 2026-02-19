@@ -34,25 +34,32 @@ router.get("/", authenticateToken, async (req: Request, res: Response) => {
 const upload = multer({ storage: multer.memoryStorage() });
 
 // POST /api/documents
-router.post("/", authenticateToken, requireAdmin, upload.single("file"), async (req: Request, res: Response) => {
+router.post("/", authenticateToken, requireAdmin, upload.array("files"), async (req: Request, res: Response) => {
   if (!isFirebaseConfigured()) {
     return res.status(503).json({ error: "DB 연동 데이터가 없어 등록할 수 없습니다." });
   }
 
   try {
-    const { title, documentNumber, managerName, managerPhone } = req.body;
-    const file = req.file;
+    const { title, documentNumber, managerName, managerPhone, content: manualContent } = req.body;
+    const files = req.files as Express.Multer.File[];
 
     if (!title || !documentNumber) {
       return res.status(400).json({ error: "제목과 공문번호는 필수입니다." });
     }
 
-    let fileUrl = "";
-    let content = "";
+    if (!files || files.length === 0) {
+      return res.status(400).json({ error: "업로드할 파일이 없습니다." });
+    }
 
-    // 1. Storage Upload
-    if (file) {
-      const bucket = getBucket();
+    const results = [];
+    const db = getDb();
+    const bucket = getBucket();
+
+    for (const file of files) {
+      let fileUrl = "";
+      let content = manualContent || "";
+
+      // 1. Storage Upload
       const fileName = `${Date.now()}_${file.originalname}`;
       const fileRef = bucket.file(`documents/${fileName}`);
 
@@ -60,54 +67,70 @@ router.post("/", authenticateToken, requireAdmin, upload.single("file"), async (
         metadata: { contentType: file.mimetype },
       });
 
-      // Get signed URL (valid for a long time or use public if configured)
       const [url] = await fileRef.getSignedUrl({
         action: "read",
-        expires: "03-01-2500", // Long term
+        expires: "03-01-2500",
       });
       fileUrl = url;
 
-      // 2. PDF Text Extraction (if PDF)
-      if (file.mimetype === "application/pdf") {
-        try {
-          content = await extractTextFromPDF(file.buffer);
-        } catch (err) {
-          console.warn("PDF extraction failed, using empty content:", err);
+      // 2. Text Extraction (Only if manual content is not provided)
+      if (!manualContent) {
+        if (file.mimetype === "application/pdf") {
+          try {
+            content = await extractTextFromPDF(file.buffer);
+          } catch (err) {
+            console.warn("PDF extraction failed:", err);
+          }
+        } else if (
+          file.mimetype === "text/plain" ||
+          file.mimetype === "text/markdown" ||
+          file.originalname.endsWith(".md") ||
+          file.originalname.endsWith(".txt")
+        ) {
+          try {
+            content = file.buffer.toString("utf-8");
+          } catch (err) {
+            console.warn("Text extraction failed:", err);
+          }
         }
       }
-    }
 
-    // 3. AI Summary Generation
-    let aiSummary = "";
-    if (content) {
-      try {
-        const summaryResult = await generateDocumentSummary(content);
-        aiSummary = typeof summaryResult === "string" ? summaryResult : summaryResult.summary;
-      } catch (err) {
-        console.warn("AI Summary failed:", err);
+      // 3. AI Summary Generation
+      let aiSummary = "";
+      if (content) {
+        try {
+          const summaryResult = await generateDocumentSummary(content);
+          aiSummary = typeof summaryResult === "string" ? summaryResult : summaryResult.summary;
+        } catch (err) {
+          console.warn("AI Summary failed:", err);
+        }
       }
+
+      // If multiple files, append filename to title for distinction
+      const finalTitle = files.length > 1 ? `${title} (${file.originalname})` : title;
+
+      const newDoc = {
+        title: finalTitle,
+        documentNumber,
+        content,
+        aiSummary,
+        fileUrl,
+        uploadedAt: new Date().toISOString(),
+        uploadedBy: (req as any).user?.name || "관리자",
+        managerName: managerName || "",
+        managerPhone: managerPhone || "",
+        faqItems: [],
+        faqStatus: "비공개" as const,
+      };
+
+      const docRef = await db.collection(COLLECTION_NAME).add(newDoc);
+      results.push({ id: docRef.id, ...newDoc });
     }
 
-    const db = getDb();
-    const newDoc = {
-      title,
-      documentNumber,
-      content,
-      aiSummary,
-      fileUrl,
-      uploadedAt: new Date().toISOString(),
-      uploadedBy: (req as any).user?.name || "관리자",
-      managerName: managerName || "",
-      managerPhone: managerPhone || "",
-      faqItems: [],
-      faqStatus: "비공개" as const,
-    };
-
-    const docRef = await db.collection(COLLECTION_NAME).add(newDoc);
-    res.status(201).json({ id: docRef.id, ...newDoc });
+    res.status(201).json({ success: true, count: results.length, documents: results });
   } catch (error) {
-    console.error("Error adding document:", error);
-    res.status(500).json({ error: "Failed to create document" });
+    console.error("Error adding documents:", error);
+    res.status(500).json({ error: "Failed to create documents" });
   }
 });
 

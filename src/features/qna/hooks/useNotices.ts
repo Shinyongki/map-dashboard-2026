@@ -1,48 +1,39 @@
-
 import { useState, useEffect, useCallback } from "react";
-import { useAuth } from "./useAuth";
+import { api } from "@/features/qna/api/client";
 import type { Notice } from "@/features/qna/lib/types";
 
-const API_Base = "http://localhost:3001/api";
-
 export function useNotices(documentId?: string) {
-    const { token } = useAuth();
     const [notices, setNotices] = useState<Notice[]>([]);
     const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     const fetchNotices = useCallback(async () => {
-        if (!token) return;
         setLoading(true);
         try {
-            const params = new URLSearchParams();
-            if (documentId) params.append("documentId", documentId);
+            const url = documentId
+                ? `/notices?documentId=${documentId}`
+                : '/notices';
 
-            const res = await fetch(`${API_Base}/notices?${params.toString()}`, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            if (res.ok) {
-                const data = await res.json();
-                setNotices(data);
-            }
-        } catch (error) {
-            console.error("Failed to fetch notices:", error);
+            const data = await api.get<Notice[]>(url);
+            setNotices(data);
+            setError(null);
+        } catch (err) {
+            console.error("Failed to fetch notices:", err);
+            setError(err instanceof Error ? err.message : "공지사항 로딩 실패");
         } finally {
             setLoading(false);
         }
-    }, [token, documentId]);
+    }, [documentId]);
 
     const addNotice = async (content: string, category: Notice["category"], isActive: boolean, relatedDocumentId?: string) => {
-        if (!token) return;
         try {
-            const res = await fetch(`${API_Base}/notices`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify({ content, category, isActive, relatedDocumentId }),
+            const result = await api.post<{ success: boolean }>("/notices", {
+                content,
+                category,
+                isActive,
+                relatedDocumentId
             });
-            if (res.ok) {
+            if (result.success) {
                 fetchNotices();
                 return true;
             }
@@ -53,20 +44,10 @@ export function useNotices(documentId?: string) {
     };
 
     const updateNotice = async (id: string, updates: Partial<Notice>) => {
-        if (!token) return;
         try {
-            const res = await fetch(`${API_Base}/notices/${id}`, {
-                method: "PATCH",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify(updates),
-            });
-            if (res.ok) {
-                fetchNotices();
-                return true;
-            }
+            await api.patch(`/notices/${id}`, updates);
+            fetchNotices();
+            return true;
         } catch (error) {
             console.error("Failed to update notice:", error);
         }
@@ -80,6 +61,7 @@ export function useNotices(documentId?: string) {
     return {
         notices,
         loading,
+        error,
         refresh: fetchNotices,
         addNotice,
         updateNotice

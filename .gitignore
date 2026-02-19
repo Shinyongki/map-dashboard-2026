@@ -29,3 +29,6 @@ server-documents-data.json
 *.njsproj
 *.sln
 *.sw?
+
+ai-test-log.txt
+	est-ai-connection.mjs

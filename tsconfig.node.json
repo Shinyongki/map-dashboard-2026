@@ -8,6 +8,8 @@
         "forceConsistentCasingInFileNames": true
     },
     "include": [
-        "vite.config.ts"
+        "vite.config.ts",
+        "src/server/qna-middleware.ts",
+        "src/lib/organization-data.ts"
     ]
 }

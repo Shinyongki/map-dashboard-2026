@@ -218,22 +218,28 @@ export default function QuestionForm({
                                         relatedQuestions.map(q => (
                                             <div key={q.id} className="p-2.5 border border-gray-100 rounded-lg hover:bg-gray-50 text-sm transition-colors cursor-default">
                                                 <div className="flex items-center gap-2 mb-1.5">
-                                                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${q.status === "answered" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"
+                                                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${q.status === "answered"
+                                                        ? "bg-green-100 text-green-700"
+                                                        : q.status === "closed"
+                                                            ? "bg-gray-100 text-gray-600 line-through"
+                                                            : "bg-yellow-100 text-yellow-700"
                                                         }`}>
-                                                        {q.status === "answered" ? "답변완료" : "대기중"}
+                                                        {q.status === "answered" ? "답변완료" : q.status === "closed" ? "종료" : "대기중"}
                                                     </span>
                                                     <span className="text-gray-900 font-medium truncate">{q.title}</span>
                                                 </div>
-                                                {q.finalAnswer && (
-                                                    <div className="flex gap-2 pl-1">
-                                                        <div className="min-w-[12px] pt-0.5">
-                                                            <div className="w-0.5 h-full bg-emerald-200 mx-auto rounded-full"></div>
+                                                {
+                                                    q.finalAnswer && (
+                                                        <div className="flex gap-2 pl-1">
+                                                            <div className="min-w-[12px] pt-0.5">
+                                                                <div className="w-0.5 h-full bg-emerald-200 mx-auto rounded-full"></div>
+                                                            </div>
+                                                            <p className="text-xs text-gray-600 line-clamp-2">
+                                                                {q.finalAnswer}
+                                                            </p>
                                                         </div>
-                                                        <p className="text-xs text-gray-600 line-clamp-2">
-                                                            {q.finalAnswer}
-                                                        </p>
-                                                    </div>
-                                                )}
+                                                    )
+                                                }
                                             </div>
                                         ))
                                     )}
@@ -307,7 +313,7 @@ export default function QuestionForm({
                         </button>
                     </div>
                 </form>
-            </div>
-        </div>
+            </div >
+        </div >
     );
 }

@@ -49,7 +49,26 @@ export default function KnowledgeManager() {
     const [category, setCategory] = useState<KnowledgeCategory>("사업지침");
     const [content, setContent] = useState("");
     const [inputMode, setInputMode] = useState<"text" | "file">("text");
-    const [file, setFile] = useState<File | null>(null);
+    const [files, setFiles] = useState<File[]>([]);
+    const [isDragging, setIsDragging] = useState(false);
+
+    const handleDragOver = (e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDragging(true);
+    };
+
+    const handleDragLeave = (e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDragging(false);
+    };
+
+    const handleDrop = (e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDragging(false);
+        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            setFiles(Array.from(e.dataTransfer.files));
+        }
+    };
 
     // ─── 데이터 로드 ─────────────────────────────────────────
     const fetchItems = useCallback(async () => {
@@ -79,8 +98,8 @@ export default function KnowledgeManager() {
             setError("내용을 입력해주세요.");
             return;
         }
-        if (inputMode === "file" && !file) {
-            setError("파일을 선택해주세요.");
+        if (inputMode === "file" && files.length === 0) {
+            setError("파일을 최소 하나 이상 선택해주세요.");
             return;
         }
 
@@ -88,11 +107,13 @@ export default function KnowledgeManager() {
         setSubmitting(true);
 
         try {
-            if (inputMode === "file" && file) {
+            if (inputMode === "file" && files.length > 0) {
                 const formData = new FormData();
                 formData.append("title", title.trim());
                 formData.append("category", category);
-                formData.append("file", file);
+                files.forEach(f => {
+                    formData.append("files", f);
+                });
                 await api.post("/knowledge", formData);
             } else {
                 await api.post("/knowledge", {
@@ -105,7 +126,7 @@ export default function KnowledgeManager() {
             // 폼 초기화
             setTitle("");
             setContent("");
-            setFile(null);
+            setFiles([]);
             setShowForm(false);
             await fetchItems();
         } catch (err) {
@@ -147,22 +168,43 @@ export default function KnowledgeManager() {
                             </p>
                         </div>
                     </div>
-                    <button
-                        onClick={() => setShowForm(!showForm)}
-                        className="flex items-center gap-1.5 px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-sm font-medium transition-colors"
-                    >
-                        {showForm ? (
-                            <>
-                                <X className="h-4 w-4" />
-                                닫기
-                            </>
-                        ) : (
-                            <>
-                                <Plus className="h-4 w-4" />
-                                지식 등록
-                            </>
-                        )}
-                    </button>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => {
+                                const data = JSON.stringify(items, null, 2);
+                                const blob = new Blob([data], { type: "application/json" });
+                                const url = URL.createObjectURL(blob);
+                                const a = document.createElement("a");
+                                a.href = url;
+                                a.download = `knowledge-backup-${new Date().toISOString().slice(0, 10)}.json`;
+                                document.body.appendChild(a);
+                                a.click();
+                                document.body.removeChild(a);
+                                URL.revokeObjectURL(url);
+                            }}
+                            className="flex items-center gap-1.5 px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors border border-gray-200"
+                            title="전체 지식 데이터 백업 (JSON)"
+                        >
+                            <Database className="h-4 w-4" />
+                            백업 다운로드
+                        </button>
+                        <button
+                            onClick={() => setShowForm(!showForm)}
+                            className="flex items-center gap-1.5 px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-sm font-medium transition-colors"
+                        >
+                            {showForm ? (
+                                <>
+                                    <X className="h-4 w-4" />
+                                    닫기
+                                </>
+                            ) : (
+                                <>
+                                    <Plus className="h-4 w-4" />
+                                    지식 등록
+                                </>
+                            )}
+                        </button>
+                    </div>
                 </div>
 
                 {/* 통계 */}
@@ -220,8 +262,8 @@ export default function KnowledgeManager() {
                                         type="button"
                                         onClick={() => setCategory(cat)}
                                         className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors border ${category === cat
-                                                ? "bg-teal-100 text-teal-700 border-teal-300"
-                                                : "bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100"
+                                            ? "bg-teal-100 text-teal-700 border-teal-300"
+                                            : "bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100"
                                             }`}
                                     >
                                         {cat}
@@ -240,8 +282,8 @@ export default function KnowledgeManager() {
                                     type="button"
                                     onClick={() => setInputMode("text")}
                                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border ${inputMode === "text"
-                                            ? "bg-teal-50 text-teal-700 border-teal-300"
-                                            : "bg-gray-50 text-gray-500 border-gray-200"
+                                        ? "bg-teal-50 text-teal-700 border-teal-300"
+                                        : "bg-gray-50 text-gray-500 border-gray-200"
                                         }`}
                                 >
                                     <FileText className="h-3.5 w-3.5" />
@@ -251,8 +293,8 @@ export default function KnowledgeManager() {
                                     type="button"
                                     onClick={() => setInputMode("file")}
                                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border ${inputMode === "file"
-                                            ? "bg-teal-50 text-teal-700 border-teal-300"
-                                            : "bg-gray-50 text-gray-500 border-gray-200"
+                                        ? "bg-teal-50 text-teal-700 border-teal-300"
+                                        : "bg-gray-50 text-gray-500 border-gray-200"
                                         }`}
                                 >
                                     <Upload className="h-3.5 w-3.5" />
@@ -279,37 +321,66 @@ export default function KnowledgeManager() {
                                 </p>
                             </div>
                         ) : (
-                            <div>
+                            <div className="space-y-3">
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
                                     파일 선택 <span className="text-red-500">*</span>
                                 </label>
-                                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-teal-400 transition-colors">
+                                <div
+                                    onDragOver={handleDragOver}
+                                    onDragLeave={handleDragLeave}
+                                    onDrop={handleDrop}
+                                    className={`relative border-2 border-dashed rounded-lg p-6 text-center transition-all ${isDragging
+                                        ? "border-teal-500 bg-teal-50 shadow-inner"
+                                        : "border-gray-300 hover:border-teal-400"
+                                        }`}
+                                >
                                     <input
                                         type="file"
                                         accept=".txt,.md"
-                                        onChange={(e) => setFile(e.target.files?.[0] || null)}
-                                        className="hidden"
+                                        multiple
+                                        onChange={(e) => {
+                                            if (e.target.files) {
+                                                setFiles(Array.from(e.target.files));
+                                            }
+                                        }}
+                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                                         id="knowledge-file-input"
                                     />
-                                    <label
-                                        htmlFor="knowledge-file-input"
-                                        className="cursor-pointer"
-                                    >
-                                        <Upload className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                                    <div className="pointer-events-none">
+                                        <Upload className={`h-8 w-8 mx-auto mb-2 transition-colors ${isDragging ? "text-teal-500" : "text-gray-400"}`} />
                                         <p className="text-sm text-gray-600">
-                                            {file ? (
+                                            {files.length > 0 ? (
                                                 <span className="text-teal-600 font-medium">
-                                                    {file.name}
+                                                    {files.length}개의 파일 선택됨
                                                 </span>
                                             ) : (
-                                                "클릭하여 파일을 선택하세요"
+                                                <>
+                                                    <span className="font-medium text-teal-600">클릭하여 업로드</span>
+                                                    <span className="text-gray-500"> 하거나 파일을 여기로 끄세요</span>
+                                                </>
                                             )}
                                         </p>
                                         <p className="text-xs text-gray-400 mt-1">
-                                            .txt, .md 파일 지원
+                                            .txt, .md 파일 다중 지원
                                         </p>
-                                    </label>
+                                    </div>
                                 </div>
+
+                                {files.length > 0 && (
+                                    <div className="mt-3 space-y-1 max-h-40 overflow-y-auto pr-1">
+                                        {files.map((f, i) => (
+                                            <div key={i} className="text-[11px] text-gray-600 flex items-center justify-between bg-gray-50 px-3 py-2 rounded-lg border border-gray-100">
+                                                <div className="flex items-center gap-2 truncate">
+                                                    <FileText className="h-3.5 w-3.5 text-teal-500 flex-shrink-0" />
+                                                    <span className="truncate">{f.name}</span>
+                                                </div>
+                                                <span className="text-[10px] text-gray-400 ml-2 flex-shrink-0">
+                                                    {(f.size / 1024).toFixed(1)} KB
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         )}
 

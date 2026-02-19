@@ -26,6 +26,10 @@ export function useQuestions(filters?: { status?: QuestionStatus; relatedDocumen
 
     useEffect(() => {
         refresh();
+
+        const onFocus = () => refresh();
+        window.addEventListener("focus", onFocus);
+        return () => window.removeEventListener("focus", onFocus);
     }, [refresh]);
 
     const submitQuestion = useCallback(
@@ -48,11 +52,10 @@ export function useQuestions(filters?: { status?: QuestionStatus; relatedDocumen
 
     const approveAnswer = useCallback(
         async (id: string, answer: string, author: string) => {
-            // Backend expects 'answer' field for final answer, and 'answerAuthor' for author
-            // Based on db.ts Question interface: answer?: string; answerAuthor?: string;
+            // Backend expects 'finalAnswer' field for final answer
             await api.patch(`/questions/${id}`, {
-                answer,
-                answerAuthor: author,
+                finalAnswer: answer,
+                answeredBy: author,
                 status: "answered",
             });
             await refresh();

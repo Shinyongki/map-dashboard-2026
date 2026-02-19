@@ -125,11 +125,11 @@ export default function QuestionDetail({
                 </div>
             )}
 
-            {/* Pending state */}
-            {question.status === "pending" && (
-                <div className="flex items-center gap-2 p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-700">
-                    <Clock className="h-4 w-4" />
-                    <span>답변을 준비 중입니다. AI가 초안을 생성하고 있습니다...</span>
+            {/* Pending state - Only visible to Admin */}
+            {displayStatus === "pending" && isAdmin && (
+                <div className="flex items-center gap-2 p-4 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-700">
+                    <BotMessageSquare className="h-4 w-4 animate-pulse" />
+                    <span>AI가 답변 초안을 생성하고 있습니다...</span>
                 </div>
             )}
         </div>

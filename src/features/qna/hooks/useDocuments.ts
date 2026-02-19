@@ -27,7 +27,7 @@ export function useDocuments() {
 
     const upload = useCallback(
         async (
-            file: File,
+            files: File | File[],
             metadata: {
                 title: string;
                 documentNumber: string;
@@ -40,7 +40,11 @@ export function useDocuments() {
             setUploading(true);
             try {
                 const formData = new FormData();
-                formData.append("file", file);
+                const fileArray = Array.isArray(files) ? files : [files];
+                fileArray.forEach((f) => {
+                    formData.append("files", f);
+                });
+
                 formData.append("title", metadata.title);
                 formData.append("documentNumber", metadata.documentNumber);
                 if (metadata.managerName) formData.append("managerName", metadata.managerName);
@@ -49,9 +53,9 @@ export function useDocuments() {
                     formData.append("content", manualContent);
                 }
 
-                const result = await api.post<{ id: string }>("/documents", formData);
+                const result = await api.post<{ success: boolean; count?: number }>("/documents", formData);
                 await refresh();
-                return result.id;
+                return result;
             } catch (err) {
                 setError(err instanceof Error ? err.message : "업로드 실패");
                 throw err;
