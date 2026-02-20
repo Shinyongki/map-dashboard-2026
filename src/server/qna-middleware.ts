@@ -427,6 +427,15 @@ function authenticateToken(req: ExpressRequest, res: ExpressResponse, next: Next
     }
 }
 
+// multer는 파일명을 latin1로 디코딩하므로 UTF-8 한글 파일명이 깨짐 → 복원
+function fixFilename(name: string): string {
+    try {
+        return Buffer.from(name, "latin1").toString("utf8");
+    } catch {
+        return name;
+    }
+}
+
 // ─── Create Router ───────────────────────────────────────────
 export function createQnARouter(): ExpressRouter {
     const router = express.Router();
@@ -627,18 +636,18 @@ export function createQnARouter(): ExpressRouter {
                     try {
                         const parsed = await pdfParse(file.buffer);
                         finalContent = parsed.text || "(PDF 내용 추출 실패)";
-                        console.log(`[QnA] PDF 파싱 완료: ${file.originalname} (${finalContent.length}자)`);
+                        console.log(`[QnA] PDF 파싱 완료: ${fixFilename(file.originalname)} (${finalContent.length}자)`);
                     } catch (err) {
                         console.error("[QnA] PDF 파싱 오류:", err);
-                        finalContent = "(PDF 파싱 오류: " + file.originalname + ")";
+                        finalContent = "(PDF 파싱 오류: " + fixFilename(file.originalname) + ")";
                     }
                 } else {
-                    finalContent = "(지원하지 않는 파일 형식: " + file.originalname + " - PDF, TXT, MD 파일을 사용해주세요)";
+                    finalContent = "(지원하지 않는 파일 형식: " + fixFilename(file.originalname) + " - PDF, TXT, MD 파일을 사용해주세요)";
                 }
             }
 
             const id = `doc${nextDocumentId++}`;
-            const finalTitle = files.length > 1 ? `${title} (${file.originalname})` : title;
+            const finalTitle = files.length > 1 ? `${title} (${fixFilename(file.originalname)})` : title;
 
             const newDoc: MockDocument = {
                 id,
@@ -724,7 +733,7 @@ export function createQnARouter(): ExpressRouter {
                 try {
                     const parsed = await pdfParse(file.buffer);
                     newContent = parsed.text || "(PDF 내용 추출 실패)";
-                    console.log(`[QnA] PDF 재업로드 파싱 완료: ${file.originalname} (${newContent.length}자)`);
+                    console.log(`[QnA] PDF 재업로드 파싱 완료: ${fixFilename(file.originalname)} (${newContent.length}자)`);
                 } catch (err) {
                     newContent = "(PDF 파싱 오류)";
                 }
@@ -898,11 +907,11 @@ export function createQnARouter(): ExpressRouter {
         if (files && files.length > 0) {
             for (const file of files) {
                 const finalContent = file.buffer.toString("utf-8");
-                const source = file.originalname || "파일업로드";
+                const source = fixFilename(file.originalname) || "파일업로드";
                 const chunks = finalContent.match(/[\s\S]{1,500}/g) || [finalContent];
 
                 // 여러 파일일 경우 제목 뒤에 파일명 추가
-                const finalTitle = files.length > 1 ? `${title} (${file.originalname})` : title;
+                const finalTitle = files.length > 1 ? `${title} (${fixFilename(file.originalname)})` : title;
 
                 const id = `kb${nextKnowledgeId++}`; // 로컬 ID 사용 통일
                 const newItem: MockKnowledgeItem = {
