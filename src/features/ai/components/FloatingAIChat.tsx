@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from "react";
-import { Sparkles, X, Send, Trash2, History, ChevronLeft, Trash } from "lucide-react";
+import { Sparkles, X, Send, Trash2, History, ChevronLeft, Trash, Lightbulb } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useChat } from "../hooks/useChat";
 import { useNomaMemory } from "../hooks/useNomaMemory";
@@ -276,6 +276,20 @@ export default function FloatingAIChat({ activeTab = "care" }: FloatingAIChatPro
                             {error && (
                                 <div className="mx-3 mb-2 px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-600">
                                     {error}
+                                </div>
+                            )}
+
+                            {/* 개선 제안 버튼 (대화 중에도 항상 표시) */}
+                            {messages.length > 0 && (
+                                <div className="px-3 pb-1">
+                                    <button
+                                        onClick={() => sendMessage("현재 시스템 데이터와 운영 현황을 분석해서 가장 시급한 시스템 개선 제안 3가지를 [💡 개선 제안] 형식으로 구체적으로 제시해줘")}
+                                        disabled={isLoading}
+                                        className="w-full flex items-center gap-2 px-3 py-2 rounded-xl border border-amber-200 bg-amber-50 hover:bg-amber-100 transition-colors text-xs text-amber-800 font-medium disabled:opacity-50"
+                                    >
+                                        <Lightbulb className="h-3.5 w-3.5 text-amber-500 flex-shrink-0" />
+                                        노마에게 시스템 개선 제안 받기
+                                    </button>
                                 </div>
                             )}
 

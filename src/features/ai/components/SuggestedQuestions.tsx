@@ -1,4 +1,4 @@
-import { Sparkles } from "lucide-react";
+import { Sparkles, Lightbulb } from "lucide-react";
 import type { DashboardTab } from "../lib/ai-types";
 
 const TAB_SUGGESTIONS: Record<DashboardTab, string[]> = {
@@ -34,6 +34,9 @@ const TAB_SUGGESTIONS: Record<DashboardTab, string[]> = {
     ],
 };
 
+const IMPROVEMENT_PROMPT =
+    "현재 시스템 데이터와 운영 현황을 분석해서 가장 시급한 시스템 개선 제안 3가지를 [💡 개선 제안] 형식으로 구체적으로 제시해줘";
+
 interface SuggestedQuestionsProps {
     onSelect: (question: string) => void;
     activeTab?: DashboardTab;
@@ -46,18 +49,18 @@ export default function SuggestedQuestions({
     const suggestions = TAB_SUGGESTIONS[activeTab] ?? TAB_SUGGESTIONS.care;
 
     return (
-        <div className="flex flex-col items-center justify-center py-8 px-4">
-            <div className="flex items-center gap-2 mb-4">
+        <div className="flex flex-col items-center justify-center py-6 px-4">
+            <div className="flex items-center gap-2 mb-2">
                 <Sparkles className="h-5 w-5 text-purple-500" />
-                <h2 className="text-base font-semibold text-gray-700">
-                    무엇이든 물어보세요
-                </h2>
+                <h2 className="text-base font-semibold text-gray-700">무엇이든 물어보세요</h2>
             </div>
-            <p className="text-xs text-gray-500 mb-6 text-center max-w-sm">
+            <p className="text-xs text-gray-500 mb-5 text-center max-w-sm">
                 돌봄현황, 복지자원, 기후대응, 자연재난 데이터를
-                기반으로 AI가 복합 분석 답변을 제공합니다.
+                기반으로 노마가 복합 분석 답변을 제공합니다.
             </p>
-            <div className="grid grid-cols-1 gap-2 w-full">
+
+            {/* 일반 제안 질문 */}
+            <div className="grid grid-cols-1 gap-2 w-full mb-4">
                 {suggestions.map((q) => (
                     <button
                         key={q}
@@ -68,6 +71,15 @@ export default function SuggestedQuestions({
                     </button>
                 ))}
             </div>
+
+            {/* 시스템 개선 제안 버튼 */}
+            <button
+                onClick={() => onSelect(IMPROVEMENT_PROMPT)}
+                className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl border border-amber-200 bg-amber-50 hover:bg-amber-100 hover:border-amber-300 transition-colors text-xs text-amber-800 font-medium"
+            >
+                <Lightbulb className="h-3.5 w-3.5 text-amber-500 flex-shrink-0" />
+                노마에게 시스템 개선 제안 받기
+            </button>
         </div>
     );
 }
