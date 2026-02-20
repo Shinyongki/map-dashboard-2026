@@ -15,9 +15,10 @@ dist-ssr
 .env.*
 !.env.example
 
-# QnA Data
+# QnA Data (runtime - local only)
 server-knowledge-data.json
 server-documents-data.json
+server-questions-data.json
 
 # Editor directories and files
 .vscode/*
