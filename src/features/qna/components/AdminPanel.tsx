@@ -41,7 +41,8 @@ export default function AdminPanel({
     onDelete,
 }: AdminPanelProps) {
     const [view, setView] = useState<AdminView>("documents");
-    const [selectedQuestion, setSelectedQuestion] = useState<Question | null>(null);
+    const [selectedQuestionId, setSelectedQuestionId] = useState<string | null>(null);
+    const selectedQuestion = questions.find(q => q.id === selectedQuestionId) || null;
     const [selectedDocId, setSelectedDocId] = useState<string | null>(null);
     const [statusFilter, setStatusFilter] = useState<string>("all");
 
@@ -120,7 +121,7 @@ export default function AdminPanel({
                 onApprove={onApprove}
                 onBack={() => {
                     setView("list");
-                    setSelectedQuestion(null);
+                    setSelectedQuestionId(null);
                 }}
             />
         );
@@ -134,10 +135,10 @@ export default function AdminPanel({
                 isAdmin={true}
                 onBack={() => {
                     setView("list");
-                    setSelectedQuestion(null);
+                    setSelectedQuestionId(null);
                 }}
                 onEdit={(q) => {
-                    setSelectedQuestion(q);
+                    setSelectedQuestionId(q.id);
                     setView("edit");
                 }}
             />
@@ -269,7 +270,7 @@ export default function AdminPanel({
                                 <button
                                     className="flex-1 text-left"
                                     onClick={() => {
-                                        setSelectedQuestion(q);
+                                        setSelectedQuestionId(q.id);
                                         setView("detail");
                                     }}
                                 >
@@ -306,7 +307,7 @@ export default function AdminPanel({
                                     {q.status === "ai_draft" && (
                                         <button
                                             onClick={() => {
-                                                setSelectedQuestion(q);
+                                                setSelectedQuestionId(q.id);
                                                 setView("edit");
                                             }}
                                             className="px-2.5 py-1 bg-emerald-600 text-white text-xs rounded-md hover:bg-emerald-700 transition-colors"

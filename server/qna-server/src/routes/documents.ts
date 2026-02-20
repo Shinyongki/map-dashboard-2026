@@ -137,20 +137,105 @@ router.post("/", authenticateToken, requireAdmin, upload.array("files"), async (
 // ── Validity Period ──
 
 // PATCH /api/documents/:id (General update)
-router.patch("/:id", authenticateToken, requireAdmin, async (req: Request, res: Response) => {
+router.patch("/:id", authenticateToken, requireAdmin, upload.single("file"), async (req: Request, res: Response) => {
   if (!isFirebaseConfigured()) return res.status(503).json({ error: "DB 연동 필요" });
 
   try {
+    const id = req.params.id as string;
     const db = getDb();
-    const { title, documentNumber, managerName, managerPhone } = req.body;
+    const bucket = getBucket();
+
+    // Get existing document
+    const docSnap = await db.collection(COLLECTION_NAME).doc(id).get();
+    if (!docSnap.exists) {
+      return res.status(404).json({ error: "문서를 찾을 수 없습니다." });
+    }
+    const existingData = docSnap.data() as OfficialDocument;
+
+    const { title, documentNumber, managerName, managerPhone, content: manualContent } = req.body;
+    const file = req.file;
+
     const updateData: any = {};
-    if (title) updateData.title = title as string;
-    if (documentNumber) updateData.documentNumber = documentNumber as string;
+    if (title !== undefined) updateData.title = title;
+    if (documentNumber !== undefined) updateData.documentNumber = documentNumber;
     if (managerName !== undefined) updateData.managerName = managerName;
     if (managerPhone !== undefined) updateData.managerPhone = managerPhone;
 
-    const id = req.params.id as string;
-    await db.collection(COLLECTION_NAME).doc(id).update(updateData);
+    let content = manualContent !== undefined ? manualContent : existingData.content;
+    let fileUrl = existingData.fileUrl;
+    let fileChanged = false;
+    let contentChanged = manualContent !== undefined && manualContent !== existingData.content;
+
+    // 1. Storage Upload if new file provided
+    if (file) {
+      // Delete old file
+      if (existingData.fileUrl) {
+        try {
+          const oldFileName = existingData.fileUrl.split("/").pop()?.split("?")[0];
+          if (oldFileName) {
+            await bucket.file(`documents/${oldFileName}`).delete();
+          }
+        } catch (storageErr) {
+          console.warn("Could not delete old file from storage:", storageErr);
+        }
+      }
+
+      const fileName = `${Date.now()}_${file.originalname}`;
+      const fileRef = bucket.file(`documents/${fileName}`);
+
+      await fileRef.save(file.buffer, {
+        metadata: { contentType: file.mimetype },
+      });
+
+      const [url] = await fileRef.getSignedUrl({
+        action: "read",
+        expires: "03-01-2500",
+      });
+      fileUrl = url;
+      updateData.fileUrl = fileUrl;
+      fileChanged = true;
+
+      // 2. Text Extraction (Only if manual content is not provided)
+      if (!manualContent) {
+        if (file.mimetype === "application/pdf") {
+          try {
+            content = await extractTextFromPDF(file.buffer);
+          } catch (err) {
+            console.warn("PDF extraction failed:", err);
+          }
+        } else if (
+          file.mimetype === "text/plain" ||
+          file.mimetype === "text/markdown" ||
+          file.originalname.endsWith(".md") ||
+          file.originalname.endsWith(".txt")
+        ) {
+          try {
+            content = file.buffer.toString("utf-8");
+          } catch (err) {
+            console.warn("Text extraction failed:", err);
+          }
+        }
+      }
+    }
+
+    if (fileChanged || contentChanged) {
+      updateData.content = content;
+
+      // 3. AI Summary Generation
+      if (content) {
+        try {
+          const summaryResult = await generateDocumentSummary(content);
+          updateData.aiSummary = typeof summaryResult === "string" ? summaryResult : summaryResult.summary;
+        } catch (err) {
+          console.warn("AI Summary failed:", err);
+        }
+      }
+    }
+
+    if (Object.keys(updateData).length > 0) {
+      await db.collection(COLLECTION_NAME).doc(id).update(updateData);
+    }
+
     res.json({ success: true });
   } catch (error) {
     console.error("Error updating document:", error);

@@ -67,7 +67,7 @@ export function useDocuments() {
     );
 
     const update = useCallback(
-        async (id: string, data: Partial<OfficialDocument>) => {
+        async (id: string, data: Partial<OfficialDocument> | FormData) => {
             try {
                 await api.patch(`/documents/${id}`, data);
                 await refresh();

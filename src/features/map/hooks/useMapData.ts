@@ -19,7 +19,7 @@ export function useAvailableMonths() {
     queryKey: ["/api/admin/sheets"],
     queryFn: async ({ queryKey }) => {
       try {
-        const res = await fetch(queryKey[0]);
+        const res = await fetch(queryKey[0] as string);
         if (!res.ok) throw new Error("API Error");
         return res.json();
       } catch {

@@ -18,7 +18,7 @@ interface DocumentManagerProps {
         },
         manualContent?: string
     ) => Promise<any>;
-    onUpdate: (id: string, data: Partial<OfficialDocument>) => Promise<void>;
+    onUpdate: (id: string, data: Partial<OfficialDocument> | FormData) => Promise<void>;
     onDelete: (id: string) => Promise<void>;
     onSetValidUntil: (id: string, validUntil: string) => Promise<void>;
     uploadedBy: string;
@@ -61,6 +61,8 @@ export default function DocumentManager({
     const [editDocNum, setEditDocNum] = useState("");
     const [editManagerName, setEditManagerName] = useState("");
     const [editManagerPhone, setEditManagerPhone] = useState("");
+    const [editFile, setEditFile] = useState<File | null>(null);
+    const [editManualContent, setEditManualContent] = useState("");
     const [isSavingEdit, setIsSavingEdit] = useState(false);
 
     // Notice management expansion
@@ -123,18 +125,27 @@ export default function DocumentManager({
         setEditDocNum(doc.documentNumber);
         setEditManagerName(doc.managerName || "");
         setEditManagerPhone(doc.managerPhone || "");
+        setEditFile(null);
+        setEditManualContent(doc.content || "");
     };
 
     const handleSaveEdit = async () => {
         if (!editingDocId) return;
         setIsSavingEdit(true);
         try {
-            await onUpdate(editingDocId, {
-                title: editTitle,
-                documentNumber: editDocNum,
-                managerName: editManagerName,
-                managerPhone: editManagerPhone,
-            });
+            const formData = new FormData();
+            formData.append("title", editTitle);
+            formData.append("documentNumber", editDocNum);
+            formData.append("managerName", editManagerName);
+            formData.append("managerPhone", editManagerPhone);
+            if (editFile) {
+                formData.append("file", editFile);
+            }
+            if (editManualContent) {
+                formData.append("content", editManualContent);
+            }
+
+            await onUpdate(editingDocId, formData);
             setEditingDocId(null);
         } catch (err) {
             console.error("Update failed:", err);
@@ -247,8 +258,8 @@ export default function DocumentManager({
                                 onDragLeave={handleDragLeave}
                                 onDrop={handleDrop}
                                 className={`relative border-2 border-dashed rounded-lg p-6 text-center transition-all ${isDragging
-                                        ? "border-emerald-500 bg-emerald-50"
-                                        : "border-gray-300 hover:border-emerald-400"
+                                    ? "border-emerald-500 bg-emerald-50"
+                                    : "border-gray-300 hover:border-emerald-400"
                                     }`}
                             >
                                 <input
@@ -376,6 +387,29 @@ export default function DocumentManager({
                                                     onChange={(e) => setEditManagerPhone(e.target.value)}
                                                     className="px-2 py-1.5 border border-gray-300 rounded text-sm w-full"
                                                     placeholder="연락처"
+                                                />
+                                            </div>
+                                            <div className="text-sm border-t border-gray-100 pt-2 mt-2">
+                                                <label className="block text-gray-700 mb-1 text-xs font-medium">단일 파일 교체 (선택)</label>
+                                                <div className="flex flex-col gap-2">
+                                                    <input 
+                                                        type="file" 
+                                                        accept=".pdf,.doc,.docx,.hwp,.md,.txt" 
+                                                        onChange={(e) => setEditFile(e.target.files?.[0] || null)}
+                                                        className="text-xs text-gray-600 file:mr-2 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-xs file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100"
+                                                    />
+                                                    {editFile && <span className="text-xs text-emerald-600 truncate"><FileText className="inline w-3 h-3 mr-1" />{editFile.name} 선택됨</span>}
+                                                    {!editFile && <span className="text-[10px] text-gray-400">새 파일을 선택하면 기존 파일이 대체됩니다.</span>}
+                                                </div>
+                                            </div>
+
+                                            <div className="text-sm">
+                                                <label className="block text-gray-700 mb-1 text-xs font-medium">내용 수동 수정</label>
+                                                <textarea
+                                                    value={editManualContent}
+                                                    onChange={(e) => setEditManualContent(e.target.value)}
+                                                    className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 min-h-[100px] resize-y custom-scrollbar"
+                                                    placeholder="내용"
                                                 />
                                             </div>
                                             <div className="flex justify-end gap-1.5">

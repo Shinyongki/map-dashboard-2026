@@ -660,20 +660,85 @@ export function createQnARouter(): ExpressRouter {
         res.json({ success: true, count: results.length, documents: results });
     });
 
-    router.patch("/documents/:id", authenticateToken, (req: ExpressRequest, res: ExpressResponse) => {
+    router.patch("/documents/:id", authenticateToken, upload.single("file"), async (req: ExpressRequest, res: ExpressResponse) => {
         const doc = mockDocuments.find((d) => d.id === (req as any).params?.id);
         if (!doc) {
             res.status(404).json({ error: "문서를 찾을 수 없습니다." });
             return;
         }
-        const { title, documentNumber, managerName, managerPhone } = (req as any).body || {};
+
+        const file = (req as any).file as Express.Multer.File | undefined;
+        const { title, documentNumber, managerName, managerPhone, content: manualContent } = (req as any).body || {};
+
         if (title) doc.title = title;
         if (documentNumber) doc.documentNumber = documentNumber;
         if (managerName !== undefined) doc.managerName = managerName;
         if (managerPhone !== undefined) doc.managerPhone = managerPhone;
 
+        let newContent = manualContent !== undefined ? manualContent : doc.content;
+
+        if (file && !manualContent) {
+            if (file.mimetype === "application/pdf" || file.originalname.endsWith(".pdf")) {
+                try {
+                    const parsed = await pdfParse(file.buffer);
+                    newContent = parsed.text || "(PDF 내용 추출 실패)";
+                } catch (err) {
+                    newContent = "(PDF 파싱 오류)";
+                }
+            } else {
+                newContent = file.buffer.toString("utf-8");
+            }
+        }
+
+        doc.content = newContent;
+
         saveDocumentsToLocalFile();
+        if (isFirebaseReady()) {
+            getDb().collection("documents").doc(doc.id).update({
+                title: doc.title,
+                documentNumber: doc.documentNumber,
+                managerName: doc.managerName,
+                managerPhone: doc.managerPhone,
+                content: doc.content,
+            }).catch(console.error);
+        }
         res.json(doc);
+    });
+
+    // 공문 파일 교체 (내용 재업로드)
+    router.post("/documents/:id/reupload", authenticateToken, upload.single("file"), async (req: ExpressRequest, res: ExpressResponse) => {
+        const doc = mockDocuments.find((d) => d.id === (req as any).params?.id);
+        if (!doc) { res.status(404).json({ error: "문서를 찾을 수 없습니다." }); return; }
+
+        const file = (req as any).file as Express.Multer.File | undefined;
+        const manualContent = (req as any).body?.content as string | undefined;
+
+        if (!file && !manualContent) {
+            res.status(400).json({ error: "파일 또는 내용을 입력해주세요." });
+            return;
+        }
+
+        let newContent = manualContent || "";
+        if (file && !manualContent) {
+            if (file.mimetype === "application/pdf" || file.originalname.endsWith(".pdf")) {
+                try {
+                    const parsed = await pdfParse(file.buffer);
+                    newContent = parsed.text || "(PDF 내용 추출 실패)";
+                    console.log(`[QnA] PDF 재업로드 파싱 완료: ${file.originalname} (${newContent.length}자)`);
+                } catch (err) {
+                    newContent = "(PDF 파싱 오류)";
+                }
+            } else {
+                newContent = file.buffer.toString("utf-8");
+            }
+        }
+
+        doc.content = newContent;
+        saveDocumentsToLocalFile();
+        if (isFirebaseReady()) {
+            getDb().collection("documents").doc(doc.id).update({ content: newContent }).catch(console.error);
+        }
+        res.json({ success: true, contentLength: newContent.length });
     });
 
     router.patch("/documents/:id/valid-until", authenticateToken, (req: ExpressRequest, res: ExpressResponse) => {

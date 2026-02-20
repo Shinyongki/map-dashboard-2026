@@ -53,7 +53,7 @@ export const api = {
     patch: <T>(path: string, body: unknown) =>
         request<T>(path, {
             method: "PATCH",
-            body: JSON.stringify(body),
+            body: body instanceof FormData ? body : JSON.stringify(body),
         }),
 
     delete: <T>(path: string) =>

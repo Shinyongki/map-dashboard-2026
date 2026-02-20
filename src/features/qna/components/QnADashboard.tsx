@@ -46,7 +46,8 @@ export default function QnADashboard() {
 
     // User view state
     const [userView, setUserView] = useState<UserView>("documents");
-    const [selectedQuestion, setSelectedQuestion] = useState<Question | null>(null);
+    const [selectedQuestionId, setSelectedQuestionId] = useState<string | null>(null);
+    const selectedQuestion = questions.find(q => q.id === selectedQuestionId) || null;
     const [selectedDocId, setSelectedDocId] = useState<string | null>(null);
     const [statusFilter, setStatusFilter] = useState<QuestionStatus | "all">("all");
     const [searchQuery, setSearchQuery] = useState("");
@@ -63,7 +64,7 @@ export default function QnADashboard() {
     }
 
     const handleSelectQuestion = (q: Question) => {
-        setSelectedQuestion(q);
+        setSelectedQuestionId(q.id);
         setUserView("detail");
     };
 
@@ -274,7 +275,7 @@ export default function QnADashboard() {
                             isAdmin={false}
                             onBack={() => {
                                 setUserView("list");
-                                setSelectedQuestion(null);
+                                setSelectedQuestionId(null);
                             }}
                         />
                     ) : null}
