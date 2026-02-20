@@ -1248,23 +1248,38 @@ ${draft || "(아직 초안 없음)"}
             return;
         }
 
+        const lastMessage = messages[messages.length - 1];
+        if (!lastMessage) {
+            res.status(400).json({ error: "메시지가 없습니다." });
+            return;
+        }
+
         try {
+            // 지식베이스 RAG 검색 — 질문과 관련된 문서 청크를 시스템 컨텍스트에 추가
+            let ragContext = "";
+            if (mockEmbeddedChunks.length > 0) {
+                try {
+                    ragContext = await retrieveRelevantChunks(lastMessage.content, 4);
+                    if (ragContext) {
+                        console.log(`[노마] RAG 검색 완료: ${ragContext.length}자`);
+                    }
+                } catch (e: any) {
+                    console.warn("[노마] RAG 검색 실패 (무시):", e.message);
+                }
+            }
+
+            const fullSystemPrompt = systemPrompt + (ragContext ? `\n\n## 관련 지식베이스 검색 결과\n${ragContext}` : "");
+
             const genAI = new GoogleGenerativeAI(geminiKey);
             const model = genAI.getGenerativeModel({
                 model: "gemini-2.5-flash",
-                systemInstruction: systemPrompt || undefined,
+                systemInstruction: fullSystemPrompt || undefined,
             });
 
             const history = messages.slice(0, -1).map((m: any) => ({
                 role: m.role === "assistant" ? "model" : "user",
                 parts: [{ text: m.content }],
             }));
-            const lastMessage = messages[messages.length - 1];
-
-            if (!lastMessage) {
-                res.status(400).json({ error: "메시지가 없습니다." });
-                return;
-            }
 
             const chat = model.startChat({ history });
             const result = await chat.sendMessage(lastMessage.content);

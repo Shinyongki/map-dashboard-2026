@@ -2,8 +2,8 @@ import { useState, useCallback, useRef } from "react";
 import type { ChatMessage } from "../lib/ai-types";
 import { streamChatResponse } from "../lib/ai-api";
 
-export function useChat(systemPrompt: string) {
-    const [messages, setMessages] = useState<ChatMessage[]>([]);
+export function useChat(systemPrompt: string, initialMessages?: ChatMessage[]) {
+    const [messages, setMessages] = useState<ChatMessage[]>(initialMessages ?? []);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const abortRef = useRef<AbortController | null>(null);
@@ -76,5 +76,10 @@ export function useChat(systemPrompt: string) {
         setError(null);
     }, []);
 
-    return { messages, isLoading, error, sendMessage, clearMessages };
+    const loadMessages = useCallback((msgs: ChatMessage[]) => {
+        setMessages(msgs);
+        setError(null);
+    }, []);
+
+    return { messages, isLoading, error, sendMessage, clearMessages, loadMessages };
 }
