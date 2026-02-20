@@ -3,14 +3,18 @@ import { queryClient } from "@/lib/queryClient";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/toaster";
 import DashboardLayout from "@/components/DashboardLayout";
+import NomaPopupPage from "@/features/ai/components/NomaPopupPage";
 import { fetchWeatherAlerts } from "@/features/climate/lib/climate-api";
 import { fetchDisasterAlerts } from "@/features/disaster/lib/disaster-api";
 
-// Prefetch climate & disaster data on app load
+// Popup window mode: render standalone NOMA chat
+const isNomaPopup = new URLSearchParams(window.location.search).get("noma") === "popup";
+
+// Prefetch climate & disaster data on app load (skip in popup mode)
 const DEFAULT_YEARS = [2021, 2022, 2023, 2024, 2025];
 const apiKey = import.meta.env.VITE_KMA_API_KEY;
 
-if (apiKey) {
+if (!isNomaPopup && apiKey) {
     queryClient.prefetchQuery({
         queryKey: ["climate-alerts", 2021, 2025],
         queryFn: async () => {
@@ -29,6 +33,10 @@ if (apiKey) {
 }
 
 export default function App() {
+    if (isNomaPopup) {
+        return <NomaPopupPage />;
+    }
+
     return (
         <QueryClientProvider client={queryClient}>
             <TooltipProvider>

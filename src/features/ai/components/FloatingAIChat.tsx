@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from "react";
-import { Sparkles, X, Send, Trash2, History, ChevronLeft, Trash, Lightbulb } from "lucide-react";
+import { Sparkles, X, Send, Trash2, History, ChevronLeft, Trash, Lightbulb, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useDraggable } from "../hooks/useDraggable";
 import { useChat } from "../hooks/useChat";
 import { useNomaMemory } from "../hooks/useNomaMemory";
 import { buildSystemPrompt } from "../lib/ai-context-builder";
@@ -32,6 +33,13 @@ export default function FloatingAIChat({ activeTab = "care" }: FloatingAIChatPro
     const [input, setInput] = useState("");
     const [showHistory, setShowHistory] = useState(false);
     const [feedbackMap, setFeedbackMap] = useState<Record<string, "up" | "down">>({});
+    const { pos, onMouseDown } = useDraggable();
+
+    const handlePopout = useCallback(() => {
+        const url = `${window.location.origin}${window.location.pathname}?noma=popup`;
+        window.open(url, "noma-popup", "width=420,height=650,resizable=yes,scrollbars=no");
+        setIsOpen(false);
+    }, []);
     const scrollRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -155,10 +163,16 @@ export default function FloatingAIChat({ activeTab = "care" }: FloatingAIChatPro
 
             {/* Chat Panel */}
             {isOpen && (
-                <div className="fixed bottom-6 right-6 z-[60] w-[400px] h-[600px] max-h-[calc(100vh-48px)] bg-white rounded-2xl shadow-2xl border border-gray-200 flex flex-col overflow-hidden">
+                <div
+                    className="fixed z-[60] w-[400px] h-[600px] max-h-[calc(100vh-48px)] bg-white rounded-2xl shadow-2xl border border-gray-200 flex flex-col overflow-hidden"
+                    style={{ left: pos.x, top: pos.y }}
+                >
 
                     {/* Header */}
-                    <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-purple-50">
+                    <div
+                        className="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-purple-50 cursor-move select-none"
+                        onMouseDown={onMouseDown}
+                    >
                         <div className="flex items-center gap-2">
                             <Sparkles className="h-5 w-5 text-purple-500" />
                             <div>
@@ -190,6 +204,15 @@ export default function FloatingAIChat({ activeTab = "care" }: FloatingAIChatPro
                                     <Trash2 className="h-4 w-4" />
                                 </Button>
                             )}
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={handlePopout}
+                                title="별도 창으로 열기"
+                                className="text-gray-400 hover:text-purple-500 h-8 w-8 p-0"
+                            >
+                                <ExternalLink className="h-4 w-4" />
+                            </Button>
                             <Button
                                 variant="ghost"
                                 size="sm"
