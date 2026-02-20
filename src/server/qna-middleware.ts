@@ -504,7 +504,7 @@ ${docContext}${knowledgeContext ? `\n\n[내부 지식 베이스]\n${knowledgeCon
             const result = await model.generateContent({
                 contents: [{ role: "user", parts: [{ text: userPrompt }] }],
                 generationConfig: {
-                    maxOutputTokens: 2000,
+                    maxOutputTokens: 4000,
                     temperature: 0.7,
                 }
             });
