@@ -6,6 +6,8 @@ import fs from "fs";
 import path from "path";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { getOrganizationByCode } from "../lib/organization-data";
+import * as pdfParseModule from "pdf-parse";
+const pdfParse: (buffer: Buffer) => Promise<{ text: string }> = (pdfParseModule as any).default ?? pdfParseModule;
 import * as adminNS from "firebase-admin";
 const admin: typeof adminNS = (adminNS as any).default ?? adminNS;
 
@@ -304,24 +306,28 @@ function buildKnowledgeContext(): string {
     return context;
 }
 
-async function generateAIDraft(title: string, content: string): Promise<string> {
+async function generateAIDraft(title: string, content: string, relatedDoc?: MockDocument): Promise<string> {
     const geminiKey = (process.env.GOOGLE_GEMINI_API_KEY || "").trim().replace(/^["']|["']$/g, "");
     const anthropicKey = (process.env.ANTHROPIC_API_KEY || "").trim().replace(/^["']|["']$/g, "");
 
     const knowledgeContext = buildKnowledgeContext();
     console.log(`[QnA] AI 답변 생성 시작: "${title}"`);
     console.log(`[QnA] Anthropic Key Present: ${!!anthropicKey}, Gemini Key Present: ${!!geminiKey}`);
-    console.log(`[QnA] Knowledge Context Length: ${knowledgeContext.length}`);
+    console.log(`[QnA] Knowledge Context Length: ${knowledgeContext.length}, Related Doc: ${relatedDoc?.title || "없음"}`);
+
+    const docContext = relatedDoc && relatedDoc.content && !relatedDoc.content.startsWith("(업로드된 파일:")
+        ? `\n\n## 관련 공문 원문\n- 공문번호: ${relatedDoc.documentNumber}\n- 제목: ${relatedDoc.title}\n\n${relatedDoc.content.slice(0, 30000)}`
+        : "";
 
     const systemInstruction = `당신은 경상남도 광역지원기관의 공문 Q&A 담당 AI 어시스턴트입니다.
-사회복지사들의 질문에 대해 공문 내용과 내부 지식 베이스를 참조하여 정확하고 친절한 답변 초안을 작성합니다.
+사회복지사들의 질문에 대해 공문 원문과 내부 지식 베이스를 참조하여 정확하고 친절한 답변 초안을 작성합니다.
 
 답변 작성 시 주의사항:
-- 제공된 지식 베이스에 근거한 답변만 작성하세요
+- 제공된 [관련 공문 원문] 및 [내부 지식 베이스]에 근거한 답변만 작성하세요
 - 근거가 없는 내용은 "해당 내용은 확인되지 않습니다"라고 안내하세요
 - 답변은 마크다운 형식으로 구조화해주세요
 - 관련 조항이나 항목을 구체적으로 인용하세요
-${knowledgeContext ? `\n[내부 지식 베이스]\n${knowledgeContext.slice(0, 50000)}` : ""}`;
+${docContext}${knowledgeContext ? `\n\n[내부 지식 베이스]\n${knowledgeContext.slice(0, 30000)}` : ""}`;
 
     const userPrompt = `질문 제목: ${title}\n질문 내용: ${content}\n\n위 질문에 대한 답변 초안을 작성해주세요.`;
 
@@ -536,7 +542,8 @@ export function createQnARouter(): ExpressRouter {
         saveQuestionsToLocalFile(); // 저장
 
         // Generate AI draft
-        generateAIDraft(title, content).then(draft => {
+        const relatedDoc = relatedDocumentId ? mockDocuments.find(d => d.id === relatedDocumentId) : undefined;
+        generateAIDraft(title, content, relatedDoc).then(draft => {
             const q = mockQuestions.find((q) => q.id === id);
             if (q && q.status === "pending") {
                 q.status = "ai_draft";
@@ -613,8 +620,20 @@ export function createQnARouter(): ExpressRouter {
                     file.originalname.endsWith(".txt")
                 ) {
                     finalContent = file.buffer.toString("utf-8");
+                } else if (
+                    file.mimetype === "application/pdf" ||
+                    file.originalname.endsWith(".pdf")
+                ) {
+                    try {
+                        const parsed = await pdfParse(file.buffer);
+                        finalContent = parsed.text || "(PDF 내용 추출 실패)";
+                        console.log(`[QnA] PDF 파싱 완료: ${file.originalname} (${finalContent.length}자)`);
+                    } catch (err) {
+                        console.error("[QnA] PDF 파싱 오류:", err);
+                        finalContent = "(PDF 파싱 오류: " + file.originalname + ")";
+                    }
                 } else {
-                    finalContent = "(업로드된 파일: " + file.originalname + ")";
+                    finalContent = "(지원하지 않는 파일 형식: " + file.originalname + " - PDF, TXT, MD 파일을 사용해주세요)";
                 }
             }
 
