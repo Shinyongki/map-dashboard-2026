@@ -787,8 +787,12 @@ ${draft || "(아직 초안 없음)"}
     router.get("/documents", authenticateToken, async (_req: ExpressRequest, res: ExpressResponse) => {
         if (!documentsLoaded) {
             loadDocumentsFromLocalFile();
-            if (isFirebaseReady() && mockDocuments.length === 0) {
+            if (isFirebaseReady()) {
+                // Firebase가 있으면 항상 Firebase를 source of truth로 사용
                 await loadDocumentsFromFirestore();
+            } else {
+                // Firebase 없을 때는 로컬 파일로 완료 처리
+                documentsLoaded = true;
             }
         }
         console.log(`[QnA] GET /documents: Returning ${mockDocuments.length} items`);
@@ -1213,7 +1217,7 @@ ${draft || "(아직 초안 없음)"}
                             const match = i.id.match(/^doc(\d+)$/);
                             return match ? parseInt(match[1]) : 0;
                         })) + 1;
-                        documentsLoaded = true;
+                        // documentsLoaded는 여기서 세팅하지 않음 — Firebase가 있으면 Firebase를 source of truth로 사용
                     }
                     console.log(`[QnA] 로컬 파일에서 공문 데이터 ${items.length}건 로드 완료`);
                 }
