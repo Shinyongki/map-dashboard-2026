@@ -466,11 +466,10 @@ async function reindexMissingEmbeddings(): Promise<void> {
 
 async function generateAIDraft(title: string, content: string, relatedDoc?: MockDocument): Promise<string> {
     const geminiKey = (process.env.GOOGLE_GEMINI_API_KEY || "").trim().replace(/^["']|["']$/g, "");
-    const anthropicKey = (process.env.ANTHROPIC_API_KEY || "").trim().replace(/^["']|["']$/g, "");
 
     const knowledgeContext = await retrieveRelevantChunks(`${title} ${content}`);
     console.log(`[QnA] AI 답변 생성 시작: "${title}"`);
-    console.log(`[QnA] Anthropic Key Present: ${!!anthropicKey}, Gemini Key Present: ${!!geminiKey}`);
+    console.log(`[QnA] Gemini Key Present: ${!!geminiKey}`);
     console.log(`[QnA] Knowledge Context Length: ${knowledgeContext.length}자 (RAG), Related Doc: ${relatedDoc?.title || "없음"}`);
 
     const docContext = relatedDoc && relatedDoc.content && !relatedDoc.content.startsWith("(업로드된 파일:")
@@ -492,51 +491,13 @@ ${docContext}${knowledgeContext ? `\n\n[내부 지식 베이스]\n${knowledgeCon
 
     const userPrompt = `질문 제목: ${title}\n질문 내용: ${content}\n\n위 질문에 대한 답변 초안을 작성해주세요.`;
 
-    // 1. Try Anthropic (Claude) first if key exists
-    if (anthropicKey) {
-        try {
-            console.log("[QnA] Anthropic(Claude) API 호출 시도... (key prefix:", anthropicKey.slice(0, 15) + "...)");
-            const response = await fetch("https://api.anthropic.com/v1/messages", {
-                method: "POST",
-                headers: {
-                    "x-api-key": anthropicKey,
-                    "anthropic-version": "2023-06-01",
-                    "content-type": "application/json",
-                },
-                body: JSON.stringify({
-                    model: "claude-sonnet-4-6",
-                    max_tokens: 2000,
-                    system: systemInstruction,
-                    messages: [
-                        { role: "user", content: userPrompt }
-                    ]
-                }),
-            });
-
-            if (!response.ok) {
-                const errorData = await response.text();
-                console.error(`[QnA] Anthropic API Error ${response.status} ${response.statusText}: ${errorData}`);
-                throw new Error(`Anthropic API Error: ${response.status} ${response.statusText}`);
-            }
-
-            const data: any = await response.json();
-            const text = data.content[0]?.text;
-            if (text) {
-                console.log("[QnA] Anthropic API 답변 생성 성공 (길이:", text.length, "자)");
-                return text;
-            }
-        } catch (err: any) {
-            console.error("[QnA] Anthropic API 호출 실패, Gemini로 폴백합니다. 원인:", err.message);
-        }
-    }
-
-    // 2. Fallback to Gemini
+    // Gemini 2.0 Flash (primary)
     if (geminiKey) {
         try {
-            console.log("[QnA] Gemini API 호출 시도...");
+            console.log("[QnA] Gemini 2.0 Flash API 호출 시도...");
             const genAI = new GoogleGenerativeAI(geminiKey);
             const model = genAI.getGenerativeModel({
-                model: "gemini-1.5-flash",
+                model: "gemini-2.0-flash",
                 systemInstruction: systemInstruction,
             });
 
@@ -548,14 +509,13 @@ ${docContext}${knowledgeContext ? `\n\n[내부 지식 베이스]\n${knowledgeCon
                 }
             });
 
-            console.log(`[QnA] Gemini API 답변 생성 성공`);
+            console.log(`[QnA] Gemini 2.0 Flash 답변 생성 성공`);
             return result.response.text();
         } catch (err: any) {
-            console.error("Gemini Middleware AI Error Details:", {
+            console.error("[QnA] Gemini API 오류:", {
                 message: err.message,
                 status: err.status,
                 statusText: err.statusText,
-                stack: err.stack
             });
             return `[오류] AI 답변 생성 중 문제가 발생했습니다.\n(상세: ${err.message})\n\n잠시 후 다시 시도해 주시거나, 직접 답변을 작성해 주세요.`;
         }
@@ -771,7 +731,6 @@ export function createQnARouter(): ExpressRouter {
             return;
         }
 
-        const anthropicKey = (process.env.ANTHROPIC_API_KEY || "").trim().replace(/^["']|["']$/g, "");
         const geminiKey = (process.env.GOOGLE_GEMINI_API_KEY || "").trim().replace(/^["']|["']$/g, "");
 
         const draft = currentDraft || q.aiDraftAnswer || "";
@@ -798,46 +757,12 @@ ${draft || "(아직 초안 없음)"}
             { role: "user" as const, content: message },
         ];
 
-        // Try Claude first
-        if (anthropicKey) {
-            try {
-                const response = await fetch("https://api.anthropic.com/v1/messages", {
-                    method: "POST",
-                    headers: {
-                        "x-api-key": anthropicKey,
-                        "anthropic-version": "2023-06-01",
-                        "content-type": "application/json",
-                    },
-                    body: JSON.stringify({
-                        model: "claude-sonnet-4-6",
-                        max_tokens: 2000,
-                        system: systemPrompt,
-                        messages,
-                    }),
-                });
-
-                if (!response.ok) {
-                    const err = await response.text();
-                    throw new Error(`Anthropic API ${response.status}: ${err}`);
-                }
-
-                const data: any = await response.json();
-                const reply = data.content[0]?.text;
-                if (reply) {
-                    res.json({ reply });
-                    return;
-                }
-            } catch (err: any) {
-                console.error("[QnA] Chat Claude 실패, Gemini 시도:", err.message);
-            }
-        }
-
-        // Fallback to Gemini
+        // Gemini 2.0 Flash (primary)
         if (geminiKey) {
             try {
                 const genAI = new GoogleGenerativeAI(geminiKey);
                 const model = genAI.getGenerativeModel({
-                    model: "gemini-1.5-flash",
+                    model: "gemini-2.0-flash",
                     systemInstruction: systemPrompt,
                 });
                 const geminiHistory = conversationHistory.map((m: any) => ({
