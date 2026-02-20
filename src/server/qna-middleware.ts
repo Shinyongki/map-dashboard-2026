@@ -487,6 +487,7 @@ async function generateAIDraft(title: string, content: string, relatedDoc?: Mock
 - 제목/소제목은 【 】 또는 ○ 기호를 사용하고, 항목은 1. 2. 3. 또는 가. 나. 다. 형식으로 작성하세요
 - 표가 필요한 경우 ┌─┬─┐ / │ / ├─┼─┤ / └─┴─┘ 같은 유니코드 선 문자로 시각적인 표를 그리세요. 마크다운 | 기호 표는 사용하지 마세요
 - 관련 조항이나 항목을 구체적으로 인용하세요
+- "~에 따라", "~에 따르면", "~에 의하면" 같은 인용 표현을 사용하지 마세요. 대신 내용을 직접 서술하세요 (예: "교육 대상은 전담사회복지사입니다")
 ${docContext}${knowledgeContext ? `\n\n[내부 지식 베이스]\n${knowledgeContext}` : ""}`;
 
     const userPrompt = `질문 제목: ${title}\n질문 내용: ${content}\n\n위 질문에 대한 답변 초안을 작성해주세요.`;

@@ -211,24 +211,22 @@ export default function AdminAnswerEditor({
 
                 {chatOpen && (
                     <div className="flex flex-col">
-                        {/* Quick prompts */}
-                        {chatMessages.length === 0 && (
-                            <div className="px-4 pt-3 pb-2 bg-white border-b border-purple-100">
-                                <p className="text-xs text-gray-500 mb-2">빠른 요청:</p>
-                                <div className="flex flex-wrap gap-2">
-                                    {QUICK_PROMPTS.map((prompt) => (
-                                        <button
-                                            key={prompt}
-                                            onClick={() => sendChat(prompt)}
-                                            disabled={chatLoading}
-                                            className="px-2.5 py-1 bg-purple-50 border border-purple-200 rounded-full text-xs text-purple-700 hover:bg-purple-100 disabled:opacity-50"
-                                        >
-                                            {prompt}
-                                        </button>
-                                    ))}
-                                </div>
+                        {/* Quick prompts - 항상 표시 */}
+                        <div className="px-4 pt-3 pb-2 bg-white border-b border-purple-100">
+                            <p className="text-xs text-gray-500 mb-2">빠른 요청:</p>
+                            <div className="flex flex-wrap gap-2">
+                                {QUICK_PROMPTS.map((prompt) => (
+                                    <button
+                                        key={prompt}
+                                        onClick={() => sendChat(prompt)}
+                                        disabled={chatLoading}
+                                        className="px-2.5 py-1 bg-purple-50 border border-purple-200 rounded-full text-xs text-purple-700 hover:bg-purple-100 disabled:opacity-50"
+                                    >
+                                        {prompt}
+                                    </button>
+                                ))}
                             </div>
-                        )}
+                        </div>
 
                         {/* Messages */}
                         <div className="flex flex-col gap-3 px-4 py-3 max-h-80 overflow-y-auto bg-white">
