@@ -1238,6 +1238,43 @@ ${draft || "(아직 초안 없음)"}
     //  별도의 tool call로 라우터 내부를 수정하는 것이 안전함.
     //  다만 이 블록에서는 함수 정의와 초기 로드만 수행)
 
+    // ── Dashboard AI Chat (공개 엔드포인트) ──
+    router.post("/ai-chat", async (req: ExpressRequest, res: ExpressResponse) => {
+        const { messages = [], systemPrompt = "" } = (req as any).body || {};
+        const geminiKey = (process.env.GOOGLE_GEMINI_API_KEY || "").trim().replace(/^["']|["']$/g, "");
+
+        if (!geminiKey) {
+            res.status(503).json({ error: "AI 서비스가 설정되지 않았습니다." });
+            return;
+        }
+
+        try {
+            const genAI = new GoogleGenerativeAI(geminiKey);
+            const model = genAI.getGenerativeModel({
+                model: "gemini-2.5-flash",
+                systemInstruction: systemPrompt || undefined,
+            });
+
+            const history = messages.slice(0, -1).map((m: any) => ({
+                role: m.role === "assistant" ? "model" : "user",
+                parts: [{ text: m.content }],
+            }));
+            const lastMessage = messages[messages.length - 1];
+
+            if (!lastMessage) {
+                res.status(400).json({ error: "메시지가 없습니다." });
+                return;
+            }
+
+            const chat = model.startChat({ history });
+            const result = await chat.sendMessage(lastMessage.content);
+            res.json({ text: result.response.text() });
+        } catch (err: any) {
+            console.error("[AI Chat] Gemini 오류:", err.message);
+            res.status(500).json({ error: err.message });
+        }
+    });
+
     // ── Notices ──
     router.get("/notices", authenticateToken, (req: ExpressRequest, res: ExpressResponse) => {
         const { documentId } = (req as any).query || {};
