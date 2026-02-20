@@ -17,8 +17,8 @@ export interface NomaFeedback {
 
 const KEY_SESSIONS = "noma_sessions";
 const KEY_FEEDBACK = "noma_feedback";
-const MAX_SESSIONS = 10;
-const MAX_FEEDBACK = 20;
+const MAX_SESSIONS = 50;
+const MAX_FEEDBACK = 500;
 
 function load<T>(key: string, fallback: T): T {
     try {
