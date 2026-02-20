@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { api } from "@/features/qna/api/client";
 import type { Question, QuestionStatus } from "@/features/qna/lib/types";
 
@@ -6,6 +6,7 @@ export function useQuestions(filters?: { status?: QuestionStatus; relatedDocumen
     const [questions, setQuestions] = useState<Question[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
     const refresh = useCallback(async () => {
         setLoading(true);
@@ -17,6 +18,24 @@ export function useQuestions(filters?: { status?: QuestionStatus; relatedDocumen
             const data = await api.get<Question[]>(path);
             setQuestions(data);
             setError(null);
+
+            // pending 상태 질문이 있으면 5초마다 폴링
+            const hasPending = data.some(q => q.status === "pending");
+            if (hasPending && !pollingRef.current) {
+                pollingRef.current = setInterval(async () => {
+                    try {
+                        const fresh = await api.get<Question[]>(path);
+                        setQuestions(fresh);
+                        if (!fresh.some(q => q.status === "pending")) {
+                            clearInterval(pollingRef.current!);
+                            pollingRef.current = null;
+                        }
+                    } catch {}
+                }, 5000);
+            } else if (!hasPending && pollingRef.current) {
+                clearInterval(pollingRef.current);
+                pollingRef.current = null;
+            }
         } catch (err) {
             setError(err instanceof Error ? err.message : "질문 목록 로딩 실패");
         } finally {
@@ -29,7 +48,10 @@ export function useQuestions(filters?: { status?: QuestionStatus; relatedDocumen
 
         const onFocus = () => refresh();
         window.addEventListener("focus", onFocus);
-        return () => window.removeEventListener("focus", onFocus);
+        return () => {
+            window.removeEventListener("focus", onFocus);
+            if (pollingRef.current) clearInterval(pollingRef.current);
+        };
     }, [refresh]);
 
     const submitQuestion = useCallback(
