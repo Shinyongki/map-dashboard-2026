@@ -19,6 +19,7 @@ dist-ssr
 server-knowledge-data.json
 server-documents-data.json
 server-questions-data.json
+server-embeddings-data.json
 
 # Editor directories and files
 .vscode/*

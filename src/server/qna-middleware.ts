@@ -111,6 +111,15 @@ interface MockNotice {
     updatedAt: string;
 }
 
+interface EmbeddedChunk {
+    id: string;
+    knowledgeId: string;
+    knowledgeTitle: string;
+    category: string;
+    text: string;
+    embedding: number[];
+}
+
 // ─── Config ──────────────────────────────────────────────────
 const JWT_SECRET = process.env.JWT_SECRET || "qna-system-secret-2026";
 const ADMIN_CODE = process.env.ADMIN_CODE || "1672";
@@ -139,6 +148,7 @@ let mockNotices: MockNotice[] = [
 
 let mockKnowledgeItems: MockKnowledgeItem[] = [];
 let knowledgeLoaded = false;
+let mockEmbeddedChunks: EmbeddedChunk[] = [];
 
 async function loadKnowledgeFromFirestore(): Promise<void> {
     if (knowledgeLoaded || !isFirebaseReady()) return;
@@ -201,6 +211,7 @@ async function loadDocumentsFromFirestore(): Promise<void> {
 const DATA_QUESTION_FILE_PATH = path.join(process.cwd(), "server-questions-data.json");
 const DATA_NOTICE_FILE_PATH = path.join(process.cwd(), "server-notices-data.json");
 const DATA_FILE_PATH = path.join(process.cwd(), "server-knowledge-data.json");
+const EMBEDDINGS_FILE_PATH = path.join(process.cwd(), "server-embeddings-data.json");
 
 function saveQuestionsToLocalFile() {
     try {
@@ -291,9 +302,33 @@ function loadFromLocalFile() {
     }
 }
 
+function saveEmbeddingsToFile(): void {
+    try {
+        fs.writeFileSync(EMBEDDINGS_FILE_PATH, JSON.stringify(mockEmbeddedChunks, null, 2), "utf-8");
+    } catch (err) {
+        console.error("[QnA] 임베딩 파일 저장 실패:", err);
+    }
+}
+
+function loadEmbeddingsFromFile(): void {
+    try {
+        if (fs.existsSync(EMBEDDINGS_FILE_PATH)) {
+            const data = fs.readFileSync(EMBEDDINGS_FILE_PATH, "utf-8");
+            const items = JSON.parse(data);
+            if (Array.isArray(items)) {
+                mockEmbeddedChunks = items;
+                console.log(`[QnA] 임베딩 ${items.length}개 chunk 로드 완료`);
+            }
+        }
+    } catch (err) {
+        console.error("[QnA] 임베딩 파일 로드 실패:", err);
+    }
+}
+
 // 초기 로드 실행
 loadQuestionsFromLocalFile();
 loadNoticesFromLocalFile();
+loadEmbeddingsFromFile();
 // loadFromLocalFile()는 라우터 내부나 필요 시점에 호출됨 (기존 로직 유지)
 
 // ─── AI Service (Integrated) ──────────────────────────────
@@ -306,14 +341,137 @@ function buildKnowledgeContext(): string {
     return context;
 }
 
+// ─── RAG Functions ───────────────────────────────────────────
+function chunkText(text: string, size = 1000, overlap = 150): string[] {
+    const chunks: string[] = [];
+    let start = 0;
+    while (start < text.length) {
+        chunks.push(text.slice(start, start + size));
+        start += size - overlap;
+    }
+    return chunks;
+}
+
+async function embedText(text: string): Promise<number[]> {
+    const geminiKey = (process.env.GOOGLE_GEMINI_API_KEY || "").trim().replace(/^["']|["']$/g, "");
+    if (!geminiKey) throw new Error("Gemini key not set");
+
+    const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent?key=${geminiKey}`,
+        {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                model: "models/gemini-embedding-001",
+                content: { parts: [{ text: text.slice(0, 2000) }] },
+            }),
+        }
+    );
+    if (!res.ok) {
+        const err = await res.text();
+        throw new Error(`Gemini Embedding API ${res.status}: ${err}`);
+    }
+    const data: any = await res.json();
+    return data.embedding.values;
+}
+
+function cosineSimilarity(a: number[], b: number[]): number {
+    let dot = 0, magA = 0, magB = 0;
+    for (let i = 0; i < a.length; i++) {
+        dot += a[i] * b[i];
+        magA += a[i] * a[i];
+        magB += b[i] * b[i];
+    }
+    if (magA === 0 || magB === 0) return 0;
+    return dot / (Math.sqrt(magA) * Math.sqrt(magB));
+}
+
+async function retrieveRelevantChunks(query: string, topK = 6): Promise<string> {
+    if (mockEmbeddedChunks.length === 0) {
+        console.log("[QnA] 임베딩 없음 → 기존 컨텍스트 방식 사용");
+        return buildKnowledgeContext().slice(0, 30000);
+    }
+    try {
+        const queryEmbedding = await embedText(query);
+        const scored = mockEmbeddedChunks.map(chunk => ({
+            chunk,
+            score: cosineSimilarity(queryEmbedding, chunk.embedding),
+        }));
+        scored.sort((a, b) => b.score - a.score);
+        const top = scored.slice(0, topK);
+
+        let context = "\n\n## 관련 지식 베이스 (질문 연관 검색 결과)\n";
+        for (const { chunk, score } of top) {
+            context += `\n### [${chunk.category}] ${chunk.knowledgeTitle} (관련도: ${Math.round(score * 100)}%)\n${chunk.text}\n`;
+        }
+        console.log(`[QnA] RAG 검색 완료: 상위 ${topK}개 chunk, 총 ${context.length}자`);
+        return context;
+    } catch (err: any) {
+        console.error("[QnA] RAG 검색 실패, 기존 방식 사용:", err.message);
+        return buildKnowledgeContext().slice(0, 30000);
+    }
+}
+
+async function indexKnowledgeItem(item: MockKnowledgeItem): Promise<void> {
+    const geminiKey = (process.env.GOOGLE_GEMINI_API_KEY || "").trim().replace(/^["']|["']$/g, "");
+    if (!geminiKey) {
+        console.warn("[QnA] Gemini 키 없음 - 임베딩 건너뜀");
+        return;
+    }
+    // 기존 chunk 제거
+    mockEmbeddedChunks = mockEmbeddedChunks.filter(c => c.knowledgeId !== item.id);
+
+    const chunks = chunkText(item.content);
+    const newChunks: EmbeddedChunk[] = [];
+
+    console.log(`[QnA] "${item.title}" 인덱싱 시작: ${chunks.length}개 chunk`);
+    for (let i = 0; i < chunks.length; i++) {
+        try {
+            const embedding = await embedText(chunks[i]);
+            newChunks.push({
+                id: `${item.id}_chunk${i}`,
+                knowledgeId: item.id,
+                knowledgeTitle: item.title,
+                category: item.category,
+                text: chunks[i],
+                embedding,
+            });
+            // Rate limit 방지: 10개마다 200ms 대기
+            if (i > 0 && i % 10 === 0) {
+                await new Promise(r => setTimeout(r, 200));
+            }
+        } catch (err: any) {
+            console.error(`[QnA] chunk 임베딩 실패 (${item.id}_chunk${i}):`, err.message);
+        }
+    }
+
+    mockEmbeddedChunks.push(...newChunks);
+    saveEmbeddingsToFile();
+    console.log(`[QnA] "${item.title}" 인덱싱 완료: ${newChunks.length}/${chunks.length}개 chunk`);
+}
+
+async function reindexMissingEmbeddings(): Promise<void> {
+    const indexedIds = new Set(mockEmbeddedChunks.map(c => c.knowledgeId));
+    const missing = mockKnowledgeItems.filter(item => !indexedIds.has(item.id));
+    if (missing.length === 0) {
+        console.log("[QnA] 모든 지식 항목이 이미 인덱싱되어 있습니다.");
+        return;
+    }
+    console.log(`[QnA] 백그라운드 인덱싱 시작: ${missing.length}개 항목`);
+    for (const item of missing) {
+        await indexKnowledgeItem(item);
+    }
+    console.log("[QnA] 백그라운드 인덱싱 완료");
+}
+
 async function generateAIDraft(title: string, content: string, relatedDoc?: MockDocument): Promise<string> {
     const geminiKey = (process.env.GOOGLE_GEMINI_API_KEY || "").trim().replace(/^["']|["']$/g, "");
     const anthropicKey = (process.env.ANTHROPIC_API_KEY || "").trim().replace(/^["']|["']$/g, "");
 
-    const knowledgeContext = buildKnowledgeContext();
+    const knowledgeContext = await retrieveRelevantChunks(`${title} ${content}`);
     console.log(`[QnA] AI 답변 생성 시작: "${title}"`);
     console.log(`[QnA] Anthropic Key Present: ${!!anthropicKey}, Gemini Key Present: ${!!geminiKey}`);
-    console.log(`[QnA] Knowledge Context Length: ${knowledgeContext.length}, Related Doc: ${relatedDoc?.title || "없음"}`);
+    console.log(`[QnA] Knowledge Context Length: ${knowledgeContext.length}자 (RAG), Related Doc: ${relatedDoc?.title || "없음"}`);
 
     const docContext = relatedDoc && relatedDoc.content && !relatedDoc.content.startsWith("(업로드된 파일:")
         ? `\n\n## 관련 공문 원문\n- 공문번호: ${relatedDoc.documentNumber}\n- 제목: ${relatedDoc.title}\n\n${relatedDoc.content.slice(0, 30000)}`
@@ -325,16 +483,19 @@ async function generateAIDraft(title: string, content: string, relatedDoc?: Mock
 답변 작성 시 주의사항:
 - 제공된 [관련 공문 원문] 및 [내부 지식 베이스]에 근거한 답변만 작성하세요
 - 근거가 없는 내용은 "해당 내용은 확인되지 않습니다"라고 안내하세요
-- 답변은 마크다운 형식으로 구조화해주세요
+- 일반 문서(공문) 형식으로 작성하세요. #, ##, **, __, |, - 등 마크다운 기호를 절대 사용하지 마세요
+- 이모지(emoji)를 사용하지 마세요
+- 제목/소제목은 【 】 또는 ○ 기호를 사용하고, 항목은 1. 2. 3. 또는 가. 나. 다. 형식으로 작성하세요
+- 표가 필요한 경우 ┌─┬─┐ / │ / ├─┼─┤ / └─┴─┘ 같은 유니코드 선 문자로 시각적인 표를 그리세요. 마크다운 | 기호 표는 사용하지 마세요
 - 관련 조항이나 항목을 구체적으로 인용하세요
-${docContext}${knowledgeContext ? `\n\n[내부 지식 베이스]\n${knowledgeContext.slice(0, 30000)}` : ""}`;
+${docContext}${knowledgeContext ? `\n\n[내부 지식 베이스]\n${knowledgeContext}` : ""}`;
 
     const userPrompt = `질문 제목: ${title}\n질문 내용: ${content}\n\n위 질문에 대한 답변 초안을 작성해주세요.`;
 
     // 1. Try Anthropic (Claude) first if key exists
     if (anthropicKey) {
         try {
-            console.log("[QnA] Anthropic(Claude) API 호출 시도...");
+            console.log("[QnA] Anthropic(Claude) API 호출 시도... (key prefix:", anthropicKey.slice(0, 15) + "...)");
             const response = await fetch("https://api.anthropic.com/v1/messages", {
                 method: "POST",
                 headers: {
@@ -354,14 +515,14 @@ ${docContext}${knowledgeContext ? `\n\n[내부 지식 베이스]\n${knowledgeCon
 
             if (!response.ok) {
                 const errorData = await response.text();
-                console.error(`[QnA] Anthropic API Error Body: ${errorData}`);
-                throw new Error(`Anthropic API Error: ${response.status} ${response.statusText} - ${errorData}`);
+                console.error(`[QnA] Anthropic API Error ${response.status} ${response.statusText}: ${errorData}`);
+                throw new Error(`Anthropic API Error: ${response.status} ${response.statusText}`);
             }
 
             const data: any = await response.json();
             const text = data.content[0]?.text;
             if (text) {
-                console.log("[QnA] Anthropic API 답변 생성 성공");
+                console.log("[QnA] Anthropic API 답변 생성 성공 (길이:", text.length, "자)");
                 return text;
             }
         } catch (err: any) {
@@ -375,10 +536,9 @@ ${docContext}${knowledgeContext ? `\n\n[내부 지식 베이스]\n${knowledgeCon
             console.log("[QnA] Gemini API 호출 시도...");
             const genAI = new GoogleGenerativeAI(geminiKey);
             const model = genAI.getGenerativeModel({
-                model: "gemini-pro",
-                systemInstruction: systemInstruction
+                model: "gemini-1.5-flash",
+                systemInstruction: systemInstruction,
             });
-
 
             const result = await model.generateContent({
                 contents: [{ role: "user", parts: [{ text: userPrompt }] }],
@@ -559,6 +719,8 @@ export function createQnARouter(): ExpressRouter {
                 q.aiDraftAnswer = draft;
                 saveQuestionsToLocalFile(); // AI 답변 생성 후 업데이트 저장
             }
+        }).catch(err => {
+            console.error("[QnA] AI 초안 생성 최종 실패:", err);
         });
 
         res.json({ id });
@@ -587,6 +749,113 @@ export function createQnARouter(): ExpressRouter {
         mockQuestions.splice(idx, 1);
         saveQuestionsToLocalFile(); // 저장
         res.json({ success: true });
+    });
+
+    // ── Question Chat (답변 조정) ──
+    router.post("/questions/:id/chat", authenticateToken, async (req: ExpressRequest, res: ExpressResponse) => {
+        const user = (req as any).user;
+        if (user.role !== "admin") {
+            res.status(403).json({ error: "관리자만 접근 가능합니다." });
+            return;
+        }
+
+        const q = mockQuestions.find((q) => q.id === (req as any).params?.id);
+        if (!q) {
+            res.status(404).json({ error: "질문을 찾을 수 없습니다." });
+            return;
+        }
+
+        const { message, conversationHistory = [], currentDraft = "" } = (req as any).body || {};
+        if (!message?.trim()) {
+            res.status(400).json({ error: "메시지를 입력해주세요." });
+            return;
+        }
+
+        const anthropicKey = (process.env.ANTHROPIC_API_KEY || "").trim().replace(/^["']|["']$/g, "");
+        const geminiKey = (process.env.GOOGLE_GEMINI_API_KEY || "").trim().replace(/^["']|["']$/g, "");
+
+        const draft = currentDraft || q.aiDraftAnswer || "";
+        const systemPrompt = `당신은 경상남도 광역지원기관 공문 Q&A 답변 수정 도우미입니다.
+관리자가 AI가 생성한 초안 답변을 대화를 통해 수정·보완할 수 있도록 돕습니다.
+
+## 원본 질문
+- 제목: ${q.title}
+- 내용: ${q.content}
+
+## 현재 답변 초안
+${draft || "(아직 초안 없음)"}
+
+## 지시사항
+- 수정 요청(예: "더 간결하게", "3번 항목 자세히", "항목별로 정리") 시: 수정된 **완전한** 답변문을 제공하세요.
+- 답변문 작성 시 #, ##, **, __ 등 마크다운 기호를 사용하지 마세요. 이모지도 사용하지 마세요.
+- 제목/소제목은 【 】 또는 ○ 기호를 사용하고, 항목은 1. 2. 3. 또는 가. 나. 다. 형식으로 작성하세요.
+- 표가 필요한 경우 ┌─┬─┐ / │ / ├─┼─┤ / └─┴─┘ 같은 유니코드 선 문자로 시각적인 표를 그리세요.
+- 간단한 질문 시: 간결하게 안내해주세요.
+- 항상 한국어로 응답하세요.`;
+
+        const messages = [
+            ...conversationHistory.map((m: any) => ({ role: m.role as "user" | "assistant", content: m.content })),
+            { role: "user" as const, content: message },
+        ];
+
+        // Try Claude first
+        if (anthropicKey) {
+            try {
+                const response = await fetch("https://api.anthropic.com/v1/messages", {
+                    method: "POST",
+                    headers: {
+                        "x-api-key": anthropicKey,
+                        "anthropic-version": "2023-06-01",
+                        "content-type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        model: "claude-sonnet-4-6",
+                        max_tokens: 2000,
+                        system: systemPrompt,
+                        messages,
+                    }),
+                });
+
+                if (!response.ok) {
+                    const err = await response.text();
+                    throw new Error(`Anthropic API ${response.status}: ${err}`);
+                }
+
+                const data: any = await response.json();
+                const reply = data.content[0]?.text;
+                if (reply) {
+                    res.json({ reply });
+                    return;
+                }
+            } catch (err: any) {
+                console.error("[QnA] Chat Claude 실패, Gemini 시도:", err.message);
+            }
+        }
+
+        // Fallback to Gemini
+        if (geminiKey) {
+            try {
+                const genAI = new GoogleGenerativeAI(geminiKey);
+                const model = genAI.getGenerativeModel({
+                    model: "gemini-1.5-flash",
+                    systemInstruction: systemPrompt,
+                });
+                const geminiHistory = conversationHistory.map((m: any) => ({
+                    role: m.role === "assistant" ? "model" : "user",
+                    parts: [{ text: m.content }],
+                }));
+                const chat = model.startChat({ history: geminiHistory });
+                const result = await chat.sendMessage(message);
+                res.json({ reply: result.response.text() });
+                return;
+            } catch (err: any) {
+                console.error("[QnA] Chat Gemini 실패:", err.message);
+                res.status(500).json({ error: "AI 응답 생성에 실패했습니다." });
+                return;
+            }
+        }
+
+        res.status(503).json({ error: "AI 서비스를 사용할 수 없습니다." });
     });
 
     // ── Documents ──
@@ -936,7 +1205,26 @@ export function createQnARouter(): ExpressRouter {
         // 로컬 파일 저장
         saveToLocalFile();
 
+        // 백그라운드 임베딩 인덱싱
+        Promise.all(results.map(item => indexKnowledgeItem(item)))
+            .catch(err => console.error("[QnA] 지식 인덱싱 실패:", err));
+
         res.json({ success: true, count: results.length, items: results });
+    });
+
+    // ── Knowledge Reindex ──
+    router.post("/knowledge/reindex", authenticateToken, async (req: ExpressRequest, res: ExpressResponse) => {
+        const user = (req as any).user as JwtPayload;
+        if (user.role !== "admin") {
+            res.status(403).json({ error: "관리자만 재인덱싱할 수 있습니다." });
+            return;
+        }
+        // 전체 재인덱싱 (기존 임베딩 초기화 후)
+        mockEmbeddedChunks = [];
+        saveEmbeddingsToFile();
+        res.json({ success: true, message: `${mockKnowledgeItems.length}개 항목 재인덱싱 시작` });
+        // 응답 후 백그라운드 처리
+        reindexMissingEmbeddings().catch(err => console.error("[QnA] 재인덱싱 실패:", err));
     });
 
     router.delete("/knowledge/:id", authenticateToken, async (req: ExpressRequest, res: ExpressResponse) => {
@@ -965,6 +1253,10 @@ export function createQnARouter(): ExpressRouter {
 
         // 로컬 파일 저장
         saveToLocalFile();
+
+        // 임베딩 chunk 제거
+        mockEmbeddedChunks = mockEmbeddedChunks.filter(c => c.knowledgeId !== id);
+        saveEmbeddingsToFile();
 
         console.log(`지식 삭제: "${removed.title}"`);
         res.json({ success: true });
@@ -1109,7 +1401,15 @@ export function createQnARouter(): ExpressRouter {
 
     // ── Health check ──
     router.get("/health", (_req: ExpressRequest, res: ExpressResponse) => {
-        res.json({ status: "ok", mode: "integrated", knowledgeCount: mockKnowledgeItems.length });
+        const indexedIds = new Set(mockEmbeddedChunks.map(c => c.knowledgeId));
+        res.json({
+            status: "ok",
+            mode: "integrated",
+            knowledgeCount: mockKnowledgeItems.length,
+            embeddedChunks: mockEmbeddedChunks.length,
+            indexedItems: indexedIds.size,
+            ragReady: mockEmbeddedChunks.length > 0,
+        });
     });
 
     return router;
@@ -1121,5 +1421,14 @@ export function createQnAApp() {
     const app = express();
     app.use(express.json());
     app.use(createQnARouter());
+
+    // 지식 항목 로드 후 누락된 임베딩 백그라운드 인덱싱
+    setTimeout(() => {
+        loadFromLocalFile();
+        reindexMissingEmbeddings().catch(err =>
+            console.error("[QnA] 초기 인덱싱 실패:", err)
+        );
+    }, 2000); // 서버 완전 기동 후 2초 뒤 실행
+
     return app;
 }

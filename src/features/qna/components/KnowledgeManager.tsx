@@ -1,6 +1,13 @@
 import { useState, useEffect, useCallback } from "react";
-import { BookOpen, Plus, Trash2, Upload, FileText, Loader2, X, Database } from "lucide-react";
+import { BookOpen, Plus, Trash2, Upload, FileText, Loader2, X, Database, RefreshCw, Zap } from "lucide-react";
 import { api } from "@/features/qna/api/client";
+
+interface HealthInfo {
+    embeddedChunks: number;
+    indexedItems: number;
+    ragReady: boolean;
+    knowledgeCount: number;
+}
 
 // ─── 타입 ────────────────────────────────────────────────────
 interface KnowledgeItem {
@@ -43,6 +50,8 @@ export default function KnowledgeManager() {
     const [submitting, setSubmitting] = useState(false);
     const [deletingId, setDeletingId] = useState<string | null>(null);
     const [error, setError] = useState("");
+    const [reindexing, setReindexing] = useState(false);
+    const [health, setHealth] = useState<HealthInfo | null>(null);
 
     // 폼 상태
     const [title, setTitle] = useState("");
@@ -74,8 +83,12 @@ export default function KnowledgeManager() {
     const fetchItems = useCallback(async () => {
         try {
             setLoading(true);
-            const data = await api.get<KnowledgeItem[]>("/knowledge");
+            const [data, healthData] = await Promise.all([
+                api.get<KnowledgeItem[]>("/knowledge"),
+                api.get<HealthInfo>("/health").catch(() => null),
+            ]);
             setItems(data);
+            if (healthData) setHealth(healthData);
         } catch (err) {
             console.error("지식 목록 로드 실패:", err);
         } finally {
@@ -86,6 +99,20 @@ export default function KnowledgeManager() {
     useEffect(() => {
         fetchItems();
     }, [fetchItems]);
+
+    const handleReindex = async () => {
+        if (!confirm(`지식 베이스 전체(${items.length}개)를 재인덱싱합니다. 항목 수에 따라 시간이 걸릴 수 있습니다.`)) return;
+        setReindexing(true);
+        try {
+            await api.post("/knowledge/reindex");
+            alert("재인덱싱이 백그라운드에서 시작되었습니다. 서버 콘솔 로그를 확인하세요.");
+            setTimeout(fetchItems, 3000);
+        } catch (err) {
+            console.error("재인덱싱 실패:", err);
+        } finally {
+            setReindexing(false);
+        }
+    };
 
     // ─── 등록 ────────────────────────────────────────────────
     const handleSubmit = async (e: React.FormEvent) => {
@@ -169,6 +196,21 @@ export default function KnowledgeManager() {
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
+                        {health && (
+                            <span className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${health.ragReady ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"}`}>
+                                <Zap className="h-3 w-3" />
+                                {health.ragReady ? `RAG ${health.indexedItems}/${health.knowledgeCount} 인덱싱` : "RAG 미준비"}
+                            </span>
+                        )}
+                        <button
+                            onClick={handleReindex}
+                            disabled={reindexing}
+                            className="flex items-center gap-1.5 px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors border border-gray-200 disabled:opacity-50"
+                            title="전체 지식 재인덱싱 (RAG용 임베딩 재생성)"
+                        >
+                            <RefreshCw className={`h-4 w-4 ${reindexing ? "animate-spin" : ""}`} />
+                            재인덱싱
+                        </button>
                         <button
                             onClick={() => {
                                 const data = JSON.stringify(items, null, 2);
@@ -186,7 +228,7 @@ export default function KnowledgeManager() {
                             title="전체 지식 데이터 백업 (JSON)"
                         >
                             <Database className="h-4 w-4" />
-                            백업 다운로드
+                            백업
                         </button>
                         <button
                             onClick={() => setShowForm(!showForm)}
@@ -208,7 +250,7 @@ export default function KnowledgeManager() {
                 </div>
 
                 {/* 통계 */}
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-4 gap-3">
                     <div className="bg-teal-50 border border-teal-200 rounded-lg p-3 text-center">
                         <span className="text-2xl font-bold text-teal-600">{items.length}</span>
                         <p className="text-xs text-teal-700 mt-0.5">전체 항목</p>
@@ -218,6 +260,12 @@ export default function KnowledgeManager() {
                             {items.reduce((sum, item) => sum + item.chunkCount, 0)}
                         </span>
                         <p className="text-xs text-blue-700 mt-0.5">전체 청크</p>
+                    </div>
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-center">
+                        <span className="text-2xl font-bold text-green-600">
+                            {health?.embeddedChunks ?? "-"}
+                        </span>
+                        <p className="text-xs text-green-700 mt-0.5">임베딩 완료</p>
                     </div>
                     <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 text-center">
                         <span className="text-2xl font-bold text-purple-600">
