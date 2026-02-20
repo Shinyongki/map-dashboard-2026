@@ -84,29 +84,33 @@ ${question.content}
 
 위 질문에 대한 답변 초안을 작성해주세요.`;
 
-  // Try Gemini First
+  // Try Claude First
+  const anthropic = getClient();
+  if (anthropic) {
+    try {
+      console.log("AI: Generating draft using Claude...");
+      const response = await anthropic.messages.create({
+        model: "claude-sonnet-4-6",
+        max_tokens: 2048,
+        system: systemPrompt,
+        messages: [{ role: "user", content: userMessage }],
+      });
+      const textBlock = response.content.find((b: any) => b.type === "text");
+      if (textBlock && textBlock.type === "text") return textBlock.text;
+    } catch (err) {
+      console.error("Claude failed, trying Gemini fallback...", err);
+    }
+  }
+
+  // Fallback to Gemini
   const gemini = getGeminiClient();
   if (gemini) {
     try {
       console.log("AI: Generating draft using Gemini...");
       return await generateGeminiContent(systemPrompt, userMessage);
     } catch (err) {
-      console.error("Gemini failed, trying Claude fallback...", err);
+      console.error("Gemini failed too:", err);
     }
-  }
-
-  // Fallback to Claude
-  const anthropic = getClient();
-  if (anthropic) {
-    console.log("AI: Generating draft using Claude...");
-    const response = await anthropic.messages.create({
-      model: "claude-3-5-sonnet-20240620",
-      max_tokens: 2048,
-      system: systemPrompt,
-      messages: [{ role: "user", content: userMessage }],
-    });
-    const textBlock = response.content.find((b: any) => b.type === "text");
-    if (textBlock && textBlock.type === "text") return textBlock.text;
   }
 
   // Mock response when no API keys are configured
