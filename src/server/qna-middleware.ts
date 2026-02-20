@@ -497,7 +497,7 @@ ${docContext}${knowledgeContext ? `\n\n[내부 지식 베이스]\n${knowledgeCon
             console.log("[QnA] Gemini 2.0 Flash API 호출 시도...");
             const genAI = new GoogleGenerativeAI(geminiKey);
             const model = genAI.getGenerativeModel({
-                model: "gemini-2.0-flash",
+                model: "gemini-1.5-flash",
                 systemInstruction: systemInstruction,
             });
 
@@ -762,7 +762,7 @@ ${draft || "(아직 초안 없음)"}
             try {
                 const genAI = new GoogleGenerativeAI(geminiKey);
                 const model = genAI.getGenerativeModel({
-                    model: "gemini-2.0-flash",
+                    model: "gemini-1.5-flash",
                     systemInstruction: systemPrompt,
                 });
                 const geminiHistory = conversationHistory.map((m: any) => ({
