@@ -1,4 +1,4 @@
-import type { RegionStats } from "@/features/map/lib/map-types";
+import type { RegionStats, InstitutionDetail } from "@/features/map/lib/map-types";
 import type { ClimateRegionStats } from "@/features/climate/lib/climate-types";
 import type { DisasterRegionStats } from "@/features/disaster/lib/disaster-types";
 import type { RegionCareStatus } from "@/features/climate/hooks/useCareStatusByRegion";
@@ -11,7 +11,8 @@ export function buildSystemPrompt(
     climateStats: Map<string, ClimateRegionStats>,
     disasterStats: Map<string, DisasterRegionStats>,
     careStatusByRegion?: RegionCareStatus[],
-    contextInput?: AiContextInput
+    contextInput?: AiContextInput,
+    surveys?: InstitutionDetail[]
 ): string {
     const tab = contextInput?.activeTab ?? "care";
 
@@ -68,6 +69,12 @@ export function buildSystemPrompt(
         // 다른 탭에서도 기후/재난 요약은 포함 (간략하게)
         sections.push("## 기후/재난 요약");
         sections.push(buildClimateSummary(climateStats, disasterStats));
+    }
+
+    // 개별 기관 상세 데이터
+    if (surveys && surveys.length > 0) {
+        sections.push("## 개별 기관 현황 데이터");
+        sections.push(buildOrganizationContext(surveys));
     }
 
     sections.push(`\n분석 시 주의사항:
@@ -247,4 +254,38 @@ function buildDisasterTable(stats: Map<string, DisasterRegionStats>): string {
     }
 
     return [header, sep, ...rows].join("\n");
+}
+
+// ─── Organization detail context ───────────────────────────
+
+function buildOrganizationContext(surveys: InstitutionDetail[]): string {
+    if (!surveys.length) return "(데이터 없음)";
+
+    const lines: string[] = [];
+
+    for (const s of surveys) {
+        const sw = s.전담사회복지사_남 + s.전담사회복지사_여;
+        const cg = s.생활지원사_남 + s.생활지원사_여;
+        const users =
+            s.일반중점_남_일반 + s.일반중점_남_중점 +
+            s.일반중점_여_일반 + s.일반중점_여_중점 +
+            s.특화_남 + s.특화_여;
+        const newUsers = s.신규대상자_남 + s.신규대상자_여;
+        const termUsers =
+            s.종결자_남_사망 + s.종결자_남_서비스거부 + s.종결자_남_기타 +
+            s.종결자_여_사망 + s.종결자_여_서비스거부 + s.종결자_여_기타;
+
+        lines.push(
+            `[${s.시군}] ${s.기관명} (${s.기관코드})` +
+            ` | 전담SW ${sw}명(남${s.전담사회복지사_남}/여${s.전담사회복지사_여})` +
+            ` 생활지원사 ${cg}명(남${s.생활지원사_남}/여${s.생활지원사_여})` +
+            ` | 이용자 ${users}명(일반남${s.일반중점_남_일반}/일반여${s.일반중점_여_일반}/중점남${s.일반중점_남_중점}/중점여${s.일반중점_여_중점}/특화남${s.특화_남}/특화여${s.특화_여})` +
+            ` | 신규 ${newUsers}명 종결 ${termUsers}명` +
+            ` | 배정(SW${s.배정_전담사회복지사}/생활지원사${s.배정_생활지원사}/이용자${s.배정_이용자})` +
+            ` | 담당자 ${s.담당자_이름} ${s.담당자_연락처}` +
+            ` | 제출 ${s.제출일시 ? s.제출일시.slice(0, 10) : "미제출"}`
+        );
+    }
+
+    return lines.join("\n");
 }

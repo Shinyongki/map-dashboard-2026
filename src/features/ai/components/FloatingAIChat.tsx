@@ -75,7 +75,7 @@ export default function FloatingAIChat({ activeTab = "care" }: FloatingAIChatPro
                 activeTab,
                 climateAlerts: climateAlertRegions,
                 disasterAlerts: disasterAlertRegions,
-            }),
+            }, surveys ?? undefined),
         [
             careStats,
             climateStats,
@@ -84,6 +84,7 @@ export default function FloatingAIChat({ activeTab = "care" }: FloatingAIChatPro
             activeTab,
             climateAlertRegions,
             disasterAlertRegions,
+            surveys,
         ]
     );
 
