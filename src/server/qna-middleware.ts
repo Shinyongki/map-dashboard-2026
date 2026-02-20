@@ -116,6 +116,7 @@ const ADMIN_CODE = process.env.ADMIN_CODE || "1672";
 // ─── Mock Data ───────────────────────────────────────────────
 let mockQuestions: MockQuestion[] = [];
 let mockDocuments: MockDocument[] = [];
+let documentsLoaded = false;
 
 let nextQuestionId = 4;
 let nextDocumentId = 3;
@@ -158,6 +159,39 @@ async function loadKnowledgeFromFirestore(): Promise<void> {
         console.log(`[QnA] Firestore에서 지식 ${mockKnowledgeItems.length}건 로드 완료`);
     } catch (err) {
         console.error("[QnA] Firestore 지식 로드 실패:", err);
+    }
+}
+
+async function loadDocumentsFromFirestore(): Promise<void> {
+    if (documentsLoaded || !isFirebaseReady()) return;
+    try {
+        const snapshot = await getDb().collection("documents").orderBy("uploadedAt", "desc").get();
+        if (snapshot.empty) return;
+        mockDocuments = snapshot.docs.map((doc) => {
+            const data = doc.data();
+            return {
+                id: doc.id,
+                title: data.title || "",
+                documentNumber: data.documentNumber || "",
+                content: data.content || "",
+                fileUrl: data.fileUrl || "",
+                uploadedAt: data.uploadedAt || new Date().toISOString(),
+                uploadedBy: data.uploadedBy || "",
+                managerName: data.managerName,
+                managerPhone: data.managerPhone,
+                validUntil: data.validUntil,
+            } as MockDocument;
+        });
+        if (mockDocuments.length > 0) {
+            nextDocumentId = Math.max(...mockDocuments.map((d) => {
+                const match = d.id.match(/^doc(\d+)$/);
+                return match ? parseInt(match[1]) : 0;
+            })) + 1;
+        }
+        documentsLoaded = true;
+        console.log(`[QnA] Firestore에서 공문 ${mockDocuments.length}건 로드 완료`);
+    } catch (err) {
+        console.error("[QnA] Firestore 공문 로드 실패:", err);
     }
 }
 
@@ -540,7 +574,13 @@ export function createQnARouter(): ExpressRouter {
     });
 
     // ── Documents ──
-    router.get("/documents", authenticateToken, (_req: ExpressRequest, res: ExpressResponse) => {
+    router.get("/documents", authenticateToken, async (_req: ExpressRequest, res: ExpressResponse) => {
+        if (!documentsLoaded) {
+            loadDocumentsFromLocalFile();
+            if (isFirebaseReady() && mockDocuments.length === 0) {
+                await loadDocumentsFromFirestore();
+            }
+        }
         console.log(`[QnA] GET /documents: Returning ${mockDocuments.length} items`);
         res.json(mockDocuments);
     });
@@ -863,6 +903,7 @@ export function createQnARouter(): ExpressRouter {
                             const match = i.id.match(/^doc(\d+)$/);
                             return match ? parseInt(match[1]) : 0;
                         })) + 1;
+                        documentsLoaded = true;
                     }
                     console.log(`[QnA] 로컬 파일에서 공문 데이터 ${items.length}건 로드 완료`);
                 }

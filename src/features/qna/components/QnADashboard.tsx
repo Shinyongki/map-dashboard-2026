@@ -69,14 +69,14 @@ export default function QnADashboard() {
 
     const handleSelectDocument = (docId: string | null) => {
         setSelectedDocId(docId);
-        setUserView("list");
+        setUserView("form");
     };
 
     const handleSubmitQuestion = async (
         data: Parameters<typeof submitQuestion>[0]
     ) => {
         await submitQuestion(data);
-        setUserView("list");
+        setUserView("documents");
     };
 
     const getRelatedDoc = (q: Question) =>
@@ -265,7 +265,7 @@ export default function QnADashboard() {
                             authorOrgName={session.orgName}
                             defaultDocumentId={selectedDocId}
                             onSubmit={handleSubmitQuestion}
-                            onCancel={() => setUserView("list")}
+                            onCancel={() => setUserView("documents")}
                         />
                     ) : userView === "detail" && selectedQuestion ? (
                         <QuestionDetail
