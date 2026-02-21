@@ -4,7 +4,7 @@ import { CLIMATE_REGION_CODES } from "./disaster-region-codes";
 const API_KEY = import.meta.env.VITE_KMA_API_KEY ?? "";
 
 const WRN_BASE_URL = "/kma-api/api/typ01/url/wrn_met_data.php";
-const EQK_BASE_URL = "/kma-api/api/typ01/url/eqk_list.php";
+const EQK_BASE_URL = "/kma-api/api/typ09/url/eqk/urlNewNotiEqk.do";
 
 /**
  * REG_ID를 기반으로 경남 시군 매핑
@@ -133,12 +133,16 @@ export async function fetchDisasterAlerts(year: number): Promise<DisasterAlert[]
         console.error("Failed to fetch disaster WRN data:", e);
     }
 
-    // 지진 데이터
+    // 지진 데이터 (typ09 urlNewNotiEqk API — IP 제한 없음)
     try {
         const eqkParams = new URLSearchParams({
-            tm1: `${year}0101`,
-            tm2: `${year}1231`,
-            disp: "0",
+            orderTy: "xml",
+            frDate: `${year}0101`,
+            laDate: `${year}1231`,
+            msgCode: "102,212",  // 지진정보 + 지진속보
+            cntDiv: "Y",         // 국내
+            eqArCd: "A13",       // 경남
+            nkDiv: "N",          // 북한 제외
             authKey: API_KEY,
         });
 
@@ -146,37 +150,25 @@ export async function fetchDisasterAlerts(year: number): Promise<DisasterAlert[]
         const res = await fetch(`${EQK_BASE_URL}?${eqkParams.toString()}`);
         if (res.ok) {
             const text = await res.text();
-            const lines = text.split("\n");
+            const parser = new DOMParser();
+            const xmlDoc = parser.parseFromString(text, "text/xml");
+            const infos = xmlDoc.querySelectorAll("earthqueakNoti info");
 
-            for (const line of lines) {
-                if (line.startsWith("#") || line.trim() === "") continue;
+            for (const info of infos) {
+                const eqDate = info.querySelector("eqDate")?.textContent ?? "";
+                const magMl = parseFloat(info.querySelector("magMl")?.textContent ?? "0");
+                const eqPt = info.querySelector("eqPt")?.textContent ?? "";
 
-                const cols = line.split(",").map(c => c.trim());
-                if (cols.length < 7) continue;
+                if (!eqDate || isNaN(magMl)) continue;
 
-                // eqk_list 형식: TM, LA, LO, MAG, DEP, LOC, ...
-                const tm = cols[0];
-                const lat = parseFloat(cols[1]);
-                const lon = parseFloat(cols[2]);
-                const mag = parseFloat(cols[3]);
-                const loc = cols[5] || "";
-
-                // 경남 지역 필터링 (위도 34.5~35.9, 경도 127.5~129.3 대략적 범위)
-                const isGyeongnam =
-                    (lat >= 34.5 && lat <= 35.9 && lon >= 127.5 && lon <= 129.3) ||
-                    loc.includes("경남") || loc.includes("경상남도");
-
-                if (!isGyeongnam) continue;
-
-                const dateStr = tm.substring(0, 8);
+                const dateStr = eqDate.substring(0, 8);
                 const date = `${dateStr.substring(0, 4)}-${dateStr.substring(4, 6)}-${dateStr.substring(6, 8)}`;
                 const alertMonth = parseInt(dateStr.substring(4, 6));
 
-                // 가장 가까운 경남 시군으로 매핑 (loc 기반)
-                let matchedRegion = "창원시"; // 기본값
+                let matchedRegion = "창원시";
                 for (const regionName of Object.keys(CLIMATE_REGION_CODES)) {
                     const shortName = regionName.replace(/[시군]/g, "");
-                    if (loc.includes(shortName)) {
+                    if (eqPt.includes(shortName)) {
                         matchedRegion = regionName;
                         break;
                     }
@@ -185,11 +177,11 @@ export async function fetchDisasterAlerts(year: number): Promise<DisasterAlert[]
                 alerts.push({
                     regionName: matchedRegion,
                     disasterType: "earthquake",
-                    alertLevel: mag >= 5.0 ? "warning" : "advisory",
+                    alertLevel: magMl >= 5.0 ? "warning" : "advisory",
                     date,
                     year,
                     month: alertMonth,
-                    magnitude: mag,
+                    magnitude: magMl,
                 });
             }
         }
