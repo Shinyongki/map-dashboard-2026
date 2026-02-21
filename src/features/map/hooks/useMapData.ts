@@ -38,7 +38,7 @@ export function useSurveys(selectedMonth: string) {
     queryFn: async ({ queryKey }) => {
       try {
         const [url, sheet] = queryKey;
-        const res = await fetch(`${url}?sheetName=${sheet}`);
+        const res = await fetch(`${url}?sheetName=${encodeURIComponent(sheet as string)}`);
         if (!res.ok) throw new Error("API 응답 실패");
         const data = await res.json();
         return data;
@@ -64,7 +64,7 @@ export function useDiscrepancies(selectedMonth: string) {
     queryKey: ["/api/admin/discrepancies", selectedMonth],
     queryFn: async ({ queryKey }) => {
       const [url, sheet] = queryKey;
-      const res = await fetch(`${url}?sheetName=${sheet}`);
+      const res = await fetch(`${url}?sheetName=${encodeURIComponent(sheet as string)}`);
       if (!res.ok) return [];
       return res.json();
     },
@@ -78,7 +78,7 @@ export function useAssignmentChanges(selectedMonth: string) {
     queryKey: ["/api/admin/assignment-changes", selectedMonth],
     queryFn: async ({ queryKey }) => {
       const [url, sheet] = queryKey;
-      const res = await fetch(`${url}?sheetName=${sheet}`);
+      const res = await fetch(`${url}?sheetName=${encodeURIComponent(sheet as string)}`);
       if (!res.ok) return [];
       return res.json();
     },
