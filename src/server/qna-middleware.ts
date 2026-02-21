@@ -1857,17 +1857,20 @@ ${draft || "(아직 초안 없음)"}
             res.write(`data: ${JSON.stringify({ source: "noma", done: true })}\n\n`);
 
             // ── 3. 세나(선배 컨설턴트) 응답 ─────────────────────────
-            // unified session 이력: insight/decision/action은 항상 전체 포함, 대화는 최근 30개
+            // unified session 이력: insight/decision/action 최근 8개, 대화는 최근 10개 (토큰 절약)
+            const HISTORY_CONTENT_MAX = 600; // 항목당 최대 600자
+            const truncateEntry = (text: string) =>
+                text.length > HISTORY_CONTENT_MAX ? text.slice(0, HISTORY_CONTENT_MAX) + "…(생략)" : text;
             const roleLabel: Record<string, string> = {
                 user: "사용자", noma: "노마", sena: "세나",
                 insight: "💡 인사이트", decision: "✅ 결정", action: "⚡ 액션",
             };
             const importantEntries = unifiedSession.filter(
                 (e) => e.role === "insight" || e.role === "decision" || e.role === "action"
-            );
+            ).slice(-8); // 최근 8개만 유지
             const recentConversation = unifiedSession
                 .filter((e) => e.role === "user" || e.role === "noma" || e.role === "sena")
-                .slice(-30);
+                .slice(-10); // 30 → 10으로 축소
             // 중요 항목 + 최근 대화를 시간순으로 병합 (중복 제거)
             const importantIds = new Set(importantEntries.map((e) => e.timestamp + e.role));
             const merged = [
@@ -1878,11 +1881,11 @@ ${draft || "(아직 초안 없음)"}
             const unifiedHistoryText = merged.length > 0
                 ? "\n\n## 공유 대화 이력 (노마·사용자·세나 3자 전체 기록)\n" +
                   (importantEntries.length > 0
-                      ? "### 📌 누적 인사이트·결정·액션 (항상 유지)\n" +
-                        importantEntries.map(e => `[${roleLabel[e.role]}] ${e.content}`).join("\n\n") +
-                        "\n\n### 💬 최근 대화\n" +
-                        recentConversation.map(e => `[${roleLabel[e.role] ?? e.role}] ${e.content}`).join("\n\n")
-                      : merged.map(e => `[${roleLabel[e.role] ?? e.role}] ${e.content}`).join("\n\n"))
+                      ? "### 📌 누적 인사이트·결정·액션 (최근 8개)\n" +
+                        importantEntries.map(e => `[${roleLabel[e.role]}] ${truncateEntry(e.content)}`).join("\n\n") +
+                        "\n\n### 💬 최근 대화 (최근 10건)\n" +
+                        recentConversation.map(e => `[${roleLabel[e.role] ?? e.role}] ${truncateEntry(e.content)}`).join("\n\n")
+                      : merged.map(e => `[${roleLabel[e.role] ?? e.role}] ${truncateEntry(e.content)}`).join("\n\n"))
                 : "";
 
             const claudeSystemPrompt = `당신의 이름은 세나입니다.
@@ -2022,9 +2025,13 @@ ${draft || "(아직 초안 없음)"}
                 }
             }
 
+            // 노마 응답은 unified history에 이미 포함됨 → 1200자로 절단하여 중복 토큰 최소화
+            const nomaResponsePreview = nomaFullResponse.length > 1200
+                ? nomaFullResponse.slice(0, 1200) + "…(이하 생략, 전문은 대화 이력 참조)"
+                : nomaFullResponse;
             claudeMessages.push({
                 role: "user",
-                content: `사용자 질문: ${lastMessage.content}\n\n노마의 응답:\n${nomaFullResponse}\n\n위 대화를 보고 선배 컨설턴트로서 의견을 주세요.`,
+                content: `사용자 질문: ${lastMessage.content}\n\n노마의 응답:\n${nomaResponsePreview}\n\n위 대화를 보고 선배 컨설턴트로서 의견을 주세요.`,
             });
 
             const anthropic = new Anthropic({ apiKey: anthropicKey });
