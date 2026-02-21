@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef } from "react";
 import type { ChatMessage } from "../lib/ai-types";
-import { streamChatResponse } from "../lib/ai-api";
+import { streamChatResponse, streamTripleChatResponse } from "../lib/ai-api";
 
 export function useChat(systemPrompt: string, initialMessages?: ChatMessage[]) {
     const [messages, setMessages] = useState<ChatMessage[]>(initialMessages ?? []);
@@ -56,7 +56,6 @@ export function useChat(systemPrompt: string, initialMessages?: ChatMessage[]) {
                 const msg =
                     err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다";
                 setError(msg);
-                // Remove empty assistant message on error
                 setMessages((prev) => {
                     const last = prev[prev.length - 1];
                     if (last?.role === "assistant" && !last.content) {
@@ -64,6 +63,76 @@ export function useChat(systemPrompt: string, initialMessages?: ChatMessage[]) {
                     }
                     return prev;
                 });
+            } finally {
+                setIsLoading(false);
+            }
+        },
+        [messages, systemPrompt, isLoading]
+    );
+
+    // ── 3자 대화 모드 ────────────────────────────────────────────
+    const sendTripleMessage = useCallback(
+        async (content: string) => {
+            if (!content.trim() || isLoading) return;
+
+            setError(null);
+
+            const userMessage: ChatMessage = {
+                id: crypto.randomUUID(),
+                role: "user",
+                content: content.trim(),
+                timestamp: new Date(),
+            };
+
+            // 노마와 Claude 응답 placeholder 동시 생성
+            const nomaId = crypto.randomUUID();
+            const claudeId = crypto.randomUUID();
+            const nomaMessage: ChatMessage = {
+                id: nomaId,
+                role: "assistant",
+                content: "",
+                source: "noma",
+                timestamp: new Date(),
+            };
+            const claudeMessage: ChatMessage = {
+                id: claudeId,
+                role: "assistant",
+                content: "",
+                source: "claude",
+                timestamp: new Date(),
+            };
+
+            setMessages((prev) => [...prev, userMessage, nomaMessage, claudeMessage]);
+            setIsLoading(true);
+
+            try {
+                const apiMessages = [...messages, userMessage].map((m) => ({
+                    role: (m.source === "noma" ? "noma" : m.source === "claude" ? "claude" : m.role) as any,
+                    content: m.content,
+                }));
+
+                const stream = streamTripleChatResponse(apiMessages, systemPrompt);
+
+                for await (const chunk of stream) {
+                    if ("error" in chunk) {
+                        setError(chunk.error);
+                        break;
+                    }
+                    if ("done" in chunk && chunk.done) continue;
+                    if (!chunk.text) continue; // undefined/empty 텍스트 청크 무시
+
+                    const targetId = chunk.source === "noma" ? nomaId : claudeId;
+                    setMessages((prev) =>
+                        prev.map((m) =>
+                            m.id === targetId
+                                ? { ...m, content: m.content + chunk.text }
+                                : m
+                        )
+                    );
+                }
+            } catch (err) {
+                const msg = err instanceof Error ? err.message : "알 수 없는 오류";
+                setError(msg);
             } finally {
                 setIsLoading(false);
             }
@@ -81,5 +150,5 @@ export function useChat(systemPrompt: string, initialMessages?: ChatMessage[]) {
         setError(null);
     }, []);
 
-    return { messages, isLoading, error, sendMessage, clearMessages, loadMessages };
+    return { messages, isLoading, error, sendMessage, sendTripleMessage, clearMessages, loadMessages };
 }

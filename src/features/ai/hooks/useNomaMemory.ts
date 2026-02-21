@@ -1,11 +1,12 @@
 import { useState, useCallback } from "react";
 import type { ChatMessage } from "../lib/ai-types";
 
-interface NomaSession {
+export interface NomaSession {
     id: string;
     startedAt: string;
-    summary: string; // 첫 번째 질문
+    summary: string;
     messages: ChatMessage[];
+    tripleMode?: boolean; // 3자 대화 세션 여부
 }
 
 export interface NomaFeedback {
@@ -17,6 +18,7 @@ export interface NomaFeedback {
 
 const KEY_SESSIONS = "noma_sessions";
 const KEY_FEEDBACK = "noma_feedback";
+const KEY_ACTIVE = "noma_active_session"; // 진행 중인 대화 자동 저장
 const MAX_SESSIONS = 50;
 const MAX_FEEDBACK = 500;
 
@@ -38,7 +40,7 @@ export function useNomaMemory() {
     );
 
     // 세션 저장 (대화 종료 시)
-    const saveSession = useCallback((messages: ChatMessage[]) => {
+    const saveSession = useCallback((messages: ChatMessage[], tripleMode = false) => {
         const userMessages = messages.filter((m) => m.role === "user");
         if (userMessages.length === 0) return;
 
@@ -47,12 +49,42 @@ export function useNomaMemory() {
             startedAt: new Date().toISOString(),
             summary: userMessages[0].content.slice(0, 60),
             messages,
+            tripleMode,
         };
         setSessions((prev) => {
             const updated = [session, ...prev].slice(0, MAX_SESSIONS);
             localStorage.setItem(KEY_SESSIONS, JSON.stringify(updated));
             return updated;
         });
+
+        // 활성 세션 초기화
+        localStorage.removeItem(KEY_ACTIVE);
+    }, []);
+
+    // 진행 중인 대화 자동 저장 (페이지 이탈/새로고침 대비)
+    const saveActiveSession = useCallback((messages: ChatMessage[], tripleMode = false) => {
+        if (messages.length < 2) {
+            localStorage.removeItem(KEY_ACTIVE);
+            return;
+        }
+        localStorage.setItem(KEY_ACTIVE, JSON.stringify({ messages, tripleMode }));
+    }, []);
+
+    // 진행 중인 대화 복원
+    const loadActiveSession = useCallback((): { messages: ChatMessage[]; tripleMode: boolean } | null => {
+        const raw = localStorage.getItem(KEY_ACTIVE);
+        if (!raw) return null;
+        try {
+            const data = JSON.parse(raw);
+            // timestamp 복원
+            data.messages = data.messages.map((m: ChatMessage) => ({
+                ...m,
+                timestamp: new Date(m.timestamp),
+            }));
+            return data;
+        } catch {
+            return null;
+        }
     }, []);
 
     // 세션 삭제
@@ -102,6 +134,8 @@ export function useNomaMemory() {
         sessions,
         feedback,
         saveSession,
+        saveActiveSession,
+        loadActiveSession,
         deleteSession,
         saveFeedback,
         removeFeedback,

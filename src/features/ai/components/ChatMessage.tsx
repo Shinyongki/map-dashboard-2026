@@ -1,4 +1,4 @@
-import { ThumbsUp, ThumbsDown, User, Bot } from "lucide-react";
+import { ThumbsUp, ThumbsDown, User, Bot, BrainCircuit } from "lucide-react";
 import type { ChatMessage as ChatMessageType } from "../lib/ai-types";
 
 interface ChatMessageProps {
@@ -43,6 +43,26 @@ function renderMarkdown(text: string): string {
     return html;
 }
 
+// 발신자별 스타일 정의
+const SOURCE_STYLES = {
+    noma: {
+        avatar: "bg-purple-100 text-purple-600",
+        bubble: "bg-white border border-purple-100 text-gray-800",
+        dot: "bg-purple-400",
+        label: "노마",
+        labelColor: "text-purple-500",
+        icon: <Bot className="h-4 w-4" />,
+    },
+    claude: {
+        avatar: "bg-orange-100 text-orange-600",
+        bubble: "bg-orange-50 border border-orange-100 text-gray-800",
+        dot: "bg-orange-400",
+        label: "세나",
+        labelColor: "text-orange-500",
+        icon: <BrainCircuit className="h-4 w-4" />,
+    },
+} as const;
+
 export default function ChatMessage({
     message,
     prevUserContent,
@@ -50,22 +70,34 @@ export default function ChatMessage({
     feedbackGiven,
 }: ChatMessageProps) {
     const isUser = message.role === "user";
+    const source = message.source; // "noma" | "claude" | undefined
+
+    const style = source ? SOURCE_STYLES[source] : SOURCE_STYLES.noma;
+    const dotColor = source === "claude" ? "bg-orange-400" : "bg-purple-400";
 
     return (
         <div className={`flex gap-3 ${isUser ? "flex-row-reverse" : ""}`}>
             <div
                 className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
-                    isUser ? "bg-blue-100 text-blue-600" : "bg-purple-100 text-purple-600"
+                    isUser ? "bg-blue-100 text-blue-600" : style.avatar
                 }`}
             >
-                {isUser ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
+                {isUser ? <User className="h-4 w-4" /> : style.icon}
             </div>
+
             <div className={`flex flex-col gap-1 max-w-[80%] ${isUser ? "items-end" : "items-start"}`}>
+                {/* 발신자 레이블 (3자 대화 시) */}
+                {!isUser && source && (
+                    <span className={`text-[10px] font-semibold px-1 ${style.labelColor}`}>
+                        {style.label}
+                    </span>
+                )}
+
                 <div
                     className={`rounded-2xl px-4 py-3 ${
                         isUser
                             ? "bg-blue-600 text-white"
-                            : "bg-white border border-gray-200 text-gray-800"
+                            : style.bubble
                     }`}
                 >
                     {isUser ? (
@@ -77,15 +109,15 @@ export default function ChatMessage({
                         />
                     ) : (
                         <div className="flex items-center gap-1.5 py-1">
-                            <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" />
-                            <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce [animation-delay:0.15s]" />
-                            <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce [animation-delay:0.3s]" />
+                            <div className={`w-2 h-2 ${dotColor} rounded-full animate-bounce`} />
+                            <div className={`w-2 h-2 ${dotColor} rounded-full animate-bounce [animation-delay:0.15s]`} />
+                            <div className={`w-2 h-2 ${dotColor} rounded-full animate-bounce [animation-delay:0.3s]`} />
                         </div>
                     )}
                 </div>
 
-                {/* 피드백 버튼 (노마 답변 완료 후) */}
-                {!isUser && message.content && onFeedback && (
+                {/* 피드백 버튼 */}
+                {!isUser && message.content && onFeedback && source !== "claude" && (
                     <div className="flex gap-1 px-1">
                         <button
                             onClick={() => onFeedback("up", message.id)}

@@ -15,11 +15,14 @@ dist-ssr
 .env.*
 !.env.example
 
-# QnA Data (runtime - local only)
+# QnA Data (runtime - local only, Firebase에서 관리)
 server-knowledge-data.json
 server-documents-data.json
 server-questions-data.json
 server-embeddings-data.json
+server-notices-data.json
+server-unified-session.json
+server-prompt-patches.json
 
 # Editor directories and files
 .vscode/*

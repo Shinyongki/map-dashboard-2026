@@ -5,6 +5,7 @@ import multer from "multer";
 import fs from "fs";
 import path from "path";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import Anthropic from "@anthropic-ai/sdk";
 import { getOrganizationByCode } from "../lib/organization-data";
 import * as pdfParseModule from "pdf-parse";
 const pdfParse: (buffer: Buffer) => Promise<{ text: string }> = (pdfParseModule as any).default ?? pdfParseModule;
@@ -212,6 +213,173 @@ const DATA_QUESTION_FILE_PATH = path.join(process.cwd(), "server-questions-data.
 const DATA_NOTICE_FILE_PATH = path.join(process.cwd(), "server-notices-data.json");
 const DATA_FILE_PATH = path.join(process.cwd(), "server-knowledge-data.json");
 const EMBEDDINGS_FILE_PATH = path.join(process.cwd(), "server-embeddings-data.json");
+const UNIFIED_SESSION_FILE_PATH = path.join(process.cwd(), "server-unified-session.json");
+const PROMPT_PATCHES_FILE_PATH = path.join(process.cwd(), "server-prompt-patches.json");
+
+// ─── Unified Session (단일 컨텍스트 공유 대화 저장소) ─────────────
+interface UnifiedEntry {
+    role: "user" | "noma" | "sena" | "insight" | "decision" | "action";
+    content: string;
+    timestamp: string;
+}
+
+let unifiedSession: UnifiedEntry[] = [];
+const UNIFIED_SESSION_MAX = 200;
+const UNIFIED_FIRESTORE_COLLECTION = "unifiedSession";
+
+function saveUnifiedSession() {
+    try {
+        fs.writeFileSync(UNIFIED_SESSION_FILE_PATH, JSON.stringify(unifiedSession, null, 2), "utf-8");
+    } catch (err) {
+        console.error("[UnifiedSession] 로컬 저장 실패:", err);
+    }
+}
+
+async function loadUnifiedSession() {
+    // Firebase 우선
+    if (isFirebaseReady()) {
+        try {
+            const snapshot = await getDb()
+                .collection(UNIFIED_FIRESTORE_COLLECTION)
+                .orderBy("timestamp", "asc")
+                .limit(UNIFIED_SESSION_MAX)
+                .get();
+            unifiedSession = snapshot.docs.map((doc) => doc.data() as UnifiedEntry);
+            console.log(`[UnifiedSession] Firestore에서 ${unifiedSession.length}개 로드 완료`);
+            return;
+        } catch (err) {
+            console.warn("[UnifiedSession] Firestore 로드 실패, 로컬 파일 사용:", err);
+        }
+    }
+    // 로컬 파일 폴백
+    try {
+        if (fs.existsSync(UNIFIED_SESSION_FILE_PATH)) {
+            const data = fs.readFileSync(UNIFIED_SESSION_FILE_PATH, "utf-8");
+            const items = JSON.parse(data);
+            if (Array.isArray(items)) {
+                unifiedSession = items;
+                console.log(`[UnifiedSession] 로컬 파일에서 ${items.length}개 로드 완료`);
+            }
+        }
+    } catch (err) {
+        console.error("[UnifiedSession] 로드 실패:", err);
+    }
+}
+
+async function appendUnified(entry: UnifiedEntry) {
+    unifiedSession.push(entry);
+    if (unifiedSession.length > UNIFIED_SESSION_MAX) {
+        unifiedSession = unifiedSession.slice(-UNIFIED_SESSION_MAX);
+    }
+    // Firebase 우선 저장
+    if (isFirebaseReady()) {
+        try {
+            await getDb().collection(UNIFIED_FIRESTORE_COLLECTION).add(entry);
+            return;
+        } catch (err) {
+            console.warn("[UnifiedSession] Firestore 저장 실패, 로컬 파일 사용:", err);
+        }
+    }
+    saveUnifiedSession();
+}
+
+async function clearUnifiedSession() {
+    unifiedSession = [];
+    // Firebase 전체 삭제
+    if (isFirebaseReady()) {
+        try {
+            const snapshot = await getDb().collection(UNIFIED_FIRESTORE_COLLECTION).get();
+            const batch = getDb().batch();
+            snapshot.docs.forEach((doc) => batch.delete(doc.ref));
+            await batch.commit();
+            return;
+        } catch (err) {
+            console.warn("[UnifiedSession] Firestore 삭제 실패:", err);
+        }
+    }
+    saveUnifiedSession();
+}
+
+// ─── Prompt Patches (세나 → 노마 시스템 프롬프트 패치) ─────────────
+interface PromptPatch {
+    id: string;
+    title: string;
+    content: string;
+    proposedBy: "sena" | "manual";
+    timestamp: string;
+}
+
+let promptPatches: PromptPatch[] = [];
+const PROMPT_PATCHES_COLLECTION = "promptPatches";
+
+function savePromptPatchesToLocalFile() {
+    try {
+        fs.writeFileSync(PROMPT_PATCHES_FILE_PATH, JSON.stringify(promptPatches, null, 2), "utf-8");
+    } catch (err) {
+        console.error("[PromptPatches] 로컬 저장 실패:", err);
+    }
+}
+
+async function loadPromptPatches() {
+    if (isFirebaseReady()) {
+        try {
+            const snapshot = await getDb()
+                .collection(PROMPT_PATCHES_COLLECTION)
+                .orderBy("timestamp", "asc")
+                .get();
+            promptPatches = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as PromptPatch));
+            console.log(`[PromptPatches] Firestore에서 ${promptPatches.length}개 로드 완료`);
+            return;
+        } catch (err) {
+            console.warn("[PromptPatches] Firestore 로드 실패, 로컬 파일 사용:", err);
+        }
+    }
+    try {
+        if (fs.existsSync(PROMPT_PATCHES_FILE_PATH)) {
+            const data = fs.readFileSync(PROMPT_PATCHES_FILE_PATH, "utf-8");
+            const items = JSON.parse(data);
+            if (Array.isArray(items)) {
+                promptPatches = items;
+                console.log(`[PromptPatches] 로컬 파일에서 ${items.length}개 로드 완료`);
+            }
+        }
+    } catch (err) {
+        console.error("[PromptPatches] 로드 실패:", err);
+    }
+}
+
+async function appendPromptPatch(patch: Omit<PromptPatch, "id">): Promise<PromptPatch> {
+    if (isFirebaseReady()) {
+        try {
+            const ref = await getDb().collection(PROMPT_PATCHES_COLLECTION).add(patch);
+            const created = { id: ref.id, ...patch };
+            promptPatches.push(created);
+            return created;
+        } catch (err) {
+            console.warn("[PromptPatches] Firestore 저장 실패, 로컬 파일 사용:", err);
+        }
+    }
+    const created = { id: `patch_${Date.now()}`, ...patch };
+    promptPatches.push(created);
+    savePromptPatchesToLocalFile();
+    return created;
+}
+
+async function deletePromptPatch(id: string): Promise<boolean> {
+    const before = promptPatches.length;
+    promptPatches = promptPatches.filter((p) => p.id !== id);
+    if (promptPatches.length === before) return false;
+    if (isFirebaseReady()) {
+        try {
+            await getDb().collection(PROMPT_PATCHES_COLLECTION).doc(id).delete();
+            return true;
+        } catch (err) {
+            console.warn("[PromptPatches] Firestore 삭제 실패:", err);
+        }
+    }
+    savePromptPatchesToLocalFile();
+    return true;
+}
 
 function saveQuestionsToLocalFile() {
     try {
@@ -329,6 +497,7 @@ function loadEmbeddingsFromFile(): void {
 loadQuestionsFromLocalFile();
 loadNoticesFromLocalFile();
 loadEmbeddingsFromFile();
+// unified session은 Firebase 초기화 후에 로드 (createQnAApp에서 호출)
 // loadFromLocalFile()는 라우터 내부나 필요 시점에 호출됨 (기존 로직 유지)
 
 // ─── AI Service (Integrated) ──────────────────────────────
@@ -1259,7 +1428,7 @@ ${draft || "(아직 초안 없음)"}
             let ragContext = "";
             if (mockEmbeddedChunks.length > 0) {
                 try {
-                    ragContext = await retrieveRelevantChunks(lastMessage.content, 4);
+                    ragContext = await retrieveRelevantChunks(lastMessage.content, 8);
                     if (ragContext) {
                         console.log(`[노마] RAG 검색 완료: ${ragContext.length}자`);
                     }
@@ -1270,10 +1439,99 @@ ${draft || "(아직 초안 없음)"}
 
             const fullSystemPrompt = systemPrompt + (ragContext ? `\n\n## 관련 지식베이스 검색 결과\n${ragContext}` : "");
 
+            // SSE 헤더 설정
+            res.setHeader("Content-Type", "text/event-stream");
+            res.setHeader("Cache-Control", "no-cache");
+            res.setHeader("Connection", "keep-alive");
+            res.flushHeaders();
+
+            // ── Function Calling 정의 ─────────────────────────────────
+            const nomaTools: any[] = [{
+                functionDeclarations: [
+                    {
+                        name: "get_pending_questions",
+                        description: "현재 답변 대기 중인 QnA 질문 목록을 가져옵니다. 처리 현황 파악 및 우선순위 결정에 활용하세요.",
+                        parameters: { type: "OBJECT", properties: {}, required: [] },
+                    },
+                    {
+                        name: "get_question_detail",
+                        description: "특정 질문의 상세 내용(질문 본문, 기관명, 제출일, 현재 답변 상태)을 가져옵니다.",
+                        parameters: {
+                            type: "OBJECT",
+                            properties: {
+                                question_id: { type: "STRING", description: "조회할 질문의 ID" },
+                            },
+                            required: ["question_id"],
+                        },
+                    },
+                    {
+                        name: "search_knowledge",
+                        description: "지식베이스에서 특정 주제·규정·지침을 검색합니다. RAG 임베딩 검색을 사용합니다.",
+                        parameters: {
+                            type: "OBJECT",
+                            properties: {
+                                query: { type: "STRING", description: "검색할 주제나 키워드" },
+                            },
+                            required: ["query"],
+                        },
+                    },
+                ],
+            }];
+
+            // ── 함수 실행기 ──────────────────────────────────────────
+            const executeNomaFunction = async (name: string, args: any): Promise<any> => {
+                console.log(`[노마] 함수 호출: ${name}`, args);
+                switch (name) {
+                    case "get_pending_questions": {
+                        const pending = mockQuestions.filter(
+                            (q) => q.status === "pending" || q.status === "ai_draft"
+                        );
+                        return {
+                            total: pending.length,
+                            questions: pending.slice(0, 15).map((q) => ({
+                                id: q.id,
+                                title: q.title || q.content.slice(0, 60),
+                                organization: q.authorOrgName,
+                                submittedAt: q.createdAt,
+                                status: q.status,
+                                category: q.category,
+                            })),
+                        };
+                    }
+                    case "get_question_detail": {
+                        const q = mockQuestions.find((q) => q.id === args.question_id);
+                        if (!q) return { error: `질문 ID ${args.question_id}를 찾을 수 없습니다.` };
+                        return {
+                            id: q.id,
+                            title: q.title,
+                            content: q.content,
+                            organization: q.authorOrgName,
+                            author: q.authorName,
+                            category: q.category,
+                            status: q.status,
+                            aiDraftAnswer: q.aiDraftAnswer || null,
+                            finalAnswer: q.finalAnswer || null,
+                            answeredAt: q.answeredAt || null,
+                            createdAt: q.createdAt,
+                        };
+                    }
+                    case "search_knowledge": {
+                        const results = await retrieveRelevantChunks(args.query, 6);
+                        return { results: results || "관련 지식을 찾을 수 없습니다." };
+                    }
+                    default:
+                        return { error: `알 수 없는 함수: ${name}` };
+                }
+            };
+
             const genAI = new GoogleGenerativeAI(geminiKey);
             const model = genAI.getGenerativeModel({
                 model: "gemini-2.5-pro",
                 systemInstruction: fullSystemPrompt || undefined,
+                tools: nomaTools,
+                generationConfig: {
+                    thinkingConfig: { thinkingBudget: 8000 },
+                } as any,
             });
 
             const history = messages.slice(0, -1).map((m: any) => ({
@@ -1282,11 +1540,400 @@ ${draft || "(아직 초안 없음)"}
             }));
 
             const chat = model.startChat({ history });
-            const result = await chat.sendMessage(lastMessage.content);
-            res.json({ text: result.response.text() });
+
+            // ── 스트리밍 + Function Calling 처리 ────────────────────
+            const streamWithFunctionCalling = async (userMessage: string) => {
+                const result = await chat.sendMessageStream(userMessage);
+
+                const functionCalls: Array<{ name: string; args: any }> = [];
+                for await (const chunk of result.stream) {
+                    const parts = chunk.candidates?.[0]?.content?.parts ?? [];
+                    for (const part of parts) {
+                        if ((part as any).functionCall) {
+                            functionCalls.push({
+                                name: (part as any).functionCall.name,
+                                args: (part as any).functionCall.args ?? {},
+                            });
+                        } else if ((part as any).text) {
+                            res.write(`data: ${JSON.stringify({ text: (part as any).text })}\n\n`);
+                        }
+                    }
+                }
+
+                // 함수 호출이 있으면 실행 후 결과를 모델에 전달
+                if (functionCalls.length > 0) {
+                    const functionResponses = await Promise.all(
+                        functionCalls.map(async (fc) => ({
+                            functionResponse: {
+                                name: fc.name,
+                                response: await executeNomaFunction(fc.name, fc.args),
+                            },
+                        }))
+                    );
+
+                    // 함수 결과로 최종 응답 스트리밍
+                    const result2 = await chat.sendMessageStream(functionResponses as any);
+                    for await (const chunk of result2.stream) {
+                        const text = chunk.text();
+                        if (text) {
+                            res.write(`data: ${JSON.stringify({ text })}\n\n`);
+                        }
+                    }
+                }
+            };
+
+            await streamWithFunctionCalling(lastMessage.content);
+
+            res.write("data: [DONE]\n\n");
+            res.end();
         } catch (err: any) {
             console.error("[AI Chat] Gemini 오류:", err.message);
-            res.status(500).json({ error: err.message });
+            if (!res.headersSent) {
+                res.status(500).json({ error: err.message });
+            } else {
+                res.write(`data: ${JSON.stringify({ error: err.message })}\n\n`);
+                res.end();
+            }
+        }
+    });
+
+    // ── Unified Session (단일 컨텍스트) API ──
+    router.get("/unified-session", (req: ExpressRequest, res: ExpressResponse) => {
+        res.json(unifiedSession);
+    });
+
+    router.post("/unified-session", async (req: ExpressRequest, res: ExpressResponse) => {
+        const { role, content } = (req as any).body || {};
+        if (!role || !content) {
+            res.status(400).json({ error: "role과 content가 필요합니다." });
+            return;
+        }
+        await appendUnified({ role, content, timestamp: new Date().toISOString() });
+        res.json({ ok: true, total: unifiedSession.length });
+    });
+
+    router.delete("/unified-session", async (req: ExpressRequest, res: ExpressResponse) => {
+        await clearUnifiedSession();
+        res.json({ ok: true });
+    });
+
+    // ── Prompt Patches API ──
+    router.get("/prompt-patches", (req: ExpressRequest, res: ExpressResponse) => {
+        res.json(promptPatches);
+    });
+
+    router.delete("/prompt-patches/:id", async (req: ExpressRequest, res: ExpressResponse) => {
+        const id = req.params.id as string;
+        const deleted = await deletePromptPatch(id);
+        if (deleted) {
+            res.json({ ok: true });
+        } else {
+            res.status(404).json({ error: "패치를 찾을 수 없습니다." });
+        }
+    });
+
+    // ── Triple Chat (노마 + 세나 3자 대화) ──
+    router.post("/triple-chat", async (req: ExpressRequest, res: ExpressResponse) => {
+        const { messages = [], systemPrompt = "" } = (req as any).body || {};
+        const geminiKey = (process.env.GOOGLE_GEMINI_API_KEY || "").trim().replace(/^["']|["']$/g, "");
+        const anthropicKey = (process.env.ANTHROPIC_API_KEY || "").trim().replace(/^["']|["']$/g, "");
+
+        if (!geminiKey || !anthropicKey) {
+            res.status(503).json({ error: "AI 서비스가 설정되지 않았습니다." });
+            return;
+        }
+
+        const lastMessage = messages[messages.length - 1];
+        if (!lastMessage) {
+            res.status(400).json({ error: "메시지가 없습니다." });
+            return;
+        }
+
+        res.setHeader("Content-Type", "text/event-stream");
+        res.setHeader("Cache-Control", "no-cache");
+        res.setHeader("Connection", "keep-alive");
+        res.flushHeaders();
+
+        const writeChunk = (source: "noma" | "claude", text: string) => {
+            res.write(`data: ${JSON.stringify({ source, text })}\n\n`);
+        };
+
+        try {
+            // ── 0. 사용자 메시지 → unified session 저장 ───────────────
+            await appendUnified({ role: "user", content: lastMessage.content, timestamp: new Date().toISOString() });
+
+            // ── 1. 노마(Gemini 2.5 Pro) 응답 ─────────────────────────
+            let ragContext = "";
+            if (mockEmbeddedChunks.length > 0) {
+                try {
+                    ragContext = await retrieveRelevantChunks(lastMessage.content, 8);
+                } catch { /* 무시 */ }
+            }
+
+            const nomaSystemPrompt = systemPrompt + (ragContext ? `\n\n## 관련 지식베이스 검색 결과\n${ragContext}` : "");
+
+            const genAI = new GoogleGenerativeAI(geminiKey);
+            const nomaModel = genAI.getGenerativeModel({
+                model: "gemini-2.5-pro",
+                systemInstruction: nomaSystemPrompt || undefined,
+                generationConfig: { thinkingConfig: { thinkingBudget: 4000 } } as any,
+            });
+
+            // 노마 히스토리: user/noma만 사용 (Gemini user/model 교대 엄수)
+            // 세나 발언은 시스템 프롬프트의 unified session 이력으로 전달 — API 히스토리에 주입하지 않음
+            const nomaHistory: { role: "user" | "model"; parts: { text: string }[] }[] = [];
+            for (const m of messages.slice(0, -1)) {
+                if (m.role === "user") {
+                    nomaHistory.push({ role: "user", parts: [{ text: `[사용자] ${m.content}` }] });
+                } else if (m.role === "noma") {
+                    nomaHistory.push({ role: "model", parts: [{ text: m.content || "(응답 없음)" }] });
+                }
+                // claude/sena 발언은 skip — unified session 이력에서 처리
+            }
+
+            const nomaChat = nomaModel.startChat({ history: nomaHistory });
+            const nomaResult = await nomaChat.sendMessageStream(`[사용자] ${lastMessage.content}`);
+
+            let nomaFullResponse = "";
+            for await (const chunk of nomaResult.stream) {
+                const text = chunk.text();
+                if (text) {
+                    nomaFullResponse += text;
+                    writeChunk("noma", text);
+                }
+            }
+
+            // 노마 응답 → unified session 저장
+            if (nomaFullResponse) {
+                await appendUnified({ role: "noma", content: nomaFullResponse, timestamp: new Date().toISOString() });
+            }
+
+            // ── 2. 노마 응답 구분선 ────────────────────────────────────
+            res.write(`data: ${JSON.stringify({ source: "noma", done: true })}\n\n`);
+
+            // ── 3. 세나(선배 컨설턴트) 응답 ─────────────────────────
+            // unified session 이력: insight/decision/action은 항상 전체 포함, 대화는 최근 30개
+            const roleLabel: Record<string, string> = {
+                user: "사용자", noma: "노마", sena: "세나",
+                insight: "💡 인사이트", decision: "✅ 결정", action: "⚡ 액션",
+            };
+            const importantEntries = unifiedSession.filter(
+                (e) => e.role === "insight" || e.role === "decision" || e.role === "action"
+            );
+            const recentConversation = unifiedSession
+                .filter((e) => e.role === "user" || e.role === "noma" || e.role === "sena")
+                .slice(-30);
+            // 중요 항목 + 최근 대화를 시간순으로 병합 (중복 제거)
+            const importantIds = new Set(importantEntries.map((e) => e.timestamp + e.role));
+            const merged = [
+                ...importantEntries,
+                ...recentConversation.filter((e) => !importantIds.has(e.timestamp + e.role)),
+            ].sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+
+            const unifiedHistoryText = merged.length > 0
+                ? "\n\n## 공유 대화 이력 (노마·사용자·세나 3자 전체 기록)\n" +
+                  (importantEntries.length > 0
+                      ? "### 📌 누적 인사이트·결정·액션 (항상 유지)\n" +
+                        importantEntries.map(e => `[${roleLabel[e.role]}] ${e.content}`).join("\n\n") +
+                        "\n\n### 💬 최근 대화\n" +
+                        recentConversation.map(e => `[${roleLabel[e.role] ?? e.role}] ${e.content}`).join("\n\n")
+                      : merged.map(e => `[${roleLabel[e.role] ?? e.role}] ${e.content}`).join("\n\n"))
+                : "";
+
+            const claudeSystemPrompt = `당신의 이름은 세나입니다.
+이 통합관리시스템의 3자 논의에 참여하는 선배 컨설턴트입니다.
+노마(데이터 기반 운영 AI)와 사용자가 나누는 대화를 함께 보며 논의에 참여합니다.
+
+당신의 역할:
+- 논의의 방향이 올바른지 검토하고 더 나은 방향을 제시
+- 노마가 놓쳤거나 간과한 쟁점과 리스크를 지적
+- 노마의 분석에 동의하거나 다른 관점에서 반론 제기
+- 사용자가 올바른 판단을 내릴 수 있도록 핵심 논점을 정리
+- 기술 구현은 방향이 결정된 후 필요시에만 간결하게 언급
+- 노마와 사용자 모두를 존중하되, 필요하다면 명확하게 의견 차이를 표현
+
+응답 방식:
+- 노마의 응답을 먼저 읽고 그것을 인식하며 시작 (예: "노마가 짚은 것처럼...", "노마의 분석에 한 가지 덧붙이자면...")
+- 항상 한국어로, 선배답게 명확하고 간결하게
+- 마크다운 형식 사용
+
+## append_unified_entry 사용 기준 (엄격하게 준수)
+당신은 대화 중 중요한 내용을 공유 메모에 직접 기록할 수 있습니다.
+단, 아래 기준을 반드시 지키세요:
+
+**기록해야 할 때 (role 종류)**
+- insight: 여러 대화에 걸쳐 도출된 비자명한 판단. "이 시스템의 핵심 병목은 X다" 같은 수준
+- decision: 사용자가 명시적으로 확정한 결정사항. "~로 하기로 했다"가 명확할 때만
+- action: 다음 대화에서도 추적해야 할 구체적 실행 항목. 담당자·기한이 있을 때 우선
+
+**절대 기록하지 말아야 할 때**
+- 일반적인 대화 내용, 인사, 설명 (이미 sena role로 자동 저장됨)
+- 노마나 사용자가 이미 말한 내용의 단순 반복
+- 불확실하거나 잠정적인 의견 (확정되지 않은 것은 insight로도 남기지 않음)
+- 한 대화에서 2개 이상 기록하는 것은 매우 드문 경우여야 함
+
+## propose_prompt_patch 사용 기준 (매우 엄격하게)
+노마의 시스템 프롬프트에 영구적인 행동 지침을 추가하는 도구입니다.
+
+**사용 가능한 경우**
+- 여러 대화에서 반복 확인된 노마의 구조적 판단 누락 또는 해석 오류
+- 사용자가 "노마 프롬프트에 ~를 추가해줘" 또는 "노마가 항상 ~하도록 해줘"라고 명시적으로 요청한 경우
+- 데이터 해석 방식의 근본적 오류 (예: 집계 기준 미명시, 재난-돌봄 연계 미흡)
+
+**절대 사용하지 않는 경우**
+- 일회성 코멘트나 이번 대화에서만 필요한 지시
+- 이미 노마가 잘 하고 있는 것을 재확인하는 내용
+- append_unified_entry로 충분한 내용 (insight/decision/action)
+- 한 세션에서 2회 이상 사용하는 것은 극히 드문 경우여야 함${unifiedHistoryText}`;
+
+            // 세나 Function Calling tool 정의
+            const senaTools: Anthropic.Tool[] = [
+                {
+                    name: "append_unified_entry",
+                    description: "대화 중 도출된 중요한 인사이트·결정·액션을 공유 메모에 직접 기록합니다. 엄격한 기준을 충족할 때만 사용하세요.",
+                    input_schema: {
+                        type: "object" as const,
+                        properties: {
+                            role: {
+                                type: "string",
+                                enum: ["insight", "decision", "action"],
+                                description: "insight: 비자명한 핵심 판단 | decision: 사용자가 확정한 결정 | action: 추적 필요한 실행 항목",
+                            },
+                            content: {
+                                type: "string",
+                                description: "기록할 내용. 간결하고 명확하게 (2~4문장 이내)",
+                            },
+                        },
+                        required: ["role", "content"],
+                    },
+                },
+                {
+                    name: "propose_prompt_patch",
+                    description: "노마(NOMA)의 시스템 프롬프트에 새로운 행동 지침을 영구 추가합니다. 여러 대화에 걸쳐 반복 확인된 노마의 판단 누락이나 오류 패턴이 있을 때만 사용하세요. 단순 코멘트나 일회성 제안에는 절대 사용하지 마세요.",
+                    input_schema: {
+                        type: "object" as const,
+                        properties: {
+                            title: {
+                                type: "string",
+                                description: "패치 제목 (예: '재난 데이터 해석 시 수행기관 연계 필수'). 20자 이내로 간결하게.",
+                            },
+                            content: {
+                                type: "string",
+                                description: "노마에게 추가할 구체적인 행동 지침. 노마가 즉시 실행 가능한 형태로 작성하세요.",
+                            },
+                        },
+                        required: ["title", "content"],
+                    },
+                },
+            ];
+
+            // 대화 이력 재구성 (Claude 형식)
+            const claudeMessages: Anthropic.MessageParam[] = [];
+            for (const m of messages.slice(0, -1)) {
+                if (m.role === "user") {
+                    claudeMessages.push({ role: "user", content: m.content });
+                } else if (m.role === "claude") {
+                    claudeMessages.push({ role: "assistant", content: m.content });
+                }
+            }
+
+            claudeMessages.push({
+                role: "user",
+                content: `사용자 질문: ${lastMessage.content}\n\n노마의 응답:\n${nomaFullResponse}\n\n위 대화를 보고 선배 컨설턴트로서 의견을 주세요.`,
+            });
+
+            const anthropic = new Anthropic({ apiKey: anthropicKey });
+
+            // 세나 응답 (tool_use 처리 포함)
+            let senaFullResponse = "";
+            let continueLoop = true;
+            const loopMessages = [...claudeMessages];
+
+            while (continueLoop) {
+                const claudeStream = await anthropic.messages.stream({
+                    model: "claude-sonnet-4-6",
+                    max_tokens: 2048,
+                    system: claudeSystemPrompt,
+                    messages: loopMessages,
+                    tools: senaTools,
+                });
+
+                let currentText = "";
+                let toolUseBlocks: Anthropic.ToolUseBlock[] = [];
+
+                for await (const event of claudeStream) {
+                    if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
+                        currentText += event.delta.text;
+                        writeChunk("claude", event.delta.text);
+                    }
+                    if (event.type === "content_block_stop") {
+                        // tool_use 블록 수집은 finalMessage에서
+                    }
+                }
+
+                const finalMsg = await claudeStream.finalMessage();
+                senaFullResponse += currentText;
+
+                // tool_use 블록 추출
+                toolUseBlocks = finalMsg.content.filter(
+                    (b): b is Anthropic.ToolUseBlock => b.type === "tool_use"
+                );
+
+                if (finalMsg.stop_reason === "tool_use" && toolUseBlocks.length > 0) {
+                    // 도구 호출 처리
+                    const toolResults: Anthropic.ToolResultBlockParam[] = [];
+                    for (const toolBlock of toolUseBlocks) {
+                        if (toolBlock.name === "append_unified_entry") {
+                            const input = toolBlock.input as { role: "insight" | "decision" | "action"; content: string };
+                            try {
+                                await appendUnified({
+                                    role: input.role,
+                                    content: input.content,
+                                    timestamp: new Date().toISOString(),
+                                });
+                                toolResults.push({ type: "tool_result", tool_use_id: toolBlock.id, content: "저장 완료" });
+                            } catch (e) {
+                                toolResults.push({ type: "tool_result", tool_use_id: toolBlock.id, content: "저장 실패", is_error: true });
+                            }
+                        } else if (toolBlock.name === "propose_prompt_patch") {
+                            const input = toolBlock.input as { title: string; content: string };
+                            try {
+                                const patch = await appendPromptPatch({
+                                    title: input.title,
+                                    content: input.content,
+                                    proposedBy: "sena",
+                                    timestamp: new Date().toISOString(),
+                                });
+                                console.log(`[PromptPatch] 세나가 새 패치 제안: "${patch.title}"`);
+                                toolResults.push({ type: "tool_result", tool_use_id: toolBlock.id, content: `패치 저장 완료 (id: ${patch.id})` });
+                            } catch (e) {
+                                toolResults.push({ type: "tool_result", tool_use_id: toolBlock.id, content: "패치 저장 실패", is_error: true });
+                            }
+                        }
+                    }
+                    // 다음 루프를 위해 메시지 추가
+                    loopMessages.push({ role: "assistant", content: finalMsg.content });
+                    loopMessages.push({ role: "user", content: toolResults });
+                } else {
+                    continueLoop = false;
+                }
+            }
+
+            // 세나 응답 → unified session 저장
+            if (senaFullResponse) {
+                await appendUnified({ role: "sena", content: senaFullResponse, timestamp: new Date().toISOString() });
+            }
+
+            res.write(`data: [DONE]\n\n`);
+            res.end();
+        } catch (err: any) {
+            console.error("[Triple Chat] 오류:", err.message);
+            if (!res.headersSent) {
+                res.status(500).json({ error: err.message });
+            } else {
+                res.write(`data: ${JSON.stringify({ error: err.message })}\n\n`);
+                res.end();
+            }
         }
     });
 
@@ -1404,13 +2051,19 @@ export function createQnAApp() {
     app.use(express.json());
     app.use(createQnARouter());
 
-    // 지식 항목 로드 후 누락된 임베딩 백그라운드 인덱싱
+    // Firebase 초기화 후 unified session, 패치, 지식 로드
     setTimeout(() => {
+        loadUnifiedSession().catch((err) =>
+            console.error("[UnifiedSession] 초기 로드 실패:", err)
+        );
+        loadPromptPatches().catch((err) =>
+            console.error("[PromptPatches] 초기 로드 실패:", err)
+        );
         loadFromLocalFile();
         reindexMissingEmbeddings().catch(err =>
             console.error("[QnA] 초기 인덱싱 실패:", err)
         );
-    }, 2000); // 서버 완전 기동 후 2초 뒤 실행
+    }, 2000);
 
     return app;
 }
