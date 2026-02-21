@@ -56,7 +56,7 @@ app.use(
 app.use(express.static(DIST_DIR));
 
 // ── SPA 폴백 (모든 경로 → index.html) ──
-app.get("*", (_req, res) => {
+app.get("/{*path}", (_req, res) => {
     res.sendFile(path.join(DIST_DIR, "index.html"));
 });
 
