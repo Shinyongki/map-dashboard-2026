@@ -25,6 +25,7 @@ app.use(
     createProxyMiddleware({
         target: "https://jongsaja.vercel.app",
         changeOrigin: true,
+        pathRewrite: { "^/": "/api/" }, // Express strips /api prefix — restore it
     })
 );
 app.use(
