@@ -79,12 +79,6 @@ export default function ClimateDashboard() {
                     yearRange={yearRange}
                     onYearRangeChange={setYearRange}
                 />
-
-                {/* 특보 발령 시군 돌봄 현황 브리핑 */}
-                <ClimateCareBriefing
-                    alertRegions={alertRegions}
-                    alertType={alertType}
-                />
             </div>
 
             <div className="flex-1 flex flex-col lg:flex-row overflow-hidden max-w-7xl mx-auto w-full mt-4 gap-6">
@@ -121,6 +115,12 @@ export default function ClimateDashboard() {
                         selectedRegion={selectedRegion}
                         yearRange={yearRange}
                         mode={climateMode}
+                    />
+
+                    {/* 특보 발령 시군 돌봄 현황 브리핑 (최하단) */}
+                    <ClimateCareBriefing
+                        alertRegions={alertRegions}
+                        alertType={alertType}
                     />
                 </div>
 

@@ -75,12 +75,6 @@ export default function DisasterDashboard() {
                     yearRange={yearRange}
                     onYearRangeChange={setYearRange}
                 />
-
-                {/* 재난 발생 시군 돌봄 현황 브리핑 */}
-                <ClimateCareBriefing
-                    alertRegions={alertRegions}
-                    alertType={alertType}
-                />
             </div>
 
             <div className="flex-1 flex flex-col lg:flex-row overflow-hidden max-w-7xl mx-auto w-full mt-4 gap-6">
@@ -117,6 +111,12 @@ export default function DisasterDashboard() {
                         selectedRegion={selectedRegion}
                         yearRange={yearRange}
                         mode={disasterMode}
+                    />
+
+                    {/* 재난 발생 시군 돌봄 현황 브리핑 (최하단) */}
+                    <ClimateCareBriefing
+                        alertRegions={alertRegions}
+                        alertType={alertType}
                     />
                 </div>
 

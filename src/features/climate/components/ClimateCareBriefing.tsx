@@ -119,7 +119,7 @@ export default function ClimateCareBriefing({
             <div className="mt-3 pt-3 border-t border-gray-200/50">
                 <p className="text-xs text-gray-600 leading-relaxed">
                     {alertStatuses.map((s) => {
-                        const over = s.staffPerUser > 10;
+                        const over = s.staffPerUser >= 17;
                         return (
                             <span
                                 key={s.sigun}
@@ -156,10 +156,10 @@ function CareStatusCard({
     config: (typeof ALERT_CONFIG)[AlertKind];
 }) {
     const Icon = config.icon;
-    const isOverloaded = status.staffPerUser > 10;
-    // 과부하 심각도: 10 이하 = 0%, 20 이상 = 100%
+    const isOverloaded = status.staffPerUser >= 17;
+    // 과부하 심각도: 17 이하 = 0%, 27 이상 = 100%
     const severityPct = isOverloaded
-        ? Math.min(((status.staffPerUser - 10) / 10) * 100, 100)
+        ? Math.min(((status.staffPerUser - 17) / 10) * 100, 100)
         : 0;
 
     return (
