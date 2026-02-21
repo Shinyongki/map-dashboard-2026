@@ -1,3 +1,36 @@
+// ── Code Tasks API (대화창 세나 → 터미널 세나 협업) ──────────────────
+export interface CodeTask {
+    id: string;
+    type: "bug_fix" | "feature_request" | "analysis" | "question";
+    title: string;
+    description: string;
+    context: string;
+    status: "pending" | "resolved";
+    proposedBy: "sena";
+    timestamp: string;
+    resolution?: string;
+    resolvedAt?: string;
+}
+
+export async function fetchCodeTasks(): Promise<CodeTask[]> {
+    try {
+        const res = await fetch("/qna-api/code-tasks");
+        if (!res.ok) return [];
+        return res.json();
+    } catch {
+        return [];
+    }
+}
+
+export async function deleteCodeTask(id: string): Promise<boolean> {
+    try {
+        const res = await fetch(`/qna-api/code-tasks/${id}`, { method: "DELETE" });
+        return res.ok;
+    } catch {
+        return false;
+    }
+}
+
 // ── Prompt Patches API ───────────────────────────────────────────
 export interface PromptPatch {
     id: string;

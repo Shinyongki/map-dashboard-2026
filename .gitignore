@@ -23,6 +23,7 @@ server-embeddings-data.json
 server-notices-data.json
 server-unified-session.json
 server-prompt-patches.json
+server-code-tasks.json
 
 # Editor directories and files
 .vscode/*

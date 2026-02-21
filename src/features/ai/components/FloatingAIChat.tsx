@@ -9,7 +9,7 @@ import type { DashboardTab } from "../lib/ai-types";
 import ChatMessage from "./ChatMessage";
 import SuggestedQuestions from "./SuggestedQuestions";
 import { DiscussionCard, TripleHeader, groupIntoTurns } from "./TripleDiscussion";
-import { fetchUnifiedSession, clearUnifiedSession, fetchPromptPatches, deletePromptPatch, type UnifiedEntry, type PromptPatch } from "../lib/ai-api";
+import { fetchUnifiedSession, clearUnifiedSession, fetchPromptPatches, deletePromptPatch, fetchCodeTasks, deleteCodeTask, type UnifiedEntry, type PromptPatch, type CodeTask } from "../lib/ai-api";
 import { useRegionStats } from "@/features/map/hooks/useRegionStats";
 import { useSurveys, useAvailableMonths } from "@/features/map/hooks/useMapData";
 import { useClimateData } from "@/features/climate/hooks/useClimateData";
@@ -39,6 +39,7 @@ export default function FloatingAIChat({ activeTab = "care" }: FloatingAIChatPro
     const [showUnifiedSession, setShowUnifiedSession] = useState(false);
     const [unifiedEntries, setUnifiedEntries] = useState<UnifiedEntry[]>([]);
     const [promptPatchList, setPromptPatchList] = useState<PromptPatch[]>([]);
+    const [codeTaskList, setCodeTaskList] = useState<CodeTask[]>([]);
     const [feedbackMap, setFeedbackMap] = useState<Record<string, "up" | "down">>({});
     const [tripleMode, setTripleMode] = useState(() => {
         try { return localStorage.getItem("noma_triple_mode") === "true"; } catch { return false; }
@@ -107,6 +108,7 @@ export default function FloatingAIChat({ activeTab = "care" }: FloatingAIChatPro
             setTripleMode(active.tripleMode);
         }
         fetchPromptPatches().then(setPromptPatchList);
+        fetchCodeTasks().then(setCodeTaskList);
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
@@ -124,12 +126,14 @@ export default function FloatingAIChat({ activeTab = "care" }: FloatingAIChatPro
 
     const handleToggleUnifiedSession = useCallback(async () => {
         if (!showUnifiedSession) {
-            const [entries, patches] = await Promise.all([
+            const [entries, patches, tasks] = await Promise.all([
                 fetchUnifiedSession(),
                 fetchPromptPatches(),
+                fetchCodeTasks(),
             ]);
             setUnifiedEntries(entries);
             setPromptPatchList(patches);
+            setCodeTaskList(tasks);
         }
         setShowUnifiedSession((v) => !v);
         setShowHistory(false);
@@ -143,6 +147,11 @@ export default function FloatingAIChat({ activeTab = "care" }: FloatingAIChatPro
     const handleDeletePatch = useCallback(async (id: string) => {
         const ok = await deletePromptPatch(id);
         if (ok) setPromptPatchList((prev) => prev.filter((p) => p.id !== id));
+    }, []);
+
+    const handleDeleteCodeTask = useCallback(async (id: string) => {
+        const ok = await deleteCodeTask(id);
+        if (ok) setCodeTaskList((prev) => prev.filter((t) => t.id !== id));
     }, []);
 
     const handleToggleTripleMode = useCallback(() => {
@@ -343,6 +352,51 @@ export default function FloatingAIChat({ activeTab = "care" }: FloatingAIChatPro
                                                         onClick={() => handleDeletePatch(patch.id)}
                                                         className="opacity-0 group-hover:opacity-100 flex-shrink-0 text-gray-300 hover:text-red-400 transition-opacity mt-0.5"
                                                         title="패치 삭제">
+                                                        <Trash className="h-3 w-3" />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <div className="border-t border-gray-100 mt-3 mb-2" />
+                                </div>
+                            )}
+
+                            {/* Claude Code 요청 섹션 */}
+                            {codeTaskList.length > 0 && (
+                                <div className="mb-4">
+                                    <div className="flex items-center gap-1.5 mb-2">
+                                        <span className="text-[10px] font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full border border-orange-200">
+                                            🛠 Claude Code 요청함
+                                        </span>
+                                        <span className="text-[10px] text-gray-400">{codeTaskList.length}개</span>
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        {codeTaskList.map((task) => (
+                                            <div key={task.id} className={`p-2.5 rounded-xl border group ${task.status === "resolved" ? "bg-green-50/60 border-green-100" : "bg-orange-50/60 border-orange-100"}`}>
+                                                <div className="flex items-start justify-between gap-2">
+                                                    <div className="min-w-0">
+                                                        <div className="flex items-center gap-1.5 mb-0.5">
+                                                            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${task.status === "resolved" ? "bg-green-100 text-green-700" : "bg-orange-100 text-orange-700"}`}>
+                                                                {task.status === "resolved" ? "완료" : "대기중"}
+                                                            </span>
+                                                            <span className="text-[9px] text-gray-400">
+                                                                {task.type === "bug_fix" ? "버그수정" : task.type === "feature_request" ? "기능추가" : task.type === "analysis" ? "분석" : "질문"}
+                                                            </span>
+                                                        </div>
+                                                        <p className="text-xs font-semibold text-gray-800 truncate">{task.title}</p>
+                                                        <p className="text-[10px] text-gray-500 mt-0.5 line-clamp-2">{task.description}</p>
+                                                        {task.resolution && (
+                                                            <p className="text-[10px] text-green-600 mt-1 line-clamp-2">✓ {task.resolution}</p>
+                                                        )}
+                                                        <p className="text-[9px] text-gray-300 mt-0.5">
+                                                            {new Date(task.timestamp).toLocaleString("ko-KR", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                                                        </p>
+                                                    </div>
+                                                    <button
+                                                        onClick={() => handleDeleteCodeTask(task.id)}
+                                                        className="opacity-0 group-hover:opacity-100 flex-shrink-0 text-gray-300 hover:text-red-400 transition-opacity mt-0.5"
+                                                        title="작업 삭제">
                                                         <Trash className="h-3 w-3" />
                                                     </button>
                                                 </div>

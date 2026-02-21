@@ -215,10 +215,11 @@ const DATA_FILE_PATH = path.join(process.cwd(), "server-knowledge-data.json");
 const EMBEDDINGS_FILE_PATH = path.join(process.cwd(), "server-embeddings-data.json");
 const UNIFIED_SESSION_FILE_PATH = path.join(process.cwd(), "server-unified-session.json");
 const PROMPT_PATCHES_FILE_PATH = path.join(process.cwd(), "server-prompt-patches.json");
+const CODE_TASKS_FILE_PATH = path.join(process.cwd(), "server-code-tasks.json");
 
 // ─── Unified Session (단일 컨텍스트 공유 대화 저장소) ─────────────
 interface UnifiedEntry {
-    role: "user" | "noma" | "sena" | "insight" | "decision" | "action";
+    role: "user" | "noma" | "sena" | "insight" | "decision" | "action" | "claude_code";
     content: string;
     timestamp: string;
 }
@@ -378,6 +379,114 @@ async function deletePromptPatch(id: string): Promise<boolean> {
         }
     }
     savePromptPatchesToLocalFile();
+    return true;
+}
+
+// ─── Code Tasks (대화창 세나 → 터미널 세나 작업 요청) ─────────────
+interface CodeTask {
+    id: string;
+    type: "bug_fix" | "feature_request" | "analysis" | "question";
+    title: string;
+    description: string;
+    context: string;
+    status: "pending" | "resolved";
+    proposedBy: "sena";
+    timestamp: string;
+    resolution?: string;
+    resolvedAt?: string;
+}
+
+let codeTasks: CodeTask[] = [];
+const CODE_TASKS_COLLECTION = "codeTasks";
+
+function saveCodeTasksToLocalFile() {
+    try {
+        fs.writeFileSync(CODE_TASKS_FILE_PATH, JSON.stringify(codeTasks, null, 2), "utf-8");
+    } catch (err) {
+        console.error("[CodeTasks] 로컬 저장 실패:", err);
+    }
+}
+
+async function loadCodeTasks() {
+    if (isFirebaseReady()) {
+        try {
+            const snapshot = await getDb()
+                .collection(CODE_TASKS_COLLECTION)
+                .orderBy("timestamp", "desc")
+                .get();
+            codeTasks = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as CodeTask));
+            console.log(`[CodeTasks] Firestore에서 ${codeTasks.length}개 로드 완료`);
+            return;
+        } catch (err) {
+            console.warn("[CodeTasks] Firestore 로드 실패, 로컬 파일 사용:", err);
+        }
+    }
+    try {
+        if (fs.existsSync(CODE_TASKS_FILE_PATH)) {
+            const data = fs.readFileSync(CODE_TASKS_FILE_PATH, "utf-8");
+            const items = JSON.parse(data);
+            if (Array.isArray(items)) {
+                codeTasks = items;
+                console.log(`[CodeTasks] 로컬 파일에서 ${items.length}개 로드 완료`);
+            }
+        }
+    } catch (err) {
+        console.error("[CodeTasks] 로드 실패:", err);
+    }
+}
+
+async function appendCodeTask(task: Omit<CodeTask, "id">): Promise<CodeTask> {
+    if (isFirebaseReady()) {
+        try {
+            const ref = await getDb().collection(CODE_TASKS_COLLECTION).add(task);
+            const created = { id: ref.id, ...task };
+            codeTasks.unshift(created);
+            return created;
+        } catch (err) {
+            console.warn("[CodeTasks] Firestore 저장 실패, 로컬 파일 사용:", err);
+        }
+    }
+    const created = { id: `task_${Date.now()}`, ...task };
+    codeTasks.unshift(created);
+    saveCodeTasksToLocalFile();
+    return created;
+}
+
+async function resolveCodeTask(id: string, resolution: string): Promise<boolean> {
+    const task = codeTasks.find((t) => t.id === id);
+    if (!task) return false;
+    task.status = "resolved";
+    task.resolution = resolution;
+    task.resolvedAt = new Date().toISOString();
+    if (isFirebaseReady()) {
+        try {
+            await getDb().collection(CODE_TASKS_COLLECTION).doc(id).update({
+                status: "resolved",
+                resolution,
+                resolvedAt: task.resolvedAt,
+            });
+            return true;
+        } catch (err) {
+            console.warn("[CodeTasks] Firestore resolve 실패:", err);
+        }
+    }
+    saveCodeTasksToLocalFile();
+    return true;
+}
+
+async function deleteCodeTaskById(id: string): Promise<boolean> {
+    const before = codeTasks.length;
+    codeTasks = codeTasks.filter((t) => t.id !== id);
+    if (codeTasks.length === before) return false;
+    if (isFirebaseReady()) {
+        try {
+            await getDb().collection(CODE_TASKS_COLLECTION).doc(id).delete();
+            return true;
+        } catch (err) {
+            console.warn("[CodeTasks] Firestore 삭제 실패:", err);
+        }
+    }
+    saveCodeTasksToLocalFile();
     return true;
 }
 
@@ -1632,6 +1741,42 @@ ${draft || "(아직 초안 없음)"}
         }
     });
 
+    // ── Code Tasks API (대화창 세나 → 터미널 세나 협업) ──
+    router.get("/code-tasks", (_req: ExpressRequest, res: ExpressResponse) => {
+        res.json(codeTasks);
+    });
+
+    router.post("/code-tasks/:id/resolve", async (req: ExpressRequest, res: ExpressResponse) => {
+        const id = req.params.id as string;
+        const { resolution } = (req as any).body || {};
+        if (!resolution) {
+            res.status(400).json({ error: "resolution이 필요합니다." });
+            return;
+        }
+        const ok = await resolveCodeTask(id, resolution);
+        if (ok) {
+            // 완료 결과를 unified session에도 기록
+            await appendUnified({
+                role: "claude_code",
+                content: `[코드 작업 완료] ${codeTasks.find(t => t.id === id)?.title ?? id}\n\n${resolution}`,
+                timestamp: new Date().toISOString(),
+            });
+            res.json({ ok: true });
+        } else {
+            res.status(404).json({ error: "작업을 찾을 수 없습니다." });
+        }
+    });
+
+    router.delete("/code-tasks/:id", async (req: ExpressRequest, res: ExpressResponse) => {
+        const id = req.params.id as string;
+        const deleted = await deleteCodeTaskById(id);
+        if (deleted) {
+            res.json({ ok: true });
+        } else {
+            res.status(404).json({ error: "작업을 찾을 수 없습니다." });
+        }
+    });
+
     // ── Triple Chat (노마 + 세나 3자 대화) ──
     router.post("/triple-chat", async (req: ExpressRequest, res: ExpressResponse) => {
         const { messages = [], systemPrompt = "" } = (req as any).body || {};
@@ -1784,7 +1929,20 @@ ${draft || "(아직 초안 없음)"}
 - 일회성 코멘트나 이번 대화에서만 필요한 지시
 - 이미 노마가 잘 하고 있는 것을 재확인하는 내용
 - append_unified_entry로 충분한 내용 (insight/decision/action)
-- 한 세션에서 2회 이상 사용하는 것은 극히 드문 경우여야 함${unifiedHistoryText}`;
+- 한 세션에서 2회 이상 사용하는 것은 극히 드문 경우여야 함
+
+## request_code_task 사용 기준 (매우 엄격하게)
+터미널 세나(Claude Code, 로컬 개발 환경)에게 코딩 작업을 요청하는 도구입니다.
+
+**사용 가능한 경우**
+- 여러 사용자가 동일하게 보고하거나 반복 확인된 버그
+- 사용자가 명시적으로 "코드 수정해줘", "기능 추가해줘"라고 요청한 경우
+- 대화 중 발견한 명확한 시스템 결함 (데이터 오류, UI 깨짐 등)
+
+**절대 사용하지 않는 경우**
+- 단발성 질문이나 이번 대화에서만 해결 가능한 내용
+- 아직 재현되지 않았거나 불확실한 문제
+- 대화로 충분히 안내할 수 있는 사용법 문의${unifiedHistoryText}`;
 
             // 세나 Function Calling tool 정의
             const senaTools: Anthropic.Tool[] = [
@@ -1823,6 +1981,33 @@ ${draft || "(아직 초안 없음)"}
                             },
                         },
                         required: ["title", "content"],
+                    },
+                },
+                {
+                    name: "request_code_task",
+                    description: "터미널 세나(Claude Code)에게 코딩 작업을 요청합니다. 여러 사용자가 동일하게 보고하거나 명확한 버그·개선점을 발견했을 때만 사용하세요. 단발성 질문에는 절대 사용하지 마세요.",
+                    input_schema: {
+                        type: "object" as const,
+                        properties: {
+                            type: {
+                                type: "string",
+                                enum: ["bug_fix", "feature_request", "analysis", "question"],
+                                description: "bug_fix: 버그 수정 | feature_request: 기능 추가 | analysis: 코드 분석 | question: 기술 질문",
+                            },
+                            title: {
+                                type: "string",
+                                description: "작업 제목. 20자 이내로 간결하게.",
+                            },
+                            description: {
+                                type: "string",
+                                description: "작업 내용을 구체적으로 설명합니다. 재현 방법, 예상 동작, 실제 동작 등을 포함하세요.",
+                            },
+                            context: {
+                                type: "string",
+                                description: "관련 대화 맥락 요약. 어떤 상황에서 이 요청이 나왔는지 설명합니다.",
+                            },
+                        },
+                        required: ["type", "title", "description", "context"],
                     },
                 },
             ];
@@ -1908,6 +2093,28 @@ ${draft || "(아직 초안 없음)"}
                                 toolResults.push({ type: "tool_result", tool_use_id: toolBlock.id, content: `패치 저장 완료 (id: ${patch.id})` });
                             } catch (e) {
                                 toolResults.push({ type: "tool_result", tool_use_id: toolBlock.id, content: "패치 저장 실패", is_error: true });
+                            }
+                        } else if (toolBlock.name === "request_code_task") {
+                            const input = toolBlock.input as {
+                                type: "bug_fix" | "feature_request" | "analysis" | "question";
+                                title: string;
+                                description: string;
+                                context: string;
+                            };
+                            try {
+                                const task = await appendCodeTask({
+                                    type: input.type,
+                                    title: input.title,
+                                    description: input.description,
+                                    context: input.context,
+                                    status: "pending",
+                                    proposedBy: "sena",
+                                    timestamp: new Date().toISOString(),
+                                });
+                                console.log(`[CodeTask] 세나가 새 코드 작업 요청: "${task.title}"`);
+                                toolResults.push({ type: "tool_result", tool_use_id: toolBlock.id, content: `작업 요청 저장 완료 (id: ${task.id})` });
+                            } catch (e) {
+                                toolResults.push({ type: "tool_result", tool_use_id: toolBlock.id, content: "작업 저장 실패", is_error: true });
                             }
                         }
                     }
@@ -2058,6 +2265,9 @@ export function createQnAApp() {
         );
         loadPromptPatches().catch((err) =>
             console.error("[PromptPatches] 초기 로드 실패:", err)
+        );
+        loadCodeTasks().catch((err) =>
+            console.error("[CodeTasks] 초기 로드 실패:", err)
         );
         loadFromLocalFile();
         reindexMissingEmbeddings().catch(err =>
