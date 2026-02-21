@@ -53,13 +53,6 @@ app.use(
     })
 );
 
-// ── 서버 아웃바운드 IP 확인 (KMA IP 등록용 임시 라우트) ──
-app.get("/debug/server-ip", async (_req, res) => {
-    const r = await fetch("https://api.ipify.org?format=json");
-    const data = await r.json();
-    res.json(data);
-});
-
 // ── 정적 파일 서빙 (빌드된 React 앱) ──
 app.use(express.static(DIST_DIR));
 
