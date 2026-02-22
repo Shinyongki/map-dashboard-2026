@@ -1,3 +1,4 @@
+import Anthropic from "@anthropic-ai/sdk";
 import { Router as ExpressRouter, Request as ExpressRequest, Response as ExpressResponse, NextFunction } from "express";
 import express from "express";
 import jwt from "jsonwebtoken";
@@ -1824,7 +1825,9 @@ ${draft || "(아직 초안 없음)"}
     router.post("/triple-chat", async (req: ExpressRequest, res: ExpressResponse) => {
         const { messages = [], systemPrompt = "" } = (req as any).body || {};
         const geminiKey = (process.env.GOOGLE_GEMINI_API_KEY || "").trim().replace(/^["']|["']$/g, "");
-        if (!geminiKey) {
+        const anthropicKey = (process.env.ANTHROPIC_API_KEY || "").trim().replace(/^["']|["']$/g, "");
+
+        if (!geminiKey || !anthropicKey) {
             res.status(503).json({ error: "AI 서비스가 설정되지 않았습니다." });
             return;
         }
@@ -2020,21 +2023,21 @@ ${draft || "(아직 초안 없음)"}
 - 아직 재현되지 않았거나 불확실한 문제
 - 대화로 충분히 안내할 수 있는 사용법 문의${unifiedHistoryText}`;
 
-            // 세나 Function Calling tool 정의 (Gemini 형식)
-            const senaFunctionDeclarations = [
+            // 세나 Function Calling tool 정의 (Anthropic 형식)
+            const senaTools: Anthropic.Tool[] = [
                 {
                     name: "append_unified_entry",
                     description: "대화 중 도출된 중요한 인사이트·결정·액션을 공유 메모에 직접 기록합니다. 엄격한 기준을 충족할 때만 사용하세요.",
-                    parameters: {
-                        type: "OBJECT",
+                    input_schema: {
+                        type: "object" as const,
                         properties: {
                             role: {
-                                type: "STRING",
+                                type: "string",
                                 enum: ["insight", "decision", "action"],
                                 description: "insight: 비자명한 핵심 판단 | decision: 사용자가 확정한 결정 | action: 추적 필요한 실행 항목",
                             },
                             content: {
-                                type: "STRING",
+                                type: "string",
                                 description: "기록할 내용. 간결하고 명확하게 (2~4문장 이내)",
                             },
                         },
@@ -2043,16 +2046,16 @@ ${draft || "(아직 초안 없음)"}
                 },
                 {
                     name: "propose_prompt_patch",
-                    description: "노마(NOMA)의 시스템 프롬프트에 새로운 행동 지침을 영구 추가합니다. 여러 대화에 걸쳐 반복 확인된 노마의 판단 누락이나 오류 패턴이 있을 때만 사용하세요.",
-                    parameters: {
-                        type: "OBJECT",
+                    description: "노마(NOMA)의 시스템 프롬프트에 새로운 행동 지침을 영구 추가합니다. 여러 대화에 걸쳐 반복 확인된 노마의 판단 누락이나 오류 패턴이 있을 때만 사용하세요. 단순 코멘트나 일회성 제안에는 절대 사용하지 마세요.",
+                    input_schema: {
+                        type: "object" as const,
                         properties: {
                             title: {
-                                type: "STRING",
+                                type: "string",
                                 description: "패치 제목 (예: '재난 데이터 해석 시 수행기관 연계 필수'). 20자 이내로 간결하게.",
                             },
                             content: {
-                                type: "STRING",
+                                type: "string",
                                 description: "노마에게 추가할 구체적인 행동 지침. 노마가 즉시 실행 가능한 형태로 작성하세요.",
                             },
                         },
@@ -2061,32 +2064,31 @@ ${draft || "(아직 초안 없음)"}
                 },
                 {
                     name: "request_code_task",
-                    description: "터미널 세나(Claude Code)에게 코딩 작업을 요청합니다. 여러 사용자가 동일하게 보고하거나 명확한 버그·개선점을 발견했을 때만 사용하세요.",
-                    parameters: {
-                        type: "OBJECT",
+                    description: "터미널 세나(Claude Code)에게 코딩 작업을 요청합니다. 여러 사용자가 동일하게 보고하거나 명확한 버그·개선점을 발견했을 때만 사용하세요. 단발성 질문에는 절대 사용하지 마세요.",
+                    input_schema: {
+                        type: "object" as const,
                         properties: {
                             type: {
-                                type: "STRING",
+                                type: "string",
                                 enum: ["bug_fix", "feature_request", "analysis", "question"],
                                 description: "bug_fix: 버그 수정 | feature_request: 기능 추가 | analysis: 코드 분석 | question: 기술 질문",
                             },
-                            title: { type: "STRING", description: "작업 제목. 20자 이내로 간결하게." },
-                            description: { type: "STRING", description: "작업 내용을 구체적으로 설명합니다." },
-                            context: { type: "STRING", description: "관련 대화 맥락 요약." },
+                            title: { type: "string", description: "작업 제목. 20자 이내로 간결하게." },
+                            description: { type: "string", description: "작업 내용을 구체적으로 설명합니다. 재현 방법, 예상 동작, 실제 동작 등을 포함하세요." },
+                            context: { type: "string", description: "관련 대화 맥락 요약. 어떤 상황에서 이 요청이 나왔는지 설명합니다." },
                         },
                         required: ["type", "title", "description", "context"],
                     },
                 },
             ];
-            const senaTools = [{ functionDeclarations: senaFunctionDeclarations }];
 
-            // 대화 이력 재구성 (Gemini 형식)
-            const senaContents: { role: "user" | "model"; parts: { text: string }[] }[] = [];
+            // 대화 이력 재구성 (Claude 형식)
+            const claudeMessages: Anthropic.MessageParam[] = [];
             for (const m of messages.slice(0, -1)) {
                 if (m.role === "user") {
-                    senaContents.push({ role: "user", parts: [{ text: m.content }] });
-                } else if (m.role === "claude" || m.role === "sena") {
-                    senaContents.push({ role: "model", parts: [{ text: m.content }] });
+                    claudeMessages.push({ role: "user", content: m.content });
+                } else if (m.role === "claude") {
+                    claudeMessages.push({ role: "assistant", content: m.content });
                 }
             }
 
@@ -2094,107 +2096,103 @@ ${draft || "(아직 초안 없음)"}
             const nomaResponsePreview = nomaFullResponse.length > 1200
                 ? nomaFullResponse.slice(0, 1200) + "…(이하 생략, 전문은 대화 이력 참조)"
                 : nomaFullResponse;
-            senaContents.push({
+            claudeMessages.push({
                 role: "user",
-                parts: [{ text: `사용자 질문: ${lastMessage.content}\n\n노마의 응답:\n${nomaResponsePreview}\n\n위 대화를 보고 선배 컨설턴트로서 의견을 주세요.` }],
+                content: `사용자 질문: ${lastMessage.content}\n\n노마의 응답:\n${nomaResponsePreview}\n\n위 대화를 보고 선배 컨설턴트로서 의견을 주세요.`,
             });
 
-            // 세나 응답 (Gemini streaming + function calling)
-            let senaFullResponse = "";
+            const anthropic = new Anthropic({ apiKey: anthropicKey });
 
-            const streamSena = async (contents: any[]) => {
-                const stream = await ai.models.generateContentStream({
-                    model: "gemini-2.5-flash",
-                    contents,
-                    config: {
-                        systemInstruction: claudeSystemPrompt || undefined,
-                        tools: senaTools,
-                    } as any,
+            // 세나 응답 (Claude streaming + tool_use 처리)
+            let senaFullResponse = "";
+            let continueLoop = true;
+            const loopMessages = [...claudeMessages];
+
+            while (continueLoop) {
+                const claudeStream = await anthropic.messages.stream({
+                    model: "claude-sonnet-4-6",
+                    max_tokens: 2048,
+                    system: claudeSystemPrompt,
+                    messages: loopMessages,
+                    tools: senaTools,
                 });
 
-                const functionCalls: Array<{ name: string; args: any }> = [];
-                let modelText = "";
+                let currentText = "";
+                let toolUseBlocks: Anthropic.ToolUseBlock[] = [];
 
-                for await (const chunk of stream) {
-                    const text = chunk.text;
-                    if (text) {
-                        modelText += text;
-                        senaFullResponse += text;
-                        writeChunk("claude", text);
-                    }
-                    const fcs = (chunk as any).functionCalls;
-                    if (fcs?.length) {
-                        functionCalls.push(...fcs.map((fc: any) => ({ name: fc.name, args: fc.args })));
+                for await (const event of claudeStream) {
+                    if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
+                        currentText += event.delta.text;
+                        writeChunk("claude", event.delta.text);
                     }
                 }
 
-                if (functionCalls.length > 0) {
-                    const functionResponses: any[] = [];
-                    for (const fc of functionCalls) {
-                        let result = "";
-                        if (fc.name === "append_unified_entry") {
+                const finalMsg = await claudeStream.finalMessage();
+                senaFullResponse += currentText;
+
+                toolUseBlocks = finalMsg.content.filter(
+                    (b): b is Anthropic.ToolUseBlock => b.type === "tool_use"
+                );
+
+                if (finalMsg.stop_reason === "tool_use" && toolUseBlocks.length > 0) {
+                    const toolResults: Anthropic.ToolResultBlockParam[] = [];
+                    for (const toolBlock of toolUseBlocks) {
+                        if (toolBlock.name === "append_unified_entry") {
+                            const input = toolBlock.input as { role: "insight" | "decision" | "action"; content: string };
                             try {
                                 await appendUnified({
-                                    role: fc.args.role,
-                                    content: fc.args.content,
+                                    role: input.role,
+                                    content: input.content,
                                     timestamp: new Date().toISOString(),
                                 });
-                                result = "저장 완료";
-                            } catch { result = "저장 실패"; }
-                        } else if (fc.name === "propose_prompt_patch") {
+                                toolResults.push({ type: "tool_result", tool_use_id: toolBlock.id, content: "저장 완료" });
+                            } catch (e) {
+                                toolResults.push({ type: "tool_result", tool_use_id: toolBlock.id, content: "저장 실패", is_error: true });
+                            }
+                        } else if (toolBlock.name === "propose_prompt_patch") {
+                            const input = toolBlock.input as { title: string; content: string };
                             try {
                                 const patch = await appendPromptPatch({
-                                    title: fc.args.title,
-                                    content: fc.args.content,
+                                    title: input.title,
+                                    content: input.content,
                                     proposedBy: "sena",
                                     timestamp: new Date().toISOString(),
                                 });
                                 console.log(`[PromptPatch] 세나가 새 패치 제안: "${patch.title}"`);
-                                result = `패치 저장 완료 (id: ${patch.id})`;
-                            } catch { result = "패치 저장 실패"; }
-                        } else if (fc.name === "request_code_task") {
+                                toolResults.push({ type: "tool_result", tool_use_id: toolBlock.id, content: `패치 저장 완료 (id: ${patch.id})` });
+                            } catch (e) {
+                                toolResults.push({ type: "tool_result", tool_use_id: toolBlock.id, content: "패치 저장 실패", is_error: true });
+                            }
+                        } else if (toolBlock.name === "request_code_task") {
+                            const input = toolBlock.input as {
+                                type: "bug_fix" | "feature_request" | "analysis" | "question";
+                                title: string;
+                                description: string;
+                                context: string;
+                            };
                             try {
                                 const task = await appendCodeTask({
-                                    type: fc.args.type,
-                                    title: fc.args.title,
-                                    description: fc.args.description,
-                                    context: fc.args.context,
+                                    type: input.type,
+                                    title: input.title,
+                                    description: input.description,
+                                    context: input.context,
                                     status: "pending",
                                     proposedBy: "sena",
                                     timestamp: new Date().toISOString(),
                                 });
                                 console.log(`[CodeTask] 세나가 새 코드 작업 요청: "${task.title}"`);
-                                result = `작업 요청 저장 완료 (id: ${task.id})`;
-                            } catch { result = "작업 저장 실패"; }
-                        }
-                        functionResponses.push({
-                            functionResponse: { name: fc.name, response: { result } },
-                        });
-                    }
-                    const updatedContents = [
-                        ...contents,
-                        { role: "model", parts: [
-                            ...(modelText ? [{ text: modelText }] : []),
-                            ...functionCalls.map(fc => ({ functionCall: { name: fc.name, args: fc.args } })),
-                        ]},
-                        { role: "user", parts: functionResponses },
-                    ];
-                    const stream2 = await ai.models.generateContentStream({
-                        model: "gemini-2.5-flash",
-                        contents: updatedContents,
-                        config: { systemInstruction: claudeSystemPrompt || undefined } as any,
-                    });
-                    for await (const chunk of stream2) {
-                        const text = chunk.text;
-                        if (text) {
-                            senaFullResponse += text;
-                            writeChunk("claude", text);
+                                toolResults.push({ type: "tool_result", tool_use_id: toolBlock.id, content: `작업 요청 저장 완료 (id: ${task.id})` });
+                            } catch (e) {
+                                toolResults.push({ type: "tool_result", tool_use_id: toolBlock.id, content: "작업 저장 실패", is_error: true });
+                            }
                         }
                     }
+                    loopMessages.push({ role: "assistant", content: finalMsg.content });
+                    loopMessages.push({ role: "user", content: toolResults });
+                } else {
+                    continueLoop = false;
                 }
-            };
-
-            await streamSena(senaContents);
+            }
 
             // 세나 응답 → unified session 저장
             if (senaFullResponse) {
