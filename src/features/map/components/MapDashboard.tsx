@@ -194,6 +194,7 @@ export default function MapDashboard() {
                         surveys={surveys}
                         institutionProfiles={institutionProfiles}
                         isDark={isDark}
+                        onSelectSigun={(sigun) => setSelectedRegion(sigun)}
                     />
                 </div>
             </div>
