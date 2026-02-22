@@ -177,9 +177,14 @@ export function buildSystemPrompt(
                 sections.push("## 돌봄 현황 데이터 (시군별)");
                 sections.push(buildCareTable(careStats));
                 sections.push(buildCareDetailContext(careStats));
-                if (surveys && surveys.length > 0) {
-                    sections.push("## 개별 기관 현황 데이터");
-                    sections.push(buildOrganizationContext(surveys));
+                if (surveys && surveys.length > 0 && contextInput?.selectedRegion) {
+                    const filteredSurveys = surveys.filter(
+                        (s) => s.시군 === contextInput.selectedRegion
+                    );
+                    if (filteredSurveys.length > 0) {
+                        sections.push(`## 개별 기관 현황 데이터 (${contextInput.selectedRegion})`);
+                        sections.push(buildOrganizationContext(filteredSurveys));
+                    }
                 }
                 break;
             case "welfare":
@@ -230,9 +235,14 @@ export function buildSystemPrompt(
             sections.push(`## 현재 활성 재난 시군\n${contextInput.disasterAlerts.join(", ")}`);
         }
 
-        if (surveys && surveys.length > 0) {
-            sections.push("## 개별 기관 현황 데이터");
-            sections.push(buildOrganizationContext(surveys));
+        if (surveys && surveys.length > 0 && contextInput?.selectedRegion) {
+            const filteredSurveys = surveys.filter(
+                (s) => s.시군 === contextInput.selectedRegion
+            );
+            if (filteredSurveys.length > 0) {
+                sections.push(`## 개별 기관 현황 데이터 (${contextInput.selectedRegion})`);
+                sections.push(buildOrganizationContext(filteredSurveys));
+            }
         }
 
         if (contextInput?.actionHistory?.length) {

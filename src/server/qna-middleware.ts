@@ -4,7 +4,7 @@ import jwt from "jsonwebtoken";
 import multer from "multer";
 import fs from "fs";
 import path from "path";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenAI } from "@google/genai";
 import Anthropic from "@anthropic-ai/sdk";
 import { getOrganizationByCode } from "../lib/organization-data";
 import * as pdfParseModule from "pdf-parse";
@@ -774,22 +774,19 @@ ${docContext}${knowledgeContext ? `\n\n[내부 지식 베이스]\n${knowledgeCon
     if (geminiKey) {
         try {
             console.log("[QnA] Gemini 2.0 Flash API 호출 시도...");
-            const genAI = new GoogleGenerativeAI(geminiKey);
-            const model = genAI.getGenerativeModel({
+            const ai = new GoogleGenAI({ apiKey: geminiKey });
+            const result = await ai.models.generateContent({
                 model: "gemini-2.5-flash",
-                systemInstruction: systemInstruction,
-            });
-
-            const result = await model.generateContent({
                 contents: [{ role: "user", parts: [{ text: userPrompt }] }],
-                generationConfig: {
+                config: {
+                    systemInstruction: systemInstruction,
                     maxOutputTokens: 4000,
                     temperature: 0.7,
-                }
+                },
             });
 
-            console.log(`[QnA] Gemini 2.0 Flash 답변 생성 성공`);
-            return result.response.text();
+            console.log(`[QnA] Gemini 2.5 Flash 답변 생성 성공`);
+            return result.text ?? "";
         } catch (err: any) {
             console.error("[QnA] Gemini API 오류:", {
                 message: err.message,
@@ -1039,18 +1036,20 @@ ${draft || "(아직 초안 없음)"}
         // Gemini 2.0 Flash (primary)
         if (geminiKey) {
             try {
-                const genAI = new GoogleGenerativeAI(geminiKey);
-                const model = genAI.getGenerativeModel({
+                const ai = new GoogleGenAI({ apiKey: geminiKey });
+                const geminiContents = [
+                    ...conversationHistory.map((m: any) => ({
+                        role: m.role === "assistant" ? "model" : "user",
+                        parts: [{ text: m.content }],
+                    })),
+                    { role: "user" as const, parts: [{ text: message }] },
+                ];
+                const result = await ai.models.generateContent({
                     model: "gemini-2.5-flash",
-                    systemInstruction: systemPrompt,
+                    contents: geminiContents,
+                    config: { systemInstruction: systemPrompt },
                 });
-                const geminiHistory = conversationHistory.map((m: any) => ({
-                    role: m.role === "assistant" ? "model" : "user",
-                    parts: [{ text: m.content }],
-                }));
-                const chat = model.startChat({ history: geminiHistory });
-                const result = await chat.sendMessage(message);
-                res.json({ reply: result.response.text() });
+                res.json({ reply: result.text ?? "" });
                 return;
             } catch (err: any) {
                 console.error("[QnA] Chat Gemini 실패:", err.message);
@@ -1633,39 +1632,43 @@ ${draft || "(아직 초안 없음)"}
                 }
             };
 
-            const genAI = new GoogleGenerativeAI(geminiKey);
-            const model = genAI.getGenerativeModel({
-                model: "gemini-2.5-pro",
-                systemInstruction: fullSystemPrompt || undefined,
-                tools: nomaTools,
-                generationConfig: {
-                    thinkingConfig: { thinkingBudget: 8000 },
-                } as any,
-            });
+            const ai = new GoogleGenAI({ apiKey: geminiKey });
 
-            const history = messages.slice(0, -1).map((m: any) => ({
-                role: m.role === "assistant" ? "model" : "user",
-                parts: [{ text: m.content }],
-            }));
-
-            const chat = model.startChat({ history });
+            const aiChatContents = [
+                ...messages.slice(0, -1).map((m: any) => ({
+                    role: m.role === "assistant" ? "model" : "user",
+                    parts: [{ text: m.content }],
+                })),
+                { role: "user" as const, parts: [{ text: lastMessage.content }] },
+            ];
 
             // ── 스트리밍 + Function Calling 처리 ────────────────────
-            const streamWithFunctionCalling = async (userMessage: string) => {
-                const result = await chat.sendMessageStream(userMessage);
+            const streamWithFunctionCalling = async (currentContents: any[]) => {
+                const stream = await ai.models.generateContentStream({
+                    model: "gemini-2.5-pro",
+                    contents: currentContents,
+                    config: {
+                        systemInstruction: fullSystemPrompt || undefined,
+                        thinkingConfig: { thinkingBudget: 8000, includeThoughts: false },
+                        tools: nomaTools,
+                    } as any,
+                });
 
                 const functionCalls: Array<{ name: string; args: any }> = [];
-                for await (const chunk of result.stream) {
-                    const parts = chunk.candidates?.[0]?.content?.parts ?? [];
-                    for (const part of parts) {
-                        if ((part as any).functionCall) {
-                            functionCalls.push({
-                                name: (part as any).functionCall.name,
-                                args: (part as any).functionCall.args ?? {},
-                            });
-                        } else if ((part as any).text) {
-                            res.write(`data: ${JSON.stringify({ text: (part as any).text })}\n\n`);
-                        }
+                let modelText = "";
+
+                for await (const chunk of stream) {
+                    const text = chunk.text;
+                    if (text) {
+                        modelText += text;
+                        res.write(`data: ${JSON.stringify({ text })}\n\n`);
+                    }
+                    const fcs = (chunk as any).functionCalls;
+                    if (fcs?.length) {
+                        functionCalls.push(...fcs.map((fc: any) => ({
+                            name: fc.name,
+                            args: fc.args ?? {},
+                        })));
                     }
                 }
 
@@ -1680,10 +1683,23 @@ ${draft || "(아직 초안 없음)"}
                         }))
                     );
 
+                    const updatedContents = [
+                        ...currentContents,
+                        { role: "model", parts: [{ text: modelText || "" }] },
+                        { role: "user", parts: functionResponses },
+                    ];
+
                     // 함수 결과로 최종 응답 스트리밍
-                    const result2 = await chat.sendMessageStream(functionResponses as any);
-                    for await (const chunk of result2.stream) {
-                        const text = chunk.text();
+                    const stream2 = await ai.models.generateContentStream({
+                        model: "gemini-2.5-pro",
+                        contents: updatedContents,
+                        config: {
+                            systemInstruction: fullSystemPrompt || undefined,
+                            thinkingConfig: { thinkingBudget: 8000, includeThoughts: false },
+                        } as any,
+                    });
+                    for await (const chunk of stream2) {
+                        const text = chunk.text;
                         if (text) {
                             res.write(`data: ${JSON.stringify({ text })}\n\n`);
                         }
@@ -1691,7 +1707,7 @@ ${draft || "(아직 초안 없음)"}
                 }
             };
 
-            await streamWithFunctionCalling(lastMessage.content);
+            await streamWithFunctionCalling(aiChatContents);
 
             res.write("data: [DONE]\n\n");
             res.end();
@@ -1817,31 +1833,33 @@ ${draft || "(아직 초안 없음)"}
 
             const nomaSystemPrompt = systemPrompt + (ragContext ? `\n\n## 관련 지식베이스 검색 결과\n${ragContext}` : "");
 
-            const genAI = new GoogleGenerativeAI(geminiKey);
-            const nomaModel = genAI.getGenerativeModel({
-                model: "gemini-2.5-pro",
-                systemInstruction: nomaSystemPrompt || undefined,
-                generationConfig: { thinkingConfig: { thinkingBudget: 4000 } } as any,
-            });
+            const ai = new GoogleGenAI({ apiKey: geminiKey });
 
             // 노마 히스토리: user/noma만 사용 (Gemini user/model 교대 엄수)
             // 세나 발언은 시스템 프롬프트의 unified session 이력으로 전달 — API 히스토리에 주입하지 않음
-            const nomaHistory: { role: "user" | "model"; parts: { text: string }[] }[] = [];
+            const nomaContents: { role: "user" | "model"; parts: { text: string }[] }[] = [];
             for (const m of messages.slice(0, -1)) {
                 if (m.role === "user") {
-                    nomaHistory.push({ role: "user", parts: [{ text: `[사용자] ${m.content}` }] });
+                    nomaContents.push({ role: "user", parts: [{ text: `[사용자] ${m.content}` }] });
                 } else if (m.role === "noma") {
-                    nomaHistory.push({ role: "model", parts: [{ text: m.content || "(응답 없음)" }] });
+                    nomaContents.push({ role: "model", parts: [{ text: m.content || "(응답 없음)" }] });
                 }
                 // claude/sena 발언은 skip — unified session 이력에서 처리
             }
+            nomaContents.push({ role: "user", parts: [{ text: `[사용자] ${lastMessage.content}` }] });
 
-            const nomaChat = nomaModel.startChat({ history: nomaHistory });
-            const nomaResult = await nomaChat.sendMessageStream(`[사용자] ${lastMessage.content}`);
+            const nomaStream = await ai.models.generateContentStream({
+                model: "gemini-2.5-pro",
+                contents: nomaContents,
+                config: {
+                    systemInstruction: nomaSystemPrompt || undefined,
+                    thinkingConfig: { thinkingBudget: 4000, includeThoughts: false },
+                } as any,
+            });
 
             let nomaFullResponse = "";
-            for await (const chunk of nomaResult.stream) {
-                const text = chunk.text();
+            for await (const chunk of nomaStream) {
+                const text = chunk.text;
                 if (text) {
                     nomaFullResponse += text;
                     writeChunk("noma", text);
@@ -1857,20 +1875,45 @@ ${draft || "(아직 초안 없음)"}
             res.write(`data: ${JSON.stringify({ source: "noma", done: true })}\n\n`);
 
             // ── 3. 세나(선배 컨설턴트) 응답 ─────────────────────────
-            // unified session 이력: insight/decision/action 최근 8개, 대화는 최근 10개 (토큰 절약)
-            const HISTORY_CONTENT_MAX = 600; // 항목당 최대 600자
+            // unified session 이력: insight/decision/action 압축 처리, 대화는 최근 10개
+            const HISTORY_CONTENT_MAX = 600; // 항목당 최대 600자 (최신 항목)
+            const COMPRESSED_MAX = 80;       // 오래된 항목 압축 길이
             const truncateEntry = (text: string) =>
                 text.length > HISTORY_CONTENT_MAX ? text.slice(0, HISTORY_CONTENT_MAX) + "…(생략)" : text;
+            const compressEntry = (text: string) =>
+                text.length > COMPRESSED_MAX ? text.slice(0, COMPRESSED_MAX) + "…" : text;
             const roleLabel: Record<string, string> = {
                 user: "사용자", noma: "노마", sena: "세나",
                 insight: "💡 인사이트", decision: "✅ 결정", action: "⚡ 액션",
             };
-            const importantEntries = unifiedSession.filter(
+
+            // ── 중요 항목 압축 처리 ──
+            // 1. 전체 insight/decision/action 수집
+            const allImportant = unifiedSession.filter(
                 (e) => e.role === "insight" || e.role === "decision" || e.role === "action"
-            ).slice(-8); // 최근 8개만 유지
+            );
+            // 2. 중복 제거: 동일 role + content 앞 60자 기준, 최신 항목만 유지
+            const dedupSeen = new Set<string>();
+            const deduped = [...allImportant].reverse().filter((e) => {
+                const key = e.role + ":" + e.content.slice(0, 60).trim().toLowerCase();
+                if (dedupSeen.has(key)) return false;
+                dedupSeen.add(key);
+                return true;
+            }).reverse();
+            // 3. action은 최근 3개만 유지 (오래된 완료 액션 컨텍스트 제외)
+            const recentActionTimestamps = new Set(
+                deduped.filter((e) => e.role === "action").slice(-3).map((e) => e.timestamp)
+            );
+            // 4. 최종 목록: action은 최근 3개, 나머지 최대 10개
+            const importantEntries = deduped
+                .filter((e) => e.role !== "action" || recentActionTimestamps.has(e.timestamp))
+                .slice(-10);
+            // 5. 최신 4개는 원문, 나머지는 80자 압축
+            const recentStartIdx = Math.max(0, importantEntries.length - 4);
+
             const recentConversation = unifiedSession
                 .filter((e) => e.role === "user" || e.role === "noma" || e.role === "sena")
-                .slice(-10); // 30 → 10으로 축소
+                .slice(-10);
             // 중요 항목 + 최근 대화를 시간순으로 병합 (중복 제거)
             const importantIds = new Set(importantEntries.map((e) => e.timestamp + e.role));
             const merged = [
@@ -1881,8 +1924,14 @@ ${draft || "(아직 초안 없음)"}
             const unifiedHistoryText = merged.length > 0
                 ? "\n\n## 공유 대화 이력 (노마·사용자·세나 3자 전체 기록)\n" +
                   (importantEntries.length > 0
-                      ? "### 📌 누적 인사이트·결정·액션 (최근 8개)\n" +
-                        importantEntries.map(e => `[${roleLabel[e.role]}] ${truncateEntry(e.content)}`).join("\n\n") +
+                      ? `### 📌 누적 인사이트·결정·액션 (${importantEntries.length}개, 중복 제거·완료 액션 제외)\n` +
+                        importantEntries.map((e, idx) => {
+                            const label = roleLabel[e.role];
+                            const content = idx >= recentStartIdx
+                                ? truncateEntry(e.content)
+                                : compressEntry(e.content);
+                            return `[${label}] ${content}`;
+                        }).join("\n\n") +
                         "\n\n### 💬 최근 대화 (최근 10건)\n" +
                         recentConversation.map(e => `[${roleLabel[e.role] ?? e.role}] ${truncateEntry(e.content)}`).join("\n\n")
                       : merged.map(e => `[${roleLabel[e.role] ?? e.role}] ${truncateEntry(e.content)}`).join("\n\n"))

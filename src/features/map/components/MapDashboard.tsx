@@ -7,6 +7,7 @@ import MapHeader from "./MapHeader";
 import MapLegend from "./MapLegend";
 import MapMetricCards from "./MapMetricCards";
 import MapAnalytics from "./MapAnalytics";
+import AllocationMismatchPanel from "./AllocationMismatchPanel";
 import {
     useAvailableMonths,
     useSurveys,
@@ -185,6 +186,14 @@ export default function MapDashboard() {
                         mode={mapMode}
                         selectedRegion={selectedRegion}
                         institutionDetails={selectedInstitutionDetails}
+                    />
+                </div>
+
+                <div className="mt-6">
+                    <AllocationMismatchPanel
+                        surveys={surveys}
+                        institutionProfiles={institutionProfiles}
+                        isDark={isDark}
                     />
                 </div>
             </div>
