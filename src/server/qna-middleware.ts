@@ -1645,11 +1645,10 @@ ${draft || "(아직 초안 없음)"}
             // ── 스트리밍 + Function Calling 처리 ────────────────────
             const streamWithFunctionCalling = async (currentContents: any[]) => {
                 const stream = await ai.models.generateContentStream({
-                    model: "gemini-2.5-pro",
+                    model: "gemini-2.0-flash",
                     contents: currentContents,
                     config: {
                         systemInstruction: fullSystemPrompt || undefined,
-                        thinkingConfig: { thinkingBudget: 8000, includeThoughts: false },
                         tools: nomaTools,
                     } as any,
                 });
@@ -1691,11 +1690,10 @@ ${draft || "(아직 초안 없음)"}
 
                     // 함수 결과로 최종 응답 스트리밍
                     const stream2 = await ai.models.generateContentStream({
-                        model: "gemini-2.5-pro",
+                        model: "gemini-2.0-flash",
                         contents: updatedContents,
                         config: {
                             systemInstruction: fullSystemPrompt || undefined,
-                            thinkingConfig: { thinkingBudget: 8000, includeThoughts: false },
                         } as any,
                     });
                     for await (const chunk of stream2) {
@@ -1740,6 +1738,36 @@ ${draft || "(아직 초안 없음)"}
     router.delete("/unified-session", async (req: ExpressRequest, res: ExpressResponse) => {
         await clearUnifiedSession();
         res.json({ ok: true });
+    });
+
+    // 특정 타임스탬프 항목 선택적 삭제
+    router.post("/unified-session/purge", async (req: ExpressRequest, res: ExpressResponse) => {
+        const { timestamps } = (req as any).body || {};
+        if (!Array.isArray(timestamps) || timestamps.length === 0) {
+            res.status(400).json({ error: "timestamps 배열이 필요합니다." });
+            return;
+        }
+        const tsSet = new Set<string>(timestamps);
+        const before = unifiedSession.length;
+        unifiedSession = unifiedSession.filter((e) => !tsSet.has(e.timestamp));
+        const deleted = before - unifiedSession.length;
+        // Firestore 삭제
+        if (isFirebaseReady()) {
+            try {
+                const snapshot = await getDb().collection(UNIFIED_FIRESTORE_COLLECTION).get();
+                const batch = getDb().batch();
+                snapshot.docs.forEach((doc) => {
+                    if (tsSet.has((doc.data() as UnifiedEntry).timestamp)) {
+                        batch.delete(doc.ref);
+                    }
+                });
+                await batch.commit();
+            } catch (err) {
+                console.warn("[UnifiedSession] Firestore purge 실패:", err);
+            }
+        }
+        saveUnifiedSession();
+        res.json({ ok: true, deleted, remaining: unifiedSession.length });
     });
 
     // ── Prompt Patches API ──
@@ -1849,11 +1877,10 @@ ${draft || "(아직 초안 없음)"}
             nomaContents.push({ role: "user", parts: [{ text: `[사용자] ${lastMessage.content}` }] });
 
             const nomaStream = await ai.models.generateContentStream({
-                model: "gemini-2.5-pro",
+                model: "gemini-2.0-flash",
                 contents: nomaContents,
                 config: {
                     systemInstruction: nomaSystemPrompt || undefined,
-                    thinkingConfig: { thinkingBudget: 4000, includeThoughts: false },
                 } as any,
             });
 
