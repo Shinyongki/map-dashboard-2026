@@ -1,0 +1,466 @@
+{
+  "version": "1.0.0",
+  "generatedAt": "2026-02-22",
+  "description": "노마(NOMA) 시스템 프롬프트용 — 5개 섹터 실제 UI 컴포넌트·상태값·인터랙션 맵",
+  "sectors": [
+
+    {
+      "sectorId": "care_status",
+      "sectorLabel": "돌봄현황",
+      "entryComponent": "MapDashboard",
+      "components": [
+        {
+          "componentId": "header_month_mode",
+          "componentType": "filter",
+          "description": "조회 월, 지도 표시 모드(제출현황·종사자·이용자·신규·잔액 등), 테마(sky·forest·infographic) 선택",
+          "states": {
+            "selectedMonth": "2026_1월 (자동: 최신월)",
+            "mapMode": "submission",
+            "mapTheme": "sky"
+          },
+          "stateOptions": {
+            "mapMode": ["submission","staff","user","new_term","balance","special","short_term","termination"],
+            "mapTheme": ["sky","forest","infographic"],
+            "availableMonths": "서버에서 동적 로드"
+          },
+          "interactions": ["month_select", "mode_change", "theme_change"]
+        },
+        {
+          "componentId": "metric_cards",
+          "componentType": "card",
+          "description": "전체 제출 건수, 총 기관 수, 제출율 요약 카드 (선택 월 기준)",
+          "states": {
+            "totalSubmissions": "dynamic",
+            "totalOrganizations": "dynamic",
+            "submissionRate": "dynamic"
+          },
+          "interactions": []
+        },
+        {
+          "componentId": "gyeongnam_map",
+          "componentType": "map",
+          "description": "경남 18개 시군 SVG 지도. 클릭 시 사이드패널, 호버 시 툴팁 표시. 모드·테마별 색상 변화",
+          "states": {
+            "selectedRegion": null,
+            "hoveredRegion": null
+          },
+          "interactions": ["region_click", "region_hover", "region_hover_end"]
+        },
+        {
+          "componentId": "map_legend",
+          "componentType": "legend",
+          "description": "현재 mapMode·mapTheme에 따른 색상 범례",
+          "states": {},
+          "interactions": []
+        },
+        {
+          "componentId": "map_tooltip",
+          "componentType": "tooltip",
+          "description": "지도 호버 시 표시되는 시군별 요약 데이터 팝업",
+          "states": {
+            "visible": false,
+            "region": null,
+            "x": 0,
+            "y": 0
+          },
+          "interactions": []
+        },
+        {
+          "componentId": "map_side_panel",
+          "componentType": "panel",
+          "description": "시군 클릭 후 표시. 두 가지 뷰로 전환: ① region 뷰 — 지역 통계·종사자·이용자·신규종결·배정인원·오기입의심·배정변경·기관목록 (섹션별 콜렉션 토글). ② institution 뷰 — 기관 기본정보·서비스·배정vs실채용 비교·종사자·이용자 전체 상세",
+          "states": {
+            "visible": false,
+            "view": "region | institution",
+            "selectedInstitutionCode": null,
+            "expandedSections": "dynamic (섹션별 토글 상태)"
+          },
+          "dataNotes": {
+            "discrepancies": "배정인원 오기입 의심 목록 (광역배정 vs 제출값 불일치)",
+            "assignmentChanges": "당월 배정 변경 이력"
+          },
+          "interactions": ["section_toggle", "institution_select", "back_to_region", "close_panel"]
+        },
+        {
+          "componentId": "map_analytics",
+          "componentType": "chart",
+          "description": "하단 분석 영역. 전체 시군 또는 선택 시군의 제출현황·인력·이용자 차트",
+          "states": {
+            "selectedRegion": null,
+            "mode": "submission",
+            "theme": "sky"
+          },
+          "interactions": []
+        }
+      ]
+    },
+
+    {
+      "sectorId": "welfare_resources",
+      "sectorLabel": "복지자원",
+      "entryComponent": "WelfareMap",
+      "components": [
+        {
+          "componentId": "welfare_kakao_map",
+          "componentType": "map",
+          "description": "카카오 지도 위에 복지시설 마커 표시. 마커 클릭 시 인포윈도우(시설명·주소·전화)",
+          "states": {
+            "mapLevel": 11,
+            "center": { "lat": 35.2383, "lng": 128.6925 },
+            "filteredFacilitiesCount": "dynamic"
+          },
+          "interactions": ["marker_click", "map_zoom", "map_drag"]
+        },
+        {
+          "componentId": "group_filter",
+          "componentType": "filter",
+          "description": "시설 그룹 선택 버튼바. 선택 시 하위 카테고리·지역 필터 표시. 재클릭 시 전체로 초기화",
+          "states": {
+            "activeGroup": "ALL"
+          },
+          "stateOptions": {
+            "activeGroup": ["ALL","public","medical","care","social","performer","housing","admin"]
+          },
+          "interactions": ["group_click", "group_reset"]
+        },
+        {
+          "componentId": "category_filter",
+          "componentType": "filter",
+          "description": "그룹 선택 후 표시되는 세부 카테고리 버튼. activeGroup != ALL 일 때만 렌더링",
+          "states": {
+            "activeCategory": "ALL",
+            "visible": false
+          },
+          "interactions": ["category_click"]
+        },
+        {
+          "componentId": "region_filter",
+          "componentType": "filter",
+          "description": "시군 드롭다운. activeGroup != ALL 일 때만 렌더링",
+          "states": {
+            "selectedRegion": "ALL"
+          },
+          "interactions": ["region_change"]
+        },
+        {
+          "componentId": "stats_panel",
+          "componentType": "panel",
+          "description": "지도 좌상단 고정 패널. 현재 표시 자원 수, 선택 그룹/카테고리/지역, 이달의 발굴 자원 수 표시",
+          "states": {
+            "filteredCount": "dynamic",
+            "approvedDiscoveries": "dynamic"
+          },
+          "interactions": []
+        },
+        {
+          "componentId": "path_finder_panel",
+          "componentType": "panel",
+          "description": "경로 찾기 슬라이드 패널. 우측 하단 버튼으로 토글. 시설 검색 및 지도 포커스",
+          "states": {
+            "showPathFinder": false
+          },
+          "interactions": ["path_finder_toggle", "facility_search", "focus_location"]
+        },
+        {
+          "componentId": "resource_request_modal",
+          "componentType": "modal",
+          "description": "신규 자원 제안 모달. '신규 자원 제안' 버튼으로 열림",
+          "states": {
+            "open": false
+          },
+          "interactions": ["modal_open", "modal_close", "resource_submit"]
+        },
+        {
+          "componentId": "resource_admin_panel",
+          "componentType": "panel",
+          "description": "자원 발굴 관리 패널. 제안된 자원 승인/거절 목록. 좌측 하단 버튼으로 토글",
+          "states": {
+            "showAdminPanel": false,
+            "activeTab": "pending",
+            "requests": "dynamic"
+          },
+          "stateOptions": {
+            "activeTab": ["pending", "approved"]
+          },
+          "interactions": ["admin_panel_toggle", "tab_change", "resource_approve", "resource_reject"]
+        }
+      ]
+    },
+
+    {
+      "sectorId": "climate_response",
+      "sectorLabel": "기후대응",
+      "entryComponent": "ClimateDashboard",
+      "components": [
+        {
+          "componentId": "climate_header",
+          "componentType": "filter",
+          "description": "특보 유형 선택 버튼 + 연도 범위 슬라이더",
+          "states": {
+            "climateMode": "total",
+            "yearRange": [2021, 2025]
+          },
+          "stateOptions": {
+            "climateMode": ["total","all_cold","all_heat","cold_advisory","cold_warning","heat_advisory","heat_warning"]
+          },
+          "interactions": ["mode_change", "year_range_change"]
+        },
+        {
+          "componentId": "climate_legend",
+          "componentType": "legend",
+          "description": "현재 climateMode에 따른 특보 빈도 색상 범례",
+          "states": {},
+          "interactions": []
+        },
+        {
+          "componentId": "climate_map",
+          "componentType": "map",
+          "description": "경남 18개 시군 SVG 지도. 특보 빈도에 따른 색상. 클릭→사이드패널, 호버→툴팁",
+          "states": {
+            "selectedRegion": null
+          },
+          "interactions": ["region_click", "region_hover", "region_hover_end"]
+        },
+        {
+          "componentId": "climate_tooltip",
+          "componentType": "tooltip",
+          "description": "지도 호버 시 시군별 특보 통계 팝업",
+          "states": { "visible": false, "region": null },
+          "interactions": []
+        },
+        {
+          "componentId": "climate_analytics",
+          "componentType": "chart",
+          "description": "연도별 추이, 월별 분포, 시군별 비교 차트. 선택 시군 있을 시 해당 시군 포커스",
+          "states": {
+            "selectedRegion": null,
+            "yearRange": [2021, 2025],
+            "mode": "total"
+          },
+          "interactions": []
+        },
+        {
+          "componentId": "climate_side_panel",
+          "componentType": "panel",
+          "description": "시군 클릭 시 우측 표시. 해당 지역 특보 유형별·연도별 상세 통계",
+          "states": {
+            "visible": false,
+            "selectedRegion": null
+          },
+          "interactions": ["close_panel"]
+        },
+        {
+          "componentId": "climate_care_briefing",
+          "componentType": "briefing",
+          "description": "특보 발령 시군의 돌봄 과부하 경보 브리핑. yearRange 최종 연도 기준. 1인당 담당 이용자 17명 이상 시 경보 표시",
+          "states": {
+            "alertRegions": "dynamic (yearRange[1] 연도에 특보 발령된 시군)",
+            "alertType": "폭염 | 한파",
+            "visible": "alertRegions.length > 0"
+          },
+          "dataSource": "institution_profiles.json > actual.usersServed / (socialWorkerHired + careProviderHired)",
+          "overloadThreshold": "staffPerUser >= 17",
+          "interactions": []
+        }
+      ]
+    },
+
+    {
+      "sectorId": "natural_disaster",
+      "sectorLabel": "자연재난",
+      "entryComponent": "DisasterDashboard",
+      "components": [
+        {
+          "componentId": "disaster_header",
+          "componentType": "filter",
+          "description": "재난 유형 선택 버튼 + 연도 범위 슬라이더",
+          "states": {
+            "disasterMode": "total",
+            "yearRange": [2021, 2025]
+          },
+          "stateOptions": {
+            "disasterMode": ["total","typhoon","flood","earthquake","landslide_risk"]
+          },
+          "interactions": ["mode_change", "year_range_change"]
+        },
+        {
+          "componentId": "disaster_legend",
+          "componentType": "legend",
+          "description": "현재 disasterMode에 따른 재난 빈도 색상 범례",
+          "states": {},
+          "interactions": []
+        },
+        {
+          "componentId": "disaster_map",
+          "componentType": "map",
+          "description": "경남 18개 시군 SVG 지도. 재난 빈도 기반 색상. 클릭→사이드패널, 호버→툴팁",
+          "states": {
+            "selectedRegion": null
+          },
+          "interactions": ["region_click", "region_hover", "region_hover_end"]
+        },
+        {
+          "componentId": "disaster_tooltip",
+          "componentType": "tooltip",
+          "description": "지도 호버 시 시군별 재난 통계 팝업",
+          "states": { "visible": false, "region": null },
+          "interactions": []
+        },
+        {
+          "componentId": "disaster_analytics",
+          "componentType": "chart",
+          "description": "연도별 재난 추이, 유형별 분포, 시군별 비교 차트",
+          "states": {
+            "selectedRegion": null,
+            "yearRange": [2021, 2025],
+            "mode": "total"
+          },
+          "interactions": []
+        },
+        {
+          "componentId": "disaster_side_panel",
+          "componentType": "panel",
+          "description": "시군 클릭 시 우측 표시. 해당 지역 재난 유형별·연도별 상세 통계",
+          "states": {
+            "visible": false,
+            "selectedRegion": null
+          },
+          "interactions": ["close_panel"]
+        },
+        {
+          "componentId": "disaster_care_briefing",
+          "componentType": "briefing",
+          "description": "재난 발생 시군의 돌봄 현황 브리핑 (ClimateCareBriefing 컴포넌트 재사용). 재난 alertType: 태풍·지진·호우",
+          "states": {
+            "alertRegions": "dynamic (yearRange[1] 연도에 재난 발생 시군)",
+            "alertType": "태풍 | 지진 | 호우",
+            "visible": "alertRegions.length > 0"
+          },
+          "dataSource": "institution_profiles.json > actual.usersServed / (socialWorkerHired + careProviderHired)",
+          "overloadThreshold": "staffPerUser >= 17",
+          "interactions": []
+        }
+      ]
+    },
+
+    {
+      "sectorId": "qna",
+      "sectorLabel": "Q&A",
+      "entryComponent": "QnADashboard",
+      "components": [
+        {
+          "componentId": "login_form",
+          "componentType": "form",
+          "description": "기관코드·이름 입력 로그인. 세션 없을 때 전체 화면 대체. JWT 기반 인증",
+          "states": {
+            "sessionExists": false
+          },
+          "interactions": ["login_submit"]
+        },
+        {
+          "componentId": "qna_header",
+          "componentType": "panel",
+          "description": "상단 헤더. 기관명·사용자·거점여부·관리자여부 표시. 비관리자: 뷰 전환 탭(공문목록/질문하기). 로그아웃 버튼",
+          "states": {
+            "userView": "documents",
+            "isAdmin": false,
+            "session": {
+              "region": "dynamic",
+              "orgName": "dynamic",
+              "name": "dynamic",
+              "isHub": false
+            }
+          },
+          "stateOptions": {
+            "userView": ["documents","list","form","detail"]
+          },
+          "interactions": ["view_change", "logout"]
+        },
+        {
+          "componentId": "document_grid",
+          "componentType": "grid",
+          "description": "공문별 카드 목록. 카드 클릭 시 해당 공문의 질의응답 목록(list)으로 이동",
+          "states": {
+            "documents": "dynamic",
+            "selectedDocId": null
+          },
+          "interactions": ["document_select"]
+        },
+        {
+          "componentId": "question_list",
+          "componentType": "list",
+          "description": "특정 공문(또는 일반)의 질문 목록. 상태 필터, 검색, 질문 선택. userView=list 일 때 표시",
+          "states": {
+            "statusFilter": "all",
+            "searchQuery": "",
+            "selectedQuestionId": null,
+            "filteredQuestions": "dynamic"
+          },
+          "stateOptions": {
+            "statusFilter": ["all","pending","answered","closed"]
+          },
+          "interactions": ["status_filter_change", "search_change", "question_select", "back_to_documents"]
+        },
+        {
+          "componentId": "question_form",
+          "componentType": "form",
+          "description": "질문 작성 폼. 공문 연결, 제목, 내용. userView=form 일 때 표시",
+          "states": {
+            "defaultDocumentId": null
+          },
+          "interactions": ["question_submit", "cancel"]
+        },
+        {
+          "componentId": "question_detail",
+          "componentType": "panel",
+          "description": "질문 상세 + 답변 표시. userView=detail 일 때 표시",
+          "states": {
+            "selectedQuestionId": null
+          },
+          "interactions": ["back_to_list"]
+        },
+        {
+          "componentId": "admin_question_panel",
+          "componentType": "panel",
+          "description": "관리자 전용 질문 관리 탭. 질문 선택 시 AdminAnswerEditor로 진입",
+          "states": {
+            "adminTab": "questions",
+            "questions": "dynamic"
+          },
+          "interactions": ["answer_approve", "question_close", "question_delete"]
+        },
+        {
+          "componentId": "admin_answer_editor",
+          "componentType": "panel",
+          "description": "답변 작성 + Claude 채팅 패널. AI 초안 확인 → '초안 사용' 버튼으로 textarea에 복사 → Claude와 대화로 정제 → '답변에 적용' 버튼 → 최종 승인",
+          "states": {
+            "answer": "",
+            "chatOpen": false,
+            "chatMessages": [],
+            "chatLoading": false
+          },
+          "quickPrompts": [
+            "더 간결하게 요약해줘",
+            "항목별로 번호 목록으로 정리해줘",
+            "더 공식적인 문체로 바꿔줘",
+            "핵심 근거 조항을 명확하게 표시해줘"
+          ],
+          "questionStatusFlow": "pending → ai_draft → answered → closed",
+          "interactions": ["use_ai_draft", "chat_send", "apply_to_answer", "answer_approve", "back"]
+        },
+        {
+          "componentId": "admin_document_manager",
+          "componentType": "panel",
+          "description": "관리자 전용 공문 관리 탭. PDF 업로드(RAG 자동 색인), 제목·번호 수정, 유효기간 설정, 삭제",
+          "states": {
+            "adminTab": "documents",
+            "documents": "dynamic",
+            "uploading": false
+          },
+          "interactions": ["document_upload", "document_update", "document_delete", "set_valid_until"]
+        }
+      ]
+    }
+
+  ]
+}

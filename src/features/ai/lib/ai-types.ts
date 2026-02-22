@@ -13,4 +13,8 @@ export interface AiContextInput {
     selectedRegion?: string;
     climateAlerts?: string[];
     disasterAlerts?: string[];
+    /** 현재 탭의 활성 필터 상태 (키=필터명, 값=현재 값) */
+    activeFilters?: Record<string, string | string[] | null>;
+    /** 최근 사용자 행동 이력 (확장 컨텍스트 시 포함) */
+    actionHistory?: string[];
 }

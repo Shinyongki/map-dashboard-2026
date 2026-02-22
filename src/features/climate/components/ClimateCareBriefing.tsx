@@ -129,8 +129,8 @@ export default function ClimateCareBriefing({
                                     }`}
                             >
                                 {over && "🚨 "}
-                                <strong>{s.sigun}</strong>: 독거노인 약{" "}
-                                <strong>{s.estimatedSolitary.toLocaleString()}</strong>명, 1인당{" "}
+                                <strong>{s.sigun}</strong>: 서비스 이용자{" "}
+                                <strong>{s.users.toLocaleString()}</strong>명, 1인당{" "}
                                 <strong className={over ? "text-red-700" : "text-gray-800"}>
                                     {s.staffPerUser}
                                 </strong>
@@ -200,10 +200,10 @@ function CareStatusCard({
                 <div className="flex items-center justify-between">
                     <span className={`flex items-center gap-1 text-[11px] ${isOverloaded ? "text-red-600" : "text-gray-500"}`}>
                         <Users className="h-3 w-3" />
-                        독거노인 추정
+                        서비스 이용자
                     </span>
                     <span className={`text-xs font-bold ${isOverloaded ? "text-red-900" : "text-gray-900"}`}>
-                        {status.estimatedSolitary.toLocaleString()}명
+                        {status.users.toLocaleString()}명
                     </span>
                 </div>
 

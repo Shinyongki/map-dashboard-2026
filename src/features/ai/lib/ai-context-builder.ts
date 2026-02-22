@@ -4,8 +4,67 @@ import type { DisasterRegionStats } from "@/features/disaster/lib/disaster-types
 import type { RegionCareStatus } from "@/features/climate/hooks/useCareStatusByRegion";
 import type { AiContextInput } from "./ai-types";
 import type { PromptPatch } from "./ai-api";
+import uiContextData from "./noma-ui-context.json";
 
-// ─── Main builder ──────────────────────────────────────────
+// ─── 확장 컨텍스트 트리거 ───────────────────────────────────────
+
+export const EXTENDED_TRIGGER_KEYWORDS = [
+    "분석", "비교", "전체", "데이터 기준", "통계", "현황 보고",
+    "추세", "추이", "교차", "종합", "요약 보고", "리포트",
+];
+
+export function isExtendedRequest(message: string): boolean {
+    return EXTENDED_TRIGGER_KEYWORDS.some((kw) => message.includes(kw));
+}
+
+// ─── 탭 → 섹터 매핑 ───────────────────────────────────────────
+
+const TAB_TO_SECTOR: Record<string, string> = {
+    care: "care_status",
+    welfare: "welfare_resources",
+    climate: "climate_response",
+    disaster: "natural_disaster",
+    qna: "qna",
+};
+
+// ─── UI 명세 섹션 빌더 (현재 탭만 추출) ───────────────────────
+
+function buildUIContextSection(tab: string, contextInput?: AiContextInput): string {
+    const sectorId = TAB_TO_SECTOR[tab];
+    const sectors = (uiContextData as any).sectors as any[];
+    const sector = sectors.find((s: any) => s.sectorId === sectorId);
+    if (!sector) return "";
+
+    const lines: string[] = [`## 현재 화면 UI 명세 (${sector.sectorLabel} 탭)`];
+
+    for (const comp of sector.components as any[]) {
+        const defaultStates = Object.entries(comp.states || {})
+            .filter(([, v]) => v !== null && v !== false && v !== "dynamic" && typeof v !== "object")
+            .map(([k, v]) => `${k}=${v}`)
+            .join(", ");
+        const desc = (comp.description as string).slice(0, 90);
+        lines.push(`[${comp.componentType}] ${comp.componentId}: ${desc}${defaultStates ? ` (기본: ${defaultStates})` : ""}`);
+    }
+
+    // 런타임 실제 상태 오버레이
+    const runtimeLines: string[] = [];
+    if (contextInput?.selectedRegion) {
+        runtimeLines.push(`선택 시군: ${contextInput.selectedRegion}`);
+    }
+    if (contextInput?.activeFilters) {
+        const filterEntries = Object.entries(contextInput.activeFilters)
+            .filter(([, v]) => v !== null && v !== undefined)
+            .map(([k, v]) => `  ${k}: ${Array.isArray(v) ? v.join(", ") : v}`);
+        if (filterEntries.length) runtimeLines.push(`활성 필터:\n${filterEntries.join("\n")}`);
+    }
+    if (runtimeLines.length) {
+        lines.push(`\n[현재 실제 상태]\n${runtimeLines.join("\n")}`);
+    }
+
+    return lines.join("\n");
+}
+
+// ─── Main builder ──────────────────────────────────────────────
 
 export function buildSystemPrompt(
     careStats: Map<string, RegionStats>,
@@ -14,7 +73,8 @@ export function buildSystemPrompt(
     careStatusByRegion?: RegionCareStatus[],
     contextInput?: AiContextInput,
     surveys?: InstitutionDetail[],
-    patches?: PromptPatch[]
+    patches?: PromptPatch[],
+    isExtended?: boolean
 ): string {
     const tab = contextInput?.activeTab ?? "care";
 
@@ -104,47 +164,88 @@ export function buildSystemPrompt(
 - 수치는 항상 구체적으로, 백분율·순위·증감 포함
 - 마크다운 표·볼드·제목 적극 활용하여 가독성 확보`;
 
-    // 모든 섹터 데이터 항상 포함 (교차 분석 능력 강화)
     const sections: string[] = [basePrompt];
 
-    // ① 돌봄 현황 (항상 전체 포함)
-    sections.push("## 돌봄 현황 데이터 (시군별)");
-    sections.push(buildCareTable(careStats));
-    sections.push(buildCareDetailContext(careStats));
+    // ① UI 명세 — 항상 현재 탭만
+    sections.push(buildUIContextSection(tab, contextInput));
 
-    // ② 복지자원 (항상 포함)
-    if (careStatusByRegion?.length) {
-        sections.push("## 복지자원 현황 (시군별 돌봄 인프라)");
-        sections.push(buildWelfareContext(careStatusByRegion));
+    // ② 데이터 섹션 — 기본(탭별) vs 확장(전체)
+    if (!isExtended) {
+        // 기본 컨텍스트: 현재 탭 데이터만
+        switch (tab) {
+            case "care":
+                sections.push("## 돌봄 현황 데이터 (시군별)");
+                sections.push(buildCareTable(careStats));
+                sections.push(buildCareDetailContext(careStats));
+                if (surveys && surveys.length > 0) {
+                    sections.push("## 개별 기관 현황 데이터");
+                    sections.push(buildOrganizationContext(surveys));
+                }
+                break;
+            case "welfare":
+                if (careStatusByRegion?.length) {
+                    sections.push("## 복지자원 현황 (시군별 돌봄 인프라)");
+                    sections.push(buildWelfareContext(careStatusByRegion));
+                }
+                break;
+            case "climate":
+                sections.push("## 기후 특보 데이터 (시군별 누적)");
+                sections.push(buildClimateTable(climateStats));
+                if (contextInput?.climateAlerts?.length) {
+                    sections.push(`## 현재 활성 기상특보 시군\n${contextInput.climateAlerts.join(", ")}`);
+                }
+                break;
+            case "disaster":
+                sections.push("## 자연재난 데이터 (시군별 누적)");
+                sections.push(buildDisasterTable(disasterStats));
+                if (contextInput?.disasterAlerts?.length) {
+                    sections.push(`## 현재 활성 재난 시군\n${contextInput.disasterAlerts.join(", ")}`);
+                }
+                break;
+            case "qna":
+                // QnA 탭: 데이터 테이블 불필요 (UI 명세 + 운영 원칙으로 충분)
+                break;
+        }
+    } else {
+        // 확장 컨텍스트: 전체 섹터 데이터 + 행동 이력
+        sections.push("## 돌봄 현황 데이터 (시군별)");
+        sections.push(buildCareTable(careStats));
+        sections.push(buildCareDetailContext(careStats));
+
+        if (careStatusByRegion?.length) {
+            sections.push("## 복지자원 현황 (시군별 돌봄 인프라)");
+            sections.push(buildWelfareContext(careStatusByRegion));
+        }
+
+        sections.push("## 기후 특보 데이터 (시군별 누적)");
+        sections.push(buildClimateTable(climateStats));
+
+        sections.push("## 자연재난 데이터 (시군별 누적)");
+        sections.push(buildDisasterTable(disasterStats));
+
+        if (contextInput?.climateAlerts?.length) {
+            sections.push(`## 현재 활성 기상특보 시군\n${contextInput.climateAlerts.join(", ")}`);
+        }
+        if (contextInput?.disasterAlerts?.length) {
+            sections.push(`## 현재 활성 재난 시군\n${contextInput.disasterAlerts.join(", ")}`);
+        }
+
+        if (surveys && surveys.length > 0) {
+            sections.push("## 개별 기관 현황 데이터");
+            sections.push(buildOrganizationContext(surveys));
+        }
+
+        if (contextInput?.actionHistory?.length) {
+            const historyLines = contextInput.actionHistory
+                .slice(-3)
+                .map((a, i) => `${i + 1}. ${a}`)
+                .join("\n");
+            sections.push(`## 최근 사용자 행동 이력\n${historyLines}`);
+        }
     }
 
-    // ③ 기후 특보 (항상 전체 포함)
-    sections.push("## 기후 특보 데이터 (시군별 누적)");
-    sections.push(buildClimateTable(climateStats));
-
-    // ④ 자연재난 (항상 전체 포함)
-    sections.push("## 자연재난 데이터 (시군별 누적)");
-    sections.push(buildDisasterTable(disasterStats));
-
-    // ⑤ 현재 활성 특보/재난 시군 명시
-    if (contextInput?.climateAlerts?.length) {
-        sections.push(
-            `## 현재 활성 기상특보 시군\n${contextInput.climateAlerts.join(", ")}`
-        );
-    }
-    if (contextInput?.disasterAlerts?.length) {
-        sections.push(
-            `## 현재 활성 재난 시군\n${contextInput.disasterAlerts.join(", ")}`
-        );
-    }
-
-    // 개별 기관 상세 데이터
-    if (surveys && surveys.length > 0) {
-        sections.push("## 개별 기관 현황 데이터");
-        sections.push(buildOrganizationContext(surveys));
-    }
-
-    sections.push(`\n## 현재 시스템 구성 (노마가 파악하고 있는 시스템 현황)
+    // ③ 시스템 구성 안내 (항상 포함)
+    sections.push(`## 현재 시스템 구성 (노마가 파악하고 있는 시스템 현황)
 
 구현된 기능:
 - 경남 18개 시군 돌봄현황 월별 통계 시각화 (제출률, 종사자·이용자 현황)
@@ -162,11 +263,12 @@ export function buildSystemPrompt(
 - 기관별 성과 비교 리포트 자동 생성
 - 수행기관 공개 QnA 전환 시 필요한 권한 분리·답변 품질 관리`);
 
-    sections.push(`\n분석 시 주의사항:
+    sections.push(`분석 시 주의사항:
 - 데이터에 없는 내용은 추측하지 마세요
 - 여러 분야를 교차 분석하는 복합 질문에 적극 대응하세요
 - 수치를 비교할 때는 표 형태로 정리하세요
 - 현재 사용자가 보고 있는 탭: ${getTabLabel(tab)}
+- 확장 컨텍스트 모드: ${isExtended ? "활성화 (전체 섹터 데이터 포함)" : "기본 (현재 탭 데이터만)"}
 
 ## 데이터 분석 심화 지침 (세나 인사이트 반영)
 
@@ -208,7 +310,7 @@ export function buildSystemPrompt(
 **시스템 총괄 운영자 역할**
 사용자가 시스템의 특정 기능 존재 여부, 작동 방식, 데이터 구조 등을 물어볼 때 반드시 알고 있어야 한다. 불확실한 경우에도 "확인하겠습니다"로 응답하고, "모르겠다"는 응답은 허용되지 않는다.`);
 
-    // 세나가 제안한 프롬프트 패치 — 항상 마지막에 추가 (최고 우선순위)
+    // ④ 세나 프롬프트 패치 — 항상 마지막 (최고 우선순위)
     if (patches && patches.length > 0) {
         const patchText = patches
             .map((p) => `### ${p.title}\n${p.content}`)
@@ -239,7 +341,6 @@ function buildCareDetailContext(stats: Map<string, RegionStats>): string {
 
     const lines: string[] = ["## 돌봄 상세 분석"];
 
-    // 미제출 기관
     const lowSubmission: string[] = [];
     let totalOrgs = 0;
     let totalSubmitted = 0;
@@ -268,67 +369,22 @@ function buildWelfareContext(statuses: RegionCareStatus[]): string {
     if (!statuses.length) return "(데이터 없음)";
 
     const header =
-        "| 시군 | 기관수 | 사회복지사 | 돌봄제공인력 | 이용자 | 독거노인(추정) | 1인당 담당 |";
+        "| 시군 | 기관수 | 사회복지사 | 돌봄제공인력 | 서비스 이용자 | 1인당 담당 |";
     const sep =
-        "|------|--------|-----------|-------------|--------|---------------|-----------|";
+        "|------|--------|-----------|-------------|--------------|-----------|";
     const rows: string[] = [];
 
     for (const s of statuses) {
-        const overload = s.staffPerUser > 10 ? " ⚠" : "";
+        const overload = s.staffPerUser >= 17 ? " ⚠" : "";
         rows.push(
-            `| ${s.sigun} | ${s.agencyCount} | ${s.socialWorkers} | ${s.careProviders} | ${s.users} | ${s.estimatedSolitary} | ${s.staffPerUser}${overload} |`
+            `| ${s.sigun} | ${s.agencyCount} | ${s.socialWorkers} | ${s.careProviders} | ${s.users} | ${s.staffPerUser}${overload} |`
         );
     }
 
     return [header, sep, ...rows].join("\n");
 }
 
-// ─── Climate/Disaster Summary ──────────────────────────────
-
-function buildClimateSummary(
-    climateStats: Map<string, ClimateRegionStats>,
-    disasterStats: Map<string, DisasterRegionStats>
-): string {
-    if (climateStats.size === 0 && disasterStats.size === 0) return "(데이터 없음)";
-
-    const lines: string[] = [];
-
-    if (climateStats.size > 0) {
-        let totalClimate = 0;
-        let maxRegion = "";
-        let maxCount = 0;
-        for (const [, s] of climateStats) {
-            totalClimate += s.totalAlertCount;
-            if (s.totalAlertCount > maxCount) {
-                maxCount = s.totalAlertCount;
-                maxRegion = s.region;
-            }
-        }
-        lines.push(
-            `기상특보 총 ${totalClimate}건, 최다 지역: ${maxRegion} (${maxCount}건)`
-        );
-    }
-
-    if (disasterStats.size > 0) {
-        let totalDisaster = 0;
-        let maxRegion = "";
-        let maxCount = 0;
-        for (const [, s] of disasterStats) {
-            totalDisaster += s.totalCount;
-            if (s.totalCount > maxCount) {
-                maxCount = s.totalCount;
-                maxRegion = s.region;
-            }
-        }
-        lines.push(
-            `자연재난 총 ${totalDisaster}건, 최다 지역: ${maxRegion} (${maxCount}건)`
-        );
-    }
-
-    return lines.join("\n");
-}
-
-// ─── Table builders (existing) ─────────────────────────────
+// ─── Table builders ────────────────────────────────────────
 
 function buildCareTable(stats: Map<string, RegionStats>): string {
     if (stats.size === 0) return "(데이터 없음)";

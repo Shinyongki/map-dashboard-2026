@@ -24,7 +24,11 @@ export default function DashboardLayout() {
         <div className="min-h-screen bg-gray-50">
             <div className="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm">
                 <div className="max-w-7xl mx-auto px-4">
-                    <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as DashboardTab)}>
+                    <Tabs value={activeTab} onValueChange={(v) => {
+                        const tab = v as DashboardTab;
+                        setActiveTab(tab);
+                        try { localStorage.setItem("noma_active_tab", tab); } catch { /* ignore */ }
+                    }}>
                         <TabsList className="h-12 bg-transparent gap-1 p-0">
                             <TabsTrigger
                                 value="care"

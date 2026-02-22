@@ -1,9 +1,9 @@
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Send, Trash2, Sparkles } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { useChat } from "../hooks/useChat";
-import { buildSystemPrompt } from "../lib/ai-context-builder";
+import { buildSystemPrompt, isExtendedRequest } from "../lib/ai-context-builder";
 import ChatMessage from "./ChatMessage";
 import SuggestedQuestions from "./SuggestedQuestions";
 import { useRegionStats } from "@/features/map/hooks/useRegionStats";
@@ -31,13 +31,21 @@ export default function AIDashboard() {
     const { data: disasterAlerts } = useDisasterData(yearRange);
     const disasterStats = useDisasterRegionStats(disasterAlerts, yearRange);
 
-    const systemPrompt = useMemo(
-        () => buildSystemPrompt(careStats, climateStats, disasterStats),
+    const getSystemPrompt = useCallback(
+        (message: string) =>
+            buildSystemPrompt(
+                careStats, climateStats, disasterStats,
+                undefined,
+                { activeTab: "care" },
+                undefined,
+                undefined,
+                isExtendedRequest(message)
+            ),
         [careStats, climateStats, disasterStats]
     );
 
     const { messages, isLoading, error, sendMessage, clearMessages } =
-        useChat(systemPrompt);
+        useChat(getSystemPrompt);
 
     // Auto-scroll to bottom on new messages
     useEffect(() => {

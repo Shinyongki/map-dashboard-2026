@@ -4,7 +4,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { useChat } from "../hooks/useChat";
 import { useNomaMemory } from "../hooks/useNomaMemory";
-import { buildSystemPrompt } from "../lib/ai-context-builder";
+import { buildSystemPrompt, isExtendedRequest } from "../lib/ai-context-builder";
 import ChatMessage from "./ChatMessage";
 import SuggestedQuestions from "./SuggestedQuestions";
 import { DiscussionCard, TripleHeader, groupIntoTurns } from "./TripleDiscussion";
@@ -24,6 +24,9 @@ function NomaPopupInner() {
     const [tripleMode, setTripleMode] = useState(() => {
         try { return localStorage.getItem("noma_triple_mode") === "true"; } catch { return false; }
     });
+    const [activeTab, setActiveTab] = useState<string>(() => {
+        try { return localStorage.getItem("noma_active_tab") ?? "care"; } catch { return "care"; }
+    });
     const scrollRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -40,14 +43,25 @@ function NomaPopupInner() {
     const disasterStats = useDisasterRegionStats(disasterAlerts, yearRange);
     const { statuses: careStatusByRegion } = useCareStatusByRegion();
 
-    const systemPrompt = useMemo(
-        () =>
-            buildSystemPrompt(careStats, climateStats, disasterStats, careStatusByRegion,
-                { activeTab: "care" }, surveys ?? undefined) + feedbackContext,
-        [careStats, climateStats, disasterStats, careStatusByRegion, surveys, feedbackContext]
+    const messagesHistoryRef = useRef<string[]>([]);
+
+    const getSystemPrompt = useCallback(
+        (message: string) => {
+            const extended = isExtendedRequest(message);
+            return (
+                buildSystemPrompt(
+                    careStats, climateStats, disasterStats, careStatusByRegion,
+                    { activeTab: activeTab as any, actionHistory: messagesHistoryRef.current },
+                    surveys ?? undefined,
+                    undefined,
+                    extended
+                ) + feedbackContext
+            );
+        },
+        [careStats, climateStats, disasterStats, careStatusByRegion, activeTab, surveys, feedbackContext]
     );
 
-    const { messages, isLoading, error, sendMessage, sendTripleMessage, clearMessages, loadMessages } = useChat(systemPrompt);
+    const { messages, isLoading, error, sendMessage, sendTripleMessage, clearMessages, loadMessages } = useChat(getSystemPrompt);
 
     const tripleTurns = useMemo(() => groupIntoTurns(messages), [messages]);
 
@@ -61,9 +75,13 @@ function NomaPopupInner() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    // 메시지 자동 저장
+    // 메시지 자동 저장 + 행동 이력 ref 동기화
     useEffect(() => {
         if (!isLoading) saveActiveSession(messages, tripleMode);
+        messagesHistoryRef.current = messages
+            .filter((m) => m.role === "user")
+            .slice(-3)
+            .map((m) => m.content);
     }, [messages, isLoading, tripleMode, saveActiveSession]);
 
     // 스크롤 하단 유지
@@ -72,6 +90,15 @@ function NomaPopupInner() {
     }, [messages]);
 
     useEffect(() => { inputRef.current?.focus(); }, []);
+
+    // 메인 창 탭 변경 → 팝업 activeTab 동기화
+    useEffect(() => {
+        const onStorage = (e: StorageEvent) => {
+            if (e.key === "noma_active_tab" && e.newValue) setActiveTab(e.newValue);
+        };
+        window.addEventListener("storage", onStorage);
+        return () => window.removeEventListener("storage", onStorage);
+    }, []);
 
     // 창 닫힐 때 세션 저장
     useEffect(() => {

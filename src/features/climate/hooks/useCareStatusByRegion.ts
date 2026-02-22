@@ -7,7 +7,6 @@ export interface RegionCareStatus {
     socialWorkers: number;
     careProviders: number;
     users: number;
-    estimatedSolitary: number;
     staffPerUser: number;
 }
 
@@ -60,7 +59,7 @@ export function useCareStatusByRegion() {
                     entry.agencyCount += 1;
                     entry.socialWorkers += p.allocation?.actual?.socialWorkerHired ?? 0;
                     entry.careProviders += p.allocation?.actual?.careProviderHired ?? 0;
-                    entry.users += p.allocation?.mow?.users ?? 0;
+                    entry.users += p.allocation?.actual?.usersServed ?? 0;
                 });
 
                 const result: RegionCareStatus[] = [];
@@ -72,7 +71,6 @@ export function useCareStatusByRegion() {
                         socialWorkers: val.socialWorkers,
                         careProviders: val.careProviders,
                         users: val.users,
-                        estimatedSolitary: Math.round(val.users * 0.6),
                         staffPerUser:
                             totalStaff > 0 && val.users > 0
                                 ? Math.round((val.users / totalStaff) * 10) / 10

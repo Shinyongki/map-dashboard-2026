@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useDraggable } from "../hooks/useDraggable";
 import { useChat } from "../hooks/useChat";
 import { useNomaMemory } from "../hooks/useNomaMemory";
-import { buildSystemPrompt } from "../lib/ai-context-builder";
+import { buildSystemPrompt, isExtendedRequest } from "../lib/ai-context-builder";
 import type { DashboardTab } from "../lib/ai-types";
 import ChatMessage from "./ChatMessage";
 import SuggestedQuestions from "./SuggestedQuestions";
@@ -85,20 +85,55 @@ export default function FloatingAIChat({ activeTab = "care" }: FloatingAIChatPro
         return regions;
     }, [disasterStats]);
 
-    const systemPrompt = useMemo(
-        () =>
-            buildSystemPrompt(
+    // 최근 메시지 이력을 ref로 유지 (getSystemPrompt 순환 의존성 방지)
+    const messagesHistoryRef = useRef<string[]>([]);
+
+    // 메시지 전송 시점에 평가되는 getter — 키워드 감지로 기본/확장 모드 자동 전환
+    const getSystemPrompt = useCallback(
+        (message: string) => {
+            const extended = isExtendedRequest(message);
+            const prompt = buildSystemPrompt(
                 careStats, climateStats, disasterStats, careStatusByRegion,
-                { activeTab, climateAlerts: climateAlertRegions, disasterAlerts: disasterAlertRegions },
+                {
+                    activeTab,
+                    climateAlerts: climateAlertRegions,
+                    disasterAlerts: disasterAlertRegions,
+                    actionHistory: messagesHistoryRef.current,
+                },
                 surveys ?? undefined,
-                promptPatchList
-            ) + feedbackContext,
+                promptPatchList,
+                extended
+            ) + feedbackContext;
+            return prompt;
+        },
         [careStats, climateStats, disasterStats, careStatusByRegion, activeTab,
          climateAlertRegions, disasterAlertRegions, surveys, promptPatchList, feedbackContext]
     );
 
+    // 🔧 DEV: 콘솔에서 window.__nomaDumpPrompt("care") 로 탭별 실제 프롬프트 확인
+    useEffect(() => {
+        if (import.meta.env.DEV) {
+            (window as any).__nomaDumpPrompt = (tab?: string, extended?: boolean) => {
+                const t = tab ?? activeTab;
+                const prompt = buildSystemPrompt(
+                    careStats, climateStats, disasterStats, careStatusByRegion,
+                    { activeTab: t as any, climateAlerts: climateAlertRegions, disasterAlerts: disasterAlertRegions },
+                    surveys ?? undefined,
+                    promptPatchList,
+                    extended ?? false
+                );
+                console.group(`📋 노마 systemPrompt [탭: ${t}, 확장: ${extended ?? false}]`);
+                console.log(`총 길이: ${prompt.length}자 / 약 ${Math.round(prompt.length / 4)} 토큰`);
+                console.log(prompt);
+                console.groupEnd();
+                return prompt;
+            };
+        }
+    }, [careStats, climateStats, disasterStats, careStatusByRegion, activeTab,
+        climateAlertRegions, disasterAlertRegions, surveys, promptPatchList]);
+
     const { messages, isLoading, error, sendMessage, sendTripleMessage, clearMessages, loadMessages } =
-        useChat(systemPrompt);
+        useChat(getSystemPrompt);
 
     // 진행 중인 대화 복원 + 프롬프트 패치 로드 (첫 마운트 시)
     useEffect(() => {
@@ -112,9 +147,13 @@ export default function FloatingAIChat({ activeTab = "care" }: FloatingAIChatPro
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    // 메시지 변경 시 자동 저장
+    // 메시지 변경 시 자동 저장 + 행동 이력 ref 동기화
     useEffect(() => {
         if (!isLoading) saveActiveSession(messages, tripleMode);
+        messagesHistoryRef.current = messages
+            .filter((m) => m.role === "user")
+            .slice(-3)
+            .map((m) => m.content);
     }, [messages, isLoading, tripleMode, saveActiveSession]);
 
     const handleClose = useCallback(() => {

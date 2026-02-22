@@ -2262,7 +2262,7 @@ ${draft || "(아직 초안 없음)"}
 export function createQnAApp() {
     initFirebase();
     const app = express();
-    app.use(express.json());
+    app.use(express.json({ limit: "5mb" }));
     app.use(createQnARouter());
 
     // Firebase 초기화 후 unified session, 패치, 지식 로드
