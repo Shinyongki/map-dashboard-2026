@@ -216,6 +216,7 @@ const EMBEDDINGS_FILE_PATH = path.join(process.cwd(), "server-embeddings-data.js
 const UNIFIED_SESSION_FILE_PATH = path.join(process.cwd(), "server-unified-session.json");
 const PROMPT_PATCHES_FILE_PATH = path.join(process.cwd(), "server-prompt-patches.json");
 const CODE_TASKS_FILE_PATH = path.join(process.cwd(), "server-code-tasks.json");
+const BASE_PROMPT_SECTIONS_FILE_PATH = path.join(process.cwd(), "server-base-prompt-sections.json");
 
 // ─── Unified Session (단일 컨텍스트 공유 대화 저장소) ─────────────
 interface UnifiedEntry {
@@ -488,6 +489,63 @@ async function deleteCodeTaskById(id: string): Promise<boolean> {
     }
     saveCodeTasksToLocalFile();
     return true;
+}
+
+// ─── Base Prompt Sections (세나가 직접 수정 가능한 섹션) ─────────────
+const BASE_PROMPT_SECTIONS_COLLECTION = "nomaBasePromptSections";
+let basePromptSections: Record<string, string> = {};
+
+function saveBasePromptSectionsToLocalFile() {
+    try {
+        fs.writeFileSync(BASE_PROMPT_SECTIONS_FILE_PATH, JSON.stringify(basePromptSections, null, 2), "utf-8");
+    } catch (err) {
+        console.error("[BasePromptSections] 로컬 저장 실패:", err);
+    }
+}
+
+async function loadBasePromptSections() {
+    if (isFirebaseReady()) {
+        try {
+            const snapshot = await getDb().collection(BASE_PROMPT_SECTIONS_COLLECTION).get();
+            for (const doc of snapshot.docs) {
+                const data = doc.data() as { content: string };
+                basePromptSections[doc.id] = data.content;
+            }
+            console.log(`[BasePromptSections] Firestore에서 ${snapshot.size}개 섹션 로드 완료`);
+            return;
+        } catch (err) {
+            console.warn("[BasePromptSections] Firestore 로드 실패, 로컬 파일 사용:", err);
+        }
+    }
+    try {
+        if (fs.existsSync(BASE_PROMPT_SECTIONS_FILE_PATH)) {
+            const data = fs.readFileSync(BASE_PROMPT_SECTIONS_FILE_PATH, "utf-8");
+            const parsed = JSON.parse(data);
+            if (parsed && typeof parsed === "object") {
+                basePromptSections = parsed;
+                console.log(`[BasePromptSections] 로컬 파일에서 ${Object.keys(parsed).length}개 섹션 로드 완료`);
+            }
+        }
+    } catch (err) {
+        console.error("[BasePromptSections] 로드 실패:", err);
+    }
+}
+
+async function updateBasePromptSection(sectionId: string, content: string, updatedBy: string): Promise<void> {
+    basePromptSections[sectionId] = content;
+    if (isFirebaseReady()) {
+        try {
+            await getDb().collection(BASE_PROMPT_SECTIONS_COLLECTION).doc(sectionId).set({
+                content,
+                updatedAt: new Date().toISOString(),
+                updatedBy,
+            });
+            return;
+        } catch (err) {
+            console.warn("[BasePromptSections] Firestore 저장 실패, 로컬 파일 사용:", err);
+        }
+    }
+    saveBasePromptSectionsToLocalFile();
 }
 
 function saveQuestionsToLocalFile() {
@@ -1785,6 +1843,26 @@ ${draft || "(아직 초안 없음)"}
         }
     });
 
+    // ── Base Prompt Sections API ──
+    router.get("/base-prompt-sections", (req: ExpressRequest, res: ExpressResponse) => {
+        res.json(basePromptSections);
+    });
+
+    router.put("/base-prompt-sections/:sectionId", async (req: ExpressRequest, res: ExpressResponse) => {
+        const sectionId = req.params.sectionId as string;
+        const { content, updatedBy = "sena" } = (req as any).body || {};
+        if (!content || typeof content !== "string") {
+            return res.status(400).json({ error: "content 필드가 필요합니다." });
+        }
+        try {
+            await updateBasePromptSection(sectionId, content, updatedBy);
+            console.log(`[BasePromptSections] 섹션 업데이트: "${sectionId}" by ${updatedBy}`);
+            res.json({ ok: true, sectionId });
+        } catch (err: any) {
+            res.status(500).json({ error: err.message });
+        }
+    });
+
     // ── Code Tasks API (대화창 세나 → 터미널 세나 협업) ──
     router.get("/code-tasks", (_req: ExpressRequest, res: ExpressResponse) => {
         res.json(codeTasks);
@@ -2063,6 +2141,28 @@ ${draft || "(아직 초안 없음)"}
                     },
                 },
                 {
+                    name: "update_base_prompt_section",
+                    description: "노마의 기본 시스템 프롬프트에서 특정 섹션을 직접 업데이트합니다. 패치로는 해결하기 어려운 구조적·근본적 행동 변화가 필요할 때만 사용하세요. 사용 가능한 섹션: identity, user-context, sectors, proactive-role, sena-insights, operation-principles, 3way-rules, response-format, data-analysis, sena-guidelines",
+                    input_schema: {
+                        type: "object" as const,
+                        properties: {
+                            section_id: {
+                                type: "string",
+                                description: "수정할 섹션 ID (예: 'sena-guidelines', 'proactive-role')",
+                            },
+                            new_content: {
+                                type: "string",
+                                description: "섹션의 새 내용 전체 (기존 내용을 완전히 대체합니다). 마크다운 형식으로 작성하세요.",
+                            },
+                            reason: {
+                                type: "string",
+                                description: "수정 이유: 어떤 패턴이 반복되었는지, 왜 패치가 아닌 기본 프롬프트 수정이 필요한지 설명하세요.",
+                            },
+                        },
+                        required: ["section_id", "new_content", "reason"],
+                    },
+                },
+                {
                     name: "request_code_task",
                     description: "터미널 세나(Claude Code)에게 코딩 작업을 요청합니다. 여러 사용자가 동일하게 보고하거나 명확한 버그·개선점을 발견했을 때만 사용하세요. 단발성 질문에는 절대 사용하지 마세요.",
                     input_schema: {
@@ -2162,6 +2262,15 @@ ${draft || "(아직 초안 없음)"}
                                 toolResults.push({ type: "tool_result", tool_use_id: toolBlock.id, content: `패치 저장 완료 (id: ${patch.id})` });
                             } catch (e) {
                                 toolResults.push({ type: "tool_result", tool_use_id: toolBlock.id, content: "패치 저장 실패", is_error: true });
+                            }
+                        } else if (toolBlock.name === "update_base_prompt_section") {
+                            const input = toolBlock.input as { section_id: string; new_content: string; reason: string };
+                            try {
+                                await updateBasePromptSection(input.section_id, input.new_content, "sena");
+                                console.log(`[BasePromptSections] 세나가 섹션 업데이트: "${input.section_id}" — ${input.reason}`);
+                                toolResults.push({ type: "tool_result", tool_use_id: toolBlock.id, content: `섹션 '${input.section_id}' 업데이트 완료` });
+                            } catch (e) {
+                                toolResults.push({ type: "tool_result", tool_use_id: toolBlock.id, content: "섹션 업데이트 실패", is_error: true });
                             }
                         } else if (toolBlock.name === "request_code_task") {
                             const input = toolBlock.input as {
@@ -2336,6 +2445,9 @@ export function createQnAApp() {
         );
         loadCodeTasks().catch((err) =>
             console.error("[CodeTasks] 초기 로드 실패:", err)
+        );
+        loadBasePromptSections().catch((err) =>
+            console.error("[BasePromptSections] 초기 로드 실패:", err)
         );
         loadFromLocalFile();
         reindexMissingEmbeddings().catch(err =>

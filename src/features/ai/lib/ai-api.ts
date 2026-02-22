@@ -59,6 +59,30 @@ export async function deletePromptPatch(id: string): Promise<boolean> {
     }
 }
 
+// ── Base Prompt Sections API ─────────────────────────────────────
+export async function fetchBasePromptSections(): Promise<Record<string, string>> {
+    try {
+        const res = await fetch("/qna-api/base-prompt-sections");
+        if (!res.ok) return {};
+        return res.json();
+    } catch {
+        return {};
+    }
+}
+
+export async function updateBasePromptSection(sectionId: string, content: string): Promise<boolean> {
+    try {
+        const res = await fetch(`/qna-api/base-prompt-sections/${sectionId}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ content, updatedBy: "manual" }),
+        });
+        return res.ok;
+    } catch {
+        return false;
+    }
+}
+
 export type TripleChunk =
     | { source: "noma" | "claude"; text: string; done?: never }
     | { source: "noma"; done: true; text?: never }

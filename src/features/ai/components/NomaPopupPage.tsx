@@ -15,9 +15,11 @@ import { useClimateRegionStats } from "@/features/climate/hooks/useClimateRegion
 import { useDisasterData } from "@/features/disaster/hooks/useDisasterData";
 import { useDisasterRegionStats } from "@/features/disaster/hooks/useDisasterRegionStats";
 import { useCareStatusByRegion } from "@/features/climate/hooks/useCareStatusByRegion";
+import { fetchBasePromptSections } from "../lib/ai-api";
 
 function NomaPopupInner() {
     const [input, setInput] = useState("");
+    const [basePromptSections, setBasePromptSections] = useState<Record<string, string>>({});
     const [showHistory, setShowHistory] = useState(false);
     const [feedbackMap, setFeedbackMap] = useState<Record<string, "up" | "down">>({});
     // localStorage 공유로 메인 창과 동일한 모드 유지
@@ -54,24 +56,26 @@ function NomaPopupInner() {
                     { activeTab: activeTab as any, actionHistory: messagesHistoryRef.current },
                     surveys ?? undefined,
                     undefined,
-                    extended
+                    extended,
+                    basePromptSections
                 ) + feedbackContext
             );
         },
-        [careStats, climateStats, disasterStats, careStatusByRegion, activeTab, surveys, feedbackContext]
+        [careStats, climateStats, disasterStats, careStatusByRegion, activeTab, surveys, feedbackContext, basePromptSections]
     );
 
     const { messages, isLoading, error, sendMessage, sendTripleMessage, clearMessages, loadMessages } = useChat(getSystemPrompt);
 
     const tripleTurns = useMemo(() => groupIntoTurns(messages), [messages]);
 
-    // 진행 중인 대화 복원
+    // 진행 중인 대화 복원 + 섹션 로드
     useEffect(() => {
         const active = loadActiveSession();
         if (active && active.messages.length >= 2) {
             loadMessages(active.messages);
             setTripleMode(active.tripleMode);
         }
+        fetchBasePromptSections().then(setBasePromptSections);
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 

@@ -9,7 +9,7 @@ import type { DashboardTab } from "../lib/ai-types";
 import ChatMessage from "./ChatMessage";
 import SuggestedQuestions from "./SuggestedQuestions";
 import { DiscussionCard, TripleHeader, groupIntoTurns } from "./TripleDiscussion";
-import { fetchUnifiedSession, clearUnifiedSession, fetchPromptPatches, deletePromptPatch, fetchCodeTasks, deleteCodeTask, type UnifiedEntry, type PromptPatch, type CodeTask } from "../lib/ai-api";
+import { fetchUnifiedSession, clearUnifiedSession, fetchPromptPatches, deletePromptPatch, fetchCodeTasks, deleteCodeTask, fetchBasePromptSections, type UnifiedEntry, type PromptPatch, type CodeTask } from "../lib/ai-api";
 import { useRegionStats } from "@/features/map/hooks/useRegionStats";
 import { useSurveys, useAvailableMonths } from "@/features/map/hooks/useMapData";
 import { useClimateData } from "@/features/climate/hooks/useClimateData";
@@ -39,6 +39,7 @@ export default function FloatingAIChat({ activeTab = "care" }: FloatingAIChatPro
     const [showUnifiedSession, setShowUnifiedSession] = useState(false);
     const [unifiedEntries, setUnifiedEntries] = useState<UnifiedEntry[]>([]);
     const [promptPatchList, setPromptPatchList] = useState<PromptPatch[]>([]);
+    const [basePromptSections, setBasePromptSections] = useState<Record<string, string>>({});
     const [codeTaskList, setCodeTaskList] = useState<CodeTask[]>([]);
     const [feedbackMap, setFeedbackMap] = useState<Record<string, "up" | "down">>({});
     const [tripleMode, setTripleMode] = useState(() => {
@@ -102,7 +103,8 @@ export default function FloatingAIChat({ activeTab = "care" }: FloatingAIChatPro
                 },
                 surveys ?? undefined,
                 promptPatchList,
-                extended
+                extended,
+                basePromptSections
             ) + feedbackContext;
             return prompt;
         },
@@ -120,7 +122,8 @@ export default function FloatingAIChat({ activeTab = "care" }: FloatingAIChatPro
                     { activeTab: t as any, climateAlerts: climateAlertRegions, disasterAlerts: disasterAlertRegions },
                     surveys ?? undefined,
                     promptPatchList,
-                    extended ?? false
+                    extended ?? false,
+                    basePromptSections
                 );
                 console.group(`📋 노마 systemPrompt [탭: ${t}, 확장: ${extended ?? false}]`);
                 console.log(`총 길이: ${prompt.length}자 / 약 ${Math.round(prompt.length / 4)} 토큰`);
@@ -144,6 +147,7 @@ export default function FloatingAIChat({ activeTab = "care" }: FloatingAIChatPro
         }
         fetchPromptPatches().then(setPromptPatchList);
         fetchCodeTasks().then(setCodeTaskList);
+        fetchBasePromptSections().then(setBasePromptSections);
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
@@ -165,14 +169,16 @@ export default function FloatingAIChat({ activeTab = "care" }: FloatingAIChatPro
 
     const handleToggleUnifiedSession = useCallback(async () => {
         if (!showUnifiedSession) {
-            const [entries, patches, tasks] = await Promise.all([
+            const [entries, patches, tasks, sections] = await Promise.all([
                 fetchUnifiedSession(),
                 fetchPromptPatches(),
                 fetchCodeTasks(),
+                fetchBasePromptSections(),
             ]);
             setUnifiedEntries(entries);
             setPromptPatchList(patches);
             setCodeTaskList(tasks);
+            setBasePromptSections(sections);
         }
         setShowUnifiedSession((v) => !v);
         setShowHistory(false);
