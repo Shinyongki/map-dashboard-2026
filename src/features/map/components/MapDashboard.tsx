@@ -8,6 +8,7 @@ import MapLegend from "./MapLegend";
 import MapMetricCards from "./MapMetricCards";
 import MapAnalytics from "./MapAnalytics";
 import AllocationMismatchPanel from "./AllocationMismatchPanel";
+import MowAllocationUpload from "@/features/qna/components/MowAllocationUpload";
 import {
     useAvailableMonths,
     useSurveys,
@@ -196,6 +197,10 @@ export default function MapDashboard() {
                         isDark={isDark}
                         onSelectSigun={(sigun) => setSelectedRegion(sigun)}
                     />
+                </div>
+
+                <div className="mt-6">
+                    <MowAllocationUpload />
                 </div>
             </div>
             <MapTooltip data={tooltip} />

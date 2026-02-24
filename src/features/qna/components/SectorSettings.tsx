@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Eye, EyeOff, CloudSun, AlertTriangle, Building } from "lucide-react";
 
 const STORAGE_KEY = "hidden_sectors";
@@ -26,13 +26,8 @@ export default function SectorSettings() {
     };
 
     return (
-        <div className="space-y-4">
-            <div>
-                <h3 className="text-base font-bold text-gray-900 mb-1">섹터 노출 설정</h3>
-                <p className="text-xs text-gray-500">비활성화해도 데이터·분석 기능은 유지됩니다. 상단 탭에서 해당 섹터가 숨겨집니다.</p>
-            </div>
-
-            <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+        <div className="space-y-3">
+            <div className="border border-gray-200 rounded-xl overflow-hidden">
                 {SECTORS.map(({ key, label, icon, color }) => {
                     const isVisible = !hidden.includes(key);
                     return (
@@ -56,7 +51,6 @@ export default function SectorSettings() {
                     );
                 })}
             </div>
-
             <p className="text-xs text-gray-400">돌봄현황·Q&A 탭은 항상 표시됩니다.</p>
         </div>
     );

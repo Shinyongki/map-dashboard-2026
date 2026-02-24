@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { MapPin, CloudSun, AlertTriangle, Building, MessageSquareText, FileText, Search } from "lucide-react";
+import { MapPin, CloudSun, AlertTriangle, Building, MessageSquareText, FileText, Search, Layers, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import SectorSettings from "@/features/qna/components/SectorSettings";
 import MapDashboard from "@/features/map/components/MapDashboard";
 import WelfareMap from "@/features/welfare/components/WelfareMap";
 import ClimateDashboard from "@/features/climate/components/ClimateDashboard";
@@ -22,6 +23,7 @@ export default function DashboardLayout() {
     const [activeTab, setActiveTab] = useState<DashboardTab>("care");
     const [showReportGenerator, setShowReportGenerator] = useState(false);
     const [showDocumentFeedback, setShowDocumentFeedback] = useState(false);
+    const [showSectorSettings, setShowSectorSettings] = useState(false);
     const [hiddenSectors, setHiddenSectors] = useState<SectorKey[]>(loadHiddenSectors);
 
     useEffect(() => {
@@ -103,6 +105,28 @@ export default function DashboardLayout() {
                         </TabsContent>
                     </Tabs>
                     <div className="absolute top-2 right-4 flex gap-2">
+                        <div className="relative">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setShowSectorSettings(v => !v)}
+                                className={`bg-white/80 backdrop-blur-sm gap-2 shadow-sm ${showSectorSettings ? "border-gray-400 text-gray-800 bg-gray-50" : "border-gray-300 text-gray-600 hover:bg-gray-50"}`}
+                            >
+                                <Layers className="h-4 w-4" />
+                                <span className="font-semibold">섹터 설정</span>
+                            </Button>
+                            {showSectorSettings && (
+                                <div className="absolute top-full right-0 mt-2 w-72 bg-white rounded-xl shadow-lg border border-gray-200 p-4 z-50">
+                                    <div className="flex items-center justify-between mb-3">
+                                        <span className="text-sm font-bold text-gray-800">섹터 노출 설정</span>
+                                        <button onClick={() => setShowSectorSettings(false)} className="p-1 hover:bg-gray-100 rounded-full text-gray-400">
+                                            <X className="h-4 w-4" />
+                                        </button>
+                                    </div>
+                                    <SectorSettings />
+                                </div>
+                            )}
+                        </div>
                         <Button
                             variant="outline"
                             size="sm"
@@ -116,7 +140,6 @@ export default function DashboardLayout() {
                             variant="outline"
                             size="sm"
                             onClick={() => setShowReportGenerator(true)}
-
                             className="bg-white/80 backdrop-blur-sm border-purple-200 text-purple-700 hover:bg-purple-50 hover:text-purple-800 gap-2 shadow-sm"
                         >
                             <FileText className="h-4 w-4" />
