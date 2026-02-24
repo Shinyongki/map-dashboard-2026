@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { FileText, Upload, Trash2, X, Calendar, Check, Edit2, Megaphone, User as UserIcon, Phone, Plus } from "lucide-react";
+import { FileText, Upload, Trash2, X, Calendar, Check, Edit2, Megaphone, User as UserIcon, Phone, Plus, Sparkles, Loader2 } from "lucide-react";
 import { useNotices } from "@/features/qna/hooks/useNotices";
+import { api } from "@/features/qna/api/client";
 import type { OfficialDocument } from "@/features/qna/lib/types";
 
 interface DocumentManagerProps {
@@ -69,6 +70,8 @@ export default function DocumentManager({
     const [expandedDocId, setExpandedDocId] = useState<string | null>(null);
 
     const [isDragging, setIsDragging] = useState(false);
+    const [isExtracting, setIsExtracting] = useState(false);
+    const [autoExtracted, setAutoExtracted] = useState<{ title?: boolean; documentNumber?: boolean }>({});
 
     const handleDragOver = (e: React.DragEvent) => {
         e.preventDefault();
@@ -84,7 +87,34 @@ export default function DocumentManager({
         e.preventDefault();
         setIsDragging(false);
         if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-            setFiles(Array.from(e.dataTransfer.files));
+            const selected = Array.from(e.dataTransfer.files);
+            setFiles(selected);
+            tryExtractFromPdf(selected);
+        }
+    };
+
+    const tryExtractFromPdf = async (selected: File[]) => {
+        const pdf = selected.find(f => f.name.endsWith(".pdf") || f.type === "application/pdf");
+        if (!pdf) return;
+        setIsExtracting(true);
+        try {
+            const formData = new FormData();
+            formData.append("file", pdf);
+            const result = await api.post<{ documentNumber: string; title: string }>("/documents/extract", formData);
+            const extracted: { title?: boolean; documentNumber?: boolean } = {};
+            if (result.documentNumber && !documentNumber) {
+                setDocumentNumber(result.documentNumber);
+                extracted.documentNumber = true;
+            }
+            if (result.title && !title) {
+                setTitle(result.title);
+                extracted.title = true;
+            }
+            setAutoExtracted(extracted);
+        } catch {
+            // 추출 실패 시 조용히 무시
+        } finally {
+            setIsExtracting(false);
         }
     };
 
@@ -113,6 +143,7 @@ export default function DocumentManager({
             setManagerPhone("");
             setManualContent("");
             setFiles([]);
+            setAutoExtracted({});
             setShowForm(false);
         } catch (err) {
             setError(err instanceof Error ? err.message : "업로드 실패");
@@ -197,27 +228,39 @@ export default function DocumentManager({
                     <form onSubmit={handleSubmit} className="space-y-3">
                         <div className="grid grid-cols-2 gap-3">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
                                     공문번호
+                                    {isExtracting && <Loader2 className="h-3 w-3 animate-spin text-emerald-500" />}
+                                    {autoExtracted.documentNumber && !isExtracting && (
+                                        <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full">
+                                            <Sparkles className="h-2.5 w-2.5" />자동 추출
+                                        </span>
+                                    )}
                                 </label>
                                 <input
                                     type="text"
                                     value={documentNumber}
-                                    onChange={(e) => setDocumentNumber(e.target.value)}
+                                    onChange={(e) => { setDocumentNumber(e.target.value); setAutoExtracted(p => ({ ...p, documentNumber: false })); }}
                                     placeholder="예: 경남복지-2026-001"
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                                    className={`w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 ${autoExtracted.documentNumber ? "border-emerald-300 bg-emerald-50/30" : "border-gray-300"}`}
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
                                     제목
+                                    {isExtracting && <Loader2 className="h-3 w-3 animate-spin text-emerald-500" />}
+                                    {autoExtracted.title && !isExtracting && (
+                                        <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full">
+                                            <Sparkles className="h-2.5 w-2.5" />자동 추출
+                                        </span>
+                                    )}
                                 </label>
                                 <input
                                     type="text"
                                     value={title}
-                                    onChange={(e) => setTitle(e.target.value)}
+                                    onChange={(e) => { setTitle(e.target.value); setAutoExtracted(p => ({ ...p, title: false })); }}
                                     placeholder="공문 제목"
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                                    className={`w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 ${autoExtracted.title ? "border-emerald-300 bg-emerald-50/30" : "border-gray-300"}`}
                                 />
                             </div>
                         </div>
@@ -266,9 +309,11 @@ export default function DocumentManager({
                                     type="file"
                                     accept=".pdf,.doc,.docx,.hwp,.md,.txt"
                                     multiple
-                                    onChange={(e) => {
+                                                    onChange={(e) => {
                                         if (e.target.files) {
-                                            setFiles(Array.from(e.target.files));
+                                            const selected = Array.from(e.target.files);
+                                            setFiles(selected);
+                                            tryExtractFromPdf(selected);
                                         }
                                     }}
                                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"

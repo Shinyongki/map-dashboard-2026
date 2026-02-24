@@ -8,6 +8,7 @@ import {
     LayoutList,
     MapPin,
     ArrowLeft,
+    Users,
 } from "lucide-react";
 import { useAuth } from "@/features/qna/hooks/useAuth";
 import { useQuestions } from "@/features/qna/hooks/useQuestions";
@@ -20,9 +21,10 @@ import QuestionDetail from "@/features/qna/components/QuestionDetail";
 import AdminPanel from "@/features/qna/components/AdminPanel";
 import DocumentManager from "@/features/qna/components/DocumentManager";
 import DocumentGrid from "@/features/qna/components/DocumentGrid";
+import MowAllocationUpload from "@/features/qna/components/MowAllocationUpload";
 
 type UserView = "documents" | "list" | "form" | "detail";
-type AdminTab = "questions" | "documents";
+type AdminTab = "questions" | "documents" | "allocation";
 
 export default function QnADashboard() {
     const { session, login, logout, isAdmin } = useAuth();
@@ -181,6 +183,16 @@ export default function QnADashboard() {
                             <FileText className="h-4 w-4" />
                             공문 관리
                         </button>
+                        <button
+                            onClick={() => setAdminTab("allocation")}
+                            className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${adminTab === "allocation"
+                                ? "bg-emerald-100 text-emerald-700"
+                                : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                                }`}
+                        >
+                            <Users className="h-4 w-4" />
+                            배정인원 관리
+                        </button>
                     </div>
 
                     {adminTab === "questions" ? (
@@ -193,7 +205,7 @@ export default function QnADashboard() {
                             onClose={closeQuestion}
                             onDelete={removeQuestion}
                         />
-                    ) : (
+                    ) : adminTab === "documents" ? (
                         <DocumentManager
                             documents={documents}
                             loading={docsLoading}
@@ -204,6 +216,8 @@ export default function QnADashboard() {
                             onSetValidUntil={setValidUntil}
                             uploadedBy={session.name}
                         />
+                    ) : (
+                        <MowAllocationUpload />
                     )}
                 </div>
             ) : (

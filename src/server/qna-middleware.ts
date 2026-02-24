@@ -1150,6 +1150,7 @@ ${draft || "(아직 초안 없음)"}
         }
 
         const results = [];
+        const parseErrors: string[] = [];
 
         for (const file of files) {
             let finalContent = manualContent || "";
@@ -1173,7 +1174,8 @@ ${draft || "(아직 초안 없음)"}
                         console.log(`[QnA] PDF 파싱 완료: ${fixFilename(file.originalname)} (${finalContent.length}자)`);
                     } catch (err) {
                         console.error("[QnA] PDF 파싱 오류:", err);
-                        finalContent = "(PDF 파싱 오류: " + fixFilename(file.originalname) + ")";
+                        finalContent = "";
+                        parseErrors.push(fixFilename(file.originalname));
                     }
                 } else {
                     finalContent = "(지원하지 않는 파일 형식: " + fixFilename(file.originalname) + " - PDF, TXT, MD 파일을 사용해주세요)";
@@ -1200,7 +1202,44 @@ ${draft || "(아직 초안 없음)"}
 
         // 로컬 저장
         saveDocumentsToLocalFile();
-        res.json({ success: true, count: results.length, documents: results });
+        res.json({ success: true, count: results.length, documents: results, ...(parseErrors.length > 0 && { parseErrors }) });
+    });
+
+    // PDF에서 공문번호·제목 추출 (저장 없음, 미리보기용)
+    router.post("/documents/extract", authenticateToken, upload.single("file"), async (req: ExpressRequest, res: ExpressResponse) => {
+        const file = (req as any).file as Express.Multer.File | undefined;
+        if (!file || !(file.mimetype === "application/pdf" || file.originalname.endsWith(".pdf"))) {
+            res.status(400).json({ error: "PDF 파일만 지원됩니다." });
+            return;
+        }
+        try {
+            const parsed = await pdfParse(file.buffer);
+            const text = parsed.text || "";
+
+            // 공문번호 추출 — 한국 행정 문서 패턴
+            let documentNumber = "";
+            const docNumPatterns = [
+                /문서번호\s*[:：]?\s*([가-힣a-zA-Z0-9]+[-–]\d{4}[-–]\d+)/,
+                /([가-힣]{2,}[가-힣a-zA-Z0-9]*[-–]\d{4}[-–]\d+)/,
+                /([가-힣]{2,}[-–][0-9가-힣A-Za-z]+-[0-9]+)/,
+            ];
+            for (const pattern of docNumPatterns) {
+                const m = text.match(pattern);
+                if (m) { documentNumber = m[1].trim(); break; }
+            }
+
+            // 제목 추출 — "제목:" 레이블 다음 텍스트
+            let title = "";
+            const titleMatch = text.match(/제목\s*[:：]\s*(.+)/);
+            if (titleMatch) {
+                title = titleMatch[1].trim();
+            }
+
+            res.json({ documentNumber, title, textLength: text.length });
+        } catch (err) {
+            console.error("[QnA] PDF extract 실패:", err);
+            res.status(500).json({ error: "PDF 파싱 실패" });
+        }
     });
 
     router.patch("/documents/:id", authenticateToken, upload.single("file"), async (req: ExpressRequest, res: ExpressResponse) => {
@@ -1220,13 +1259,16 @@ ${draft || "(아직 초안 없음)"}
 
         let newContent = manualContent !== undefined ? manualContent : doc.content;
 
+        let parseError = false;
         if (file && !manualContent) {
             if (file.mimetype === "application/pdf" || file.originalname.endsWith(".pdf")) {
                 try {
                     const parsed = await pdfParse(file.buffer);
                     newContent = parsed.text || "(PDF 내용 추출 실패)";
                 } catch (err) {
-                    newContent = "(PDF 파싱 오류)";
+                    console.error("[QnA] PDF 파싱 오류 (patch):", err);
+                    newContent = doc.content; // 기존 내용 유지
+                    parseError = true;
                 }
             } else {
                 newContent = file.buffer.toString("utf-8");
@@ -1245,7 +1287,7 @@ ${draft || "(아직 초안 없음)"}
                 content: doc.content,
             }).catch(console.error);
         }
-        res.json(doc);
+        res.json({ ...doc, ...(parseError && { parseError: true }) });
     });
 
     // 공문 파일 교체 (내용 재업로드)
@@ -1262,6 +1304,7 @@ ${draft || "(아직 초안 없음)"}
         }
 
         let newContent = manualContent || "";
+        let parseError = false;
         if (file && !manualContent) {
             if (file.mimetype === "application/pdf" || file.originalname.endsWith(".pdf")) {
                 try {
@@ -1269,7 +1312,9 @@ ${draft || "(아직 초안 없음)"}
                     newContent = parsed.text || "(PDF 내용 추출 실패)";
                     console.log(`[QnA] PDF 재업로드 파싱 완료: ${fixFilename(file.originalname)} (${newContent.length}자)`);
                 } catch (err) {
-                    newContent = "(PDF 파싱 오류)";
+                    console.error("[QnA] PDF 파싱 오류 (reupload):", err);
+                    newContent = doc.content; // 기존 내용 유지
+                    parseError = true;
                 }
             } else {
                 newContent = file.buffer.toString("utf-8");
@@ -1281,7 +1326,7 @@ ${draft || "(아직 초안 없음)"}
         if (isFirebaseReady()) {
             getDb().collection("documents").doc(doc.id).update({ content: newContent }).catch(console.error);
         }
-        res.json({ success: true, contentLength: newContent.length });
+        res.json({ success: true, contentLength: newContent.length, ...(parseError && { parseError: true }) });
     });
 
     router.patch("/documents/:id/valid-until", authenticateToken, (req: ExpressRequest, res: ExpressResponse) => {
@@ -2411,6 +2456,78 @@ ${draft || "(아직 초안 없음)"}
 
     // 초기 로드
     loadNoticesFromLocalFile();
+
+    // ── 광역 배정인원 업로드 ──────────────────────────────────────────────
+
+    // 업로드 이력 조회
+    router.get("/mow-allocation/history", authenticateToken, async (_req: ExpressRequest, res: ExpressResponse) => {
+        if (isFirebaseReady()) {
+            try {
+                const snap = await getDb().collection("mowAllocationHistory")
+                    .orderBy("uploadedAt", "desc")
+                    .limit(20)
+                    .get();
+                res.json(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+                return;
+            } catch { /* fallback below */ }
+        }
+        res.json([]);
+    });
+
+    // CSV 업로드 — 기관코드,전담사회복지사,생활지원사,이용자
+    router.post("/mow-allocation/upload", authenticateToken, upload.single("file"), async (req: ExpressRequest, res: ExpressResponse) => {
+        const file = (req as any).file as Express.Multer.File | undefined;
+        if (!file) { res.status(400).json({ error: "파일이 없습니다." }); return; }
+
+        const text = file.buffer.toString("utf-8");
+        const lines = text.trim().split(/\r?\n/).filter(l => l.trim());
+        if (lines.length < 2) { res.status(400).json({ error: "유효한 CSV 형식이 아닙니다. (헤더 + 데이터 1줄 이상 필요)" }); return; }
+
+        const headers = lines[0].split(",").map(h => h.trim());
+        const codeIdx = headers.findIndex(h => h === "기관코드" || h === "code");
+        const swIdx = headers.findIndex(h => h.includes("사회복지사") || h === "socialWorker");
+        const cgIdx = headers.findIndex(h => h.includes("생활지원사") || h === "careProvider");
+        const usersIdx = headers.findIndex(h => h.includes("이용자") || h === "users");
+
+        if (codeIdx === -1) { res.status(400).json({ error: "헤더에 '기관코드' 컬럼이 없습니다." }); return; }
+
+        const allocations: Record<string, { socialWorker: number; careProvider: number; users: number }> = {};
+        for (let i = 1; i < lines.length; i++) {
+            const cols = lines[i].split(",").map(c => c.trim());
+            const code = cols[codeIdx];
+            if (!code) continue;
+            allocations[code] = {
+                socialWorker: swIdx >= 0 ? (parseInt(cols[swIdx]) || 0) : 0,
+                careProvider: cgIdx >= 0 ? (parseInt(cols[cgIdx]) || 0) : 0,
+                users: usersIdx >= 0 ? (parseInt(cols[usersIdx]) || 0) : 0,
+            };
+        }
+
+        const count = Object.keys(allocations).length;
+        if (count === 0) { res.status(400).json({ error: "파싱된 데이터가 없습니다. CSV 형식을 확인해주세요." }); return; }
+
+        const uploader = (req as any).user?.name || "unknown";
+        const uploadedAt = new Date().toISOString();
+        const filename = fixFilename(file.originalname);
+
+        if (isFirebaseReady()) {
+            await getDb().collection("mowAllocation").doc("current").set({ allocations, updatedAt: uploadedAt, updatedBy: uploader });
+            await getDb().collection("mowAllocationHistory").add({ filename, uploadedAt, uploadedBy: uploader, count });
+        }
+
+        res.json({ success: true, count, uploadedAt, filename });
+    });
+
+    // 현재 배정인원 데이터 조회 (프론트 병합용)
+    router.get("/mow-allocation", authenticateToken, async (_req: ExpressRequest, res: ExpressResponse) => {
+        if (isFirebaseReady()) {
+            try {
+                const doc = await getDb().collection("mowAllocation").doc("current").get();
+                if (doc.exists) { res.json(doc.data()); return; }
+            } catch { /* fallback */ }
+        }
+        res.json({ allocations: {} });
+    });
 
     // ── Health check ──
     router.get("/health", (_req: ExpressRequest, res: ExpressResponse) => {
