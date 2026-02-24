@@ -1,4 +1,3 @@
-import Anthropic from "@anthropic-ai/sdk";
 import { Router as ExpressRouter, Request as ExpressRequest, Response as ExpressResponse, NextFunction } from "express";
 import express from "express";
 import jwt from "jsonwebtoken";
@@ -749,7 +748,7 @@ async function retrieveRelevantChunks(query: string, topK = 6): Promise<string> 
 }
 
 async function indexKnowledgeItem(item: MockKnowledgeItem): Promise<void> {
-    const geminiKey = (process.env.GOOGLE_GEMINI_API_KEY || "").trim().replace(/^["']|["']$/g, "");
+    const geminiKey = process.env.GOOGLE_GEMINI_API_KEY;
     if (!geminiKey) {
         console.warn("[QnA] Gemini 키 없음 - 임베딩 건너뜀");
         return;
@@ -1944,13 +1943,12 @@ ${draft || "(아직 초안 없음)"}
         }
     });
 
-    // ── Triple Chat (노마 + 세나 3자 대화) ──
+    // ── Triple Chat (Unified Noma Chat) ──
     router.post("/triple-chat", async (req: ExpressRequest, res: ExpressResponse) => {
         const { messages = [], systemPrompt = "" } = (req as any).body || {};
         const geminiKey = (process.env.GOOGLE_GEMINI_API_KEY || "").trim().replace(/^["']|["']$/g, "");
-        const anthropicKey = (process.env.ANTHROPIC_API_KEY || "").trim().replace(/^["']|["']$/g, "");
 
-        if (!geminiKey || !anthropicKey) {
+        if (!geminiKey) {
             res.status(503).json({ error: "AI 서비스가 설정되지 않았습니다." });
             return;
         }
@@ -1966,7 +1964,7 @@ ${draft || "(아직 초안 없음)"}
         res.setHeader("Connection", "keep-alive");
         res.flushHeaders();
 
-        const writeChunk = (source: "noma" | "claude", text: string) => {
+        const writeChunk = (source: "noma", text: string) => {
             res.write(`data: ${JSON.stringify({ source, text })}\n\n`);
         };
 
@@ -1974,7 +1972,7 @@ ${draft || "(아직 초안 없음)"}
             // ── 0. 사용자 메시지 → unified session 저장 ───────────────
             await appendUnified({ role: "user", content: lastMessage.content, timestamp: new Date().toISOString() });
 
-            // ── 1. 노마(Gemini 2.5 Pro) 응답 ─────────────────────────
+            // ── 1. RAG 컨텍스트 및 시스템 프롬프트 구성 ────────────────
             let ragContext = "";
             if (mockEmbeddedChunks.length > 0) {
                 try {
@@ -1982,67 +1980,17 @@ ${draft || "(아직 초안 없음)"}
                 } catch { /* 무시 */ }
             }
 
-            const nomaSystemPrompt = systemPrompt + (ragContext ? `\n\n## 관련 지식베이스 검색 결과\n${ragContext}` : "");
-
-            const ai = new GoogleGenAI({ apiKey: geminiKey });
-
-            // 노마 히스토리: user/noma만 사용 (Gemini user/model 교대 엄수)
-            // 세나 발언은 시스템 프롬프트의 unified session 이력으로 전달 — API 히스토리에 주입하지 않음
-            const nomaContents: { role: "user" | "model"; parts: { text: string }[] }[] = [];
-            for (const m of messages.slice(0, -1)) {
-                if (m.role === "user") {
-                    nomaContents.push({ role: "user", parts: [{ text: `[사용자] ${m.content}` }] });
-                } else if (m.role === "noma") {
-                    nomaContents.push({ role: "model", parts: [{ text: m.content || "(응답 없음)" }] });
-                }
-                // claude/sena 발언은 skip — unified session 이력에서 처리
-            }
-            nomaContents.push({ role: "user", parts: [{ text: `[사용자] ${lastMessage.content}` }] });
-
-            const nomaStream = await ai.models.generateContentStream({
-                model: "gemini-2.5-flash",
-                contents: nomaContents,
-                config: {
-                    systemInstruction: nomaSystemPrompt || undefined,
-                } as any,
-            });
-
-            let nomaFullResponse = "";
-            for await (const chunk of nomaStream) {
-                const text = chunk.text;
-                if (text) {
-                    nomaFullResponse += text;
-                    writeChunk("noma", text);
-                }
-            }
-
-            // 노마 응답 → unified session 저장
-            if (nomaFullResponse) {
-                await appendUnified({ role: "noma", content: nomaFullResponse, timestamp: new Date().toISOString() });
-            }
-
-            // ── 2. 노마 응답 구분선 ────────────────────────────────────
-            res.write(`data: ${JSON.stringify({ source: "noma", done: true })}\n\n`);
-
-            // ── 3. 세나(선배 컨설턴트) 응답 ─────────────────────────
-            // unified session 이력: insight/decision/action 압축 처리, 대화는 최근 10개
-            const HISTORY_CONTENT_MAX = 600; // 항목당 최대 600자 (최신 항목)
-            const COMPRESSED_MAX = 80;       // 오래된 항목 압축 길이
-            const truncateEntry = (text: string) =>
-                text.length > HISTORY_CONTENT_MAX ? text.slice(0, HISTORY_CONTENT_MAX) + "…(생략)" : text;
-            const compressEntry = (text: string) =>
-                text.length > COMPRESSED_MAX ? text.slice(0, COMPRESSED_MAX) + "…" : text;
+            // unified session 이력 압축 (중요 항목 + 최근 대화)
+            const HISTORY_CONTENT_MAX = 600;
+            const COMPRESSED_MAX = 80;
+            const truncateEntry = (text: string) => text.length > HISTORY_CONTENT_MAX ? text.slice(0, HISTORY_CONTENT_MAX) + "…(생략)" : text;
+            const compressEntry = (text: string) => text.length > COMPRESSED_MAX ? text.slice(0, COMPRESSED_MAX) + "…" : text;
             const roleLabel: Record<string, string> = {
-                user: "사용자", noma: "노마", sena: "세나",
+                user: "사용자", noma: "노마",
                 insight: "💡 인사이트", decision: "✅ 결정", action: "⚡ 액션",
             };
 
-            // ── 중요 항목 압축 처리 ──
-            // 1. 전체 insight/decision/action 수집
-            const allImportant = unifiedSession.filter(
-                (e) => e.role === "insight" || e.role === "decision" || e.role === "action"
-            );
-            // 2. 중복 제거: 동일 role + content 앞 60자 기준, 최신 항목만 유지
+            const allImportant = unifiedSession.filter((e) => e.role === "insight" || e.role === "decision" || e.role === "action");
             const dedupSeen = new Set<string>();
             const deduped = [...allImportant].reverse().filter((e) => {
                 const key = e.role + ":" + e.content.slice(0, 60).trim().toLowerCase();
@@ -2050,21 +1998,10 @@ ${draft || "(아직 초안 없음)"}
                 dedupSeen.add(key);
                 return true;
             }).reverse();
-            // 3. action은 최근 3개만 유지 (오래된 완료 액션 컨텍스트 제외)
-            const recentActionTimestamps = new Set(
-                deduped.filter((e) => e.role === "action").slice(-3).map((e) => e.timestamp)
-            );
-            // 4. 최종 목록: action은 최근 3개, 나머지 최대 10개
-            const importantEntries = deduped
-                .filter((e) => e.role !== "action" || recentActionTimestamps.has(e.timestamp))
-                .slice(-10);
-            // 5. 최신 4개는 원문, 나머지는 80자 압축
+            const recentActionTimestamps = new Set(deduped.filter((e) => e.role === "action").slice(-3).map((e) => e.timestamp));
+            const importantEntries = deduped.filter((e) => e.role !== "action" || recentActionTimestamps.has(e.timestamp)).slice(-10);
             const recentStartIdx = Math.max(0, importantEntries.length - 4);
-
-            const recentConversation = unifiedSession
-                .filter((e) => e.role === "user" || e.role === "noma" || e.role === "sena")
-                .slice(-10);
-            // 중요 항목 + 최근 대화를 시간순으로 병합 (중복 제거)
+            const recentConversation = unifiedSession.filter((e) => e.role === "user" || e.role === "noma" || e.role === "sena").slice(-10);
             const importantIds = new Set(importantEntries.map((e) => e.timestamp + e.role));
             const merged = [
                 ...importantEntries,
@@ -2072,297 +2009,175 @@ ${draft || "(아직 초안 없음)"}
             ].sort((a, b) => a.timestamp.localeCompare(b.timestamp));
 
             const unifiedHistoryText = merged.length > 0
-                ? "\n\n## 공유 대화 이력 (노마·사용자·세나 3자 전체 기록)\n" +
-                  (importantEntries.length > 0
-                      ? `### 📌 누적 인사이트·결정·액션 (${importantEntries.length}개, 중복 제거·완료 액션 제외)\n` +
-                        importantEntries.map((e, idx) => {
-                            const label = roleLabel[e.role];
-                            const content = idx >= recentStartIdx
-                                ? truncateEntry(e.content)
-                                : compressEntry(e.content);
-                            return `[${label}] ${content}`;
-                        }).join("\n\n") +
-                        "\n\n### 💬 최근 대화 (최근 10건)\n" +
-                        recentConversation.map(e => `[${roleLabel[e.role] ?? e.role}] ${truncateEntry(e.content)}`).join("\n\n")
-                      : merged.map(e => `[${roleLabel[e.role] ?? e.role}] ${truncateEntry(e.content)}`).join("\n\n"))
+                ? "\n\n## 공유 대화 이력 (전체 기록)\n" +
+                (importantEntries.length > 0
+                    ? `### 📌 누적 인사이트·결정·액션 (${importantEntries.length}개)\n` +
+                    importantEntries.map((e, idx) => `[${roleLabel[e.role] ?? e.role}] ${idx >= recentStartIdx ? truncateEntry(e.content) : compressEntry(e.content)}`).join("\n\n") +
+                    "\n\n### 💬 최근 대화 (최근 10건)\n" +
+                    recentConversation.map(e => `[${roleLabel[e.role] ?? e.role}] ${truncateEntry(e.content)}`).join("\n\n")
+                    : merged.map(e => `[${roleLabel[e.role] ?? e.role}] ${truncateEntry(e.content)}`).join("\n\n"))
                 : "";
 
-            const claudeSystemPrompt = `당신의 이름은 세나입니다.
-이 통합관리시스템의 3자 논의에 참여하는 선배 컨설턴트입니다.
-노마(데이터 기반 운영 AI)와 사용자가 나누는 대화를 함께 보며 논의에 참여합니다.
+            const nomaSystemPrompt = systemPrompt +
+                (ragContext ? `\n\n## 관련 지식베이스 검색 결과\n${ragContext}` : "") +
+                unifiedHistoryText;
 
-당신의 역할:
-- 논의의 방향이 올바른지 검토하고 더 나은 방향을 제시
-- 노마가 놓쳤거나 간과한 쟁점과 리스크를 지적
-- 노마의 분석에 동의하거나 다른 관점에서 반론 제기
-- 사용자가 올바른 판단을 내릴 수 있도록 핵심 논점을 정리
-- 기술 구현은 방향이 결정된 후 필요시에만 간결하게 언급
-- 노마와 사용자 모두를 존중하되, 필요하다면 명확하게 의견 차이를 표현
-
-응답 방식:
-- 노마의 응답을 먼저 읽고 그것을 인식하며 시작 (예: "노마가 짚은 것처럼...", "노마의 분석에 한 가지 덧붙이자면...")
-- 항상 한국어로, 선배답게 명확하고 간결하게
-- 마크다운 형식 사용
-
-## append_unified_entry 사용 기준 (엄격하게 준수)
-당신은 대화 중 중요한 내용을 공유 메모에 직접 기록할 수 있습니다.
-단, 아래 기준을 반드시 지키세요:
-
-**기록해야 할 때 (role 종류)**
-- insight: 여러 대화에 걸쳐 도출된 비자명한 판단. "이 시스템의 핵심 병목은 X다" 같은 수준
-- decision: 사용자가 명시적으로 확정한 결정사항. "~로 하기로 했다"가 명확할 때만
-- action: 다음 대화에서도 추적해야 할 구체적 실행 항목. 담당자·기한이 있을 때 우선
-
-**절대 기록하지 말아야 할 때**
-- 일반적인 대화 내용, 인사, 설명 (이미 sena role로 자동 저장됨)
-- 노마나 사용자가 이미 말한 내용의 단순 반복
-- 불확실하거나 잠정적인 의견 (확정되지 않은 것은 insight로도 남기지 않음)
-- 한 대화에서 2개 이상 기록하는 것은 매우 드문 경우여야 함
-
-## propose_prompt_patch 사용 기준 (매우 엄격하게)
-노마의 시스템 프롬프트에 영구적인 행동 지침을 추가하는 도구입니다.
-
-**사용 가능한 경우**
-- 여러 대화에서 반복 확인된 노마의 구조적 판단 누락 또는 해석 오류
-- 사용자가 "노마 프롬프트에 ~를 추가해줘" 또는 "노마가 항상 ~하도록 해줘"라고 명시적으로 요청한 경우
-- 데이터 해석 방식의 근본적 오류 (예: 집계 기준 미명시, 재난-돌봄 연계 미흡)
-
-**절대 사용하지 않는 경우**
-- 일회성 코멘트나 이번 대화에서만 필요한 지시
-- 이미 노마가 잘 하고 있는 것을 재확인하는 내용
-- append_unified_entry로 충분한 내용 (insight/decision/action)
-- 한 세션에서 2회 이상 사용하는 것은 극히 드문 경우여야 함
-
-## request_code_task 사용 기준 (매우 엄격하게)
-터미널 세나(Claude Code, 로컬 개발 환경)에게 코딩 작업을 요청하는 도구입니다.
-
-**사용 가능한 경우**
-- 여러 사용자가 동일하게 보고하거나 반복 확인된 버그
-- 사용자가 명시적으로 "코드 수정해줘", "기능 추가해줘"라고 요청한 경우
-- 대화 중 발견한 명확한 시스템 결함 (데이터 오류, UI 깨짐 등)
-
-**절대 사용하지 않는 경우**
-- 단발성 질문이나 이번 대화에서만 해결 가능한 내용
-- 아직 재현되지 않았거나 불확실한 문제
-- 대화로 충분히 안내할 수 있는 사용법 문의${unifiedHistoryText}`;
-
-            // 세나 Function Calling tool 정의 (Anthropic 형식)
-            const senaTools: Anthropic.Tool[] = [
-                {
-                    name: "append_unified_entry",
-                    description: "대화 중 도출된 중요한 인사이트·결정·액션을 공유 메모에 직접 기록합니다. 엄격한 기준을 충족할 때만 사용하세요.",
-                    input_schema: {
-                        type: "object" as const,
-                        properties: {
-                            role: {
-                                type: "string",
-                                enum: ["insight", "decision", "action"],
-                                description: "insight: 비자명한 핵심 판단 | decision: 사용자가 확정한 결정 | action: 추적 필요한 실행 항목",
+            // ── 2. Noma Function Calling 도구 정의 (기존 Noma + Sena 도구 통합) ─────────
+            const nomaTools: any[] = [{
+                functionDeclarations: [
+                    {
+                        name: "append_unified_entry",
+                        description: "대화 중 도출된 중요한 인사이트·결정·액션을 공유 메모에 직접 기록합니다. 엄격한 기준을 충족할 때만 사용하세요.",
+                        parameters: {
+                            type: "OBJECT",
+                            properties: {
+                                role: { type: "STRING", description: "insight: 비자명한 핵심 판단 | decision: 사용자가 확정한 결정 | action: 추적 필요한 실행 항목" },
+                                content: { type: "STRING", description: "기록할 내용. 간결하고 명확하게 (2~4문장 이내)" },
                             },
-                            content: {
-                                type: "string",
-                                description: "기록할 내용. 간결하고 명확하게 (2~4문장 이내)",
-                            },
+                            required: ["role", "content"],
                         },
-                        required: ["role", "content"],
                     },
-                },
-                {
-                    name: "propose_prompt_patch",
-                    description: "노마(NOMA)의 시스템 프롬프트에 새로운 행동 지침을 영구 추가합니다. 여러 대화에 걸쳐 반복 확인된 노마의 판단 누락이나 오류 패턴이 있을 때만 사용하세요. 단순 코멘트나 일회성 제안에는 절대 사용하지 마세요.",
-                    input_schema: {
-                        type: "object" as const,
-                        properties: {
-                            title: {
-                                type: "string",
-                                description: "패치 제목 (예: '재난 데이터 해석 시 수행기관 연계 필수'). 20자 이내로 간결하게.",
+                    {
+                        name: "propose_prompt_patch",
+                        description: "시스템 프롬프트에 새로운 행동 지침을 영구 추가합니다. 반복 확인된 판단 누락이나 오류 패턴이 있을 때만 사용하세요.",
+                        parameters: {
+                            type: "OBJECT",
+                            properties: {
+                                title: { type: "STRING", description: "패치 제목 (예: '재난 데이터 해석 시 수행기관 연계 필수'). 20자 이내로 간결하게." },
+                                content: { type: "STRING", description: "추가할 구체적인 행동 지침. 즉시 실행 가능한 형태로 작성하세요." },
                             },
-                            content: {
-                                type: "string",
-                                description: "노마에게 추가할 구체적인 행동 지침. 노마가 즉시 실행 가능한 형태로 작성하세요.",
-                            },
+                            required: ["title", "content"],
                         },
-                        required: ["title", "content"],
                     },
-                },
-                {
-                    name: "update_base_prompt_section",
-                    description: "노마의 기본 시스템 프롬프트에서 특정 섹션을 직접 업데이트합니다. 패치로는 해결하기 어려운 구조적·근본적 행동 변화가 필요할 때만 사용하세요. 사용 가능한 섹션: identity, user-context, sectors, proactive-role, sena-insights, operation-principles, 3way-rules, response-format, data-analysis, sena-guidelines",
-                    input_schema: {
-                        type: "object" as const,
-                        properties: {
-                            section_id: {
-                                type: "string",
-                                description: "수정할 섹션 ID (예: 'sena-guidelines', 'proactive-role')",
+                    {
+                        name: "update_base_prompt_section",
+                        description: "통합관리시스템 기본 프롬프트에서 특정 섹션을 직접 업데이트합니다. 패치로는 해결하기 어려운 구조적·근본적 행동 변화가 필요할 때만 사용하세요. (가능한 섹션: identity, user-context, sectors, proactive-role, operation-principles, response-format, data-analysis)",
+                        parameters: {
+                            type: "OBJECT",
+                            properties: {
+                                section_id: { type: "STRING", description: "수정할 섹션 ID (예: 'proactive-role', 'data-analysis')" },
+                                new_content: { type: "STRING", description: "섹션의 새 내용 전체 (기존 내용을 대체합니다). 마크다운으로 작성하세요." },
+                                reason: { type: "STRING", description: "어떤 패턴이 반복되었는지, 왜 기본 수정이 필요한지 설명하세요." },
                             },
-                            new_content: {
-                                type: "string",
-                                description: "섹션의 새 내용 전체 (기존 내용을 완전히 대체합니다). 마크다운 형식으로 작성하세요.",
-                            },
-                            reason: {
-                                type: "string",
-                                description: "수정 이유: 어떤 패턴이 반복되었는지, 왜 패치가 아닌 기본 프롬프트 수정이 필요한지 설명하세요.",
-                            },
+                            required: ["section_id", "new_content", "reason"],
                         },
-                        required: ["section_id", "new_content", "reason"],
                     },
-                },
-                {
-                    name: "request_code_task",
-                    description: "터미널 세나(Claude Code)에게 코딩 작업을 요청합니다. 여러 사용자가 동일하게 보고하거나 명확한 버그·개선점을 발견했을 때만 사용하세요. 단발성 질문에는 절대 사용하지 마세요.",
-                    input_schema: {
-                        type: "object" as const,
-                        properties: {
-                            type: {
-                                type: "string",
-                                enum: ["bug_fix", "feature_request", "analysis", "question"],
-                                description: "bug_fix: 버그 수정 | feature_request: 기능 추가 | analysis: 코드 분석 | question: 기술 질문",
+                    {
+                        name: "request_code_task",
+                        description: "개발 환경에 코딩 작업을 요청합니다. 버그나 개선점을 발견했을 때만 사용하고 단순 질문에는 사용하지 마세요.",
+                        parameters: {
+                            type: "OBJECT",
+                            properties: {
+                                type: { type: "STRING", description: "bug_fix: 버그 수정 | feature_request: 기능 추가 | analysis: 코드 분석 | question: 기술 질문" },
+                                title: { type: "STRING", description: "작업 제목. 20자 이내로 간결하게." },
+                                description: { type: "STRING", description: "작업 내용을 구체적으로 설명합니다. 재현 방법, 예상/실제 동작을 포함하세요." },
+                                context: { type: "STRING", description: "관련 대화 맥락 요약. 어떤 상황에서 이 요청이 나왔는지 설명합니다." },
                             },
-                            title: { type: "string", description: "작업 제목. 20자 이내로 간결하게." },
-                            description: { type: "string", description: "작업 내용을 구체적으로 설명합니다. 재현 방법, 예상 동작, 실제 동작 등을 포함하세요." },
-                            context: { type: "string", description: "관련 대화 맥락 요약. 어떤 상황에서 이 요청이 나왔는지 설명합니다." },
-                        },
-                        required: ["type", "title", "description", "context"],
-                    },
-                },
-            ];
-
-            // 대화 이력 재구성 (Claude 형식)
-            const claudeMessages: Anthropic.MessageParam[] = [];
-            for (const m of messages.slice(0, -1)) {
-                if (m.role === "user") {
-                    claudeMessages.push({ role: "user", content: m.content });
-                } else if (m.role === "claude") {
-                    claudeMessages.push({ role: "assistant", content: m.content });
-                }
-            }
-
-            // 노마 응답은 unified history에 이미 포함됨 → 1200자로 절단하여 중복 토큰 최소화
-            const nomaResponsePreview = nomaFullResponse.length > 1200
-                ? nomaFullResponse.slice(0, 1200) + "…(이하 생략, 전문은 대화 이력 참조)"
-                : nomaFullResponse;
-            claudeMessages.push({
-                role: "user",
-                content: `사용자 질문: ${lastMessage.content}\n\n노마의 응답:\n${nomaResponsePreview}\n\n위 대화를 보고 선배 컨설턴트로서 의견을 주세요.`,
-            });
-
-            const anthropic = new Anthropic({ apiKey: anthropicKey });
-
-            // 세나 응답 (Claude streaming + tool_use 처리)
-            let senaFullResponse = "";
-            let continueLoop = true;
-            const loopMessages = [...claudeMessages];
-
-            while (continueLoop) {
-                const claudeStream = await anthropic.messages.stream({
-                    model: "claude-sonnet-4-6",
-                    max_tokens: 2048,
-                    system: claudeSystemPrompt,
-                    messages: loopMessages,
-                    tools: senaTools,
-                });
-
-                let currentText = "";
-                let toolUseBlocks: Anthropic.ToolUseBlock[] = [];
-
-                for await (const event of claudeStream) {
-                    if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
-                        currentText += event.delta.text;
-                        writeChunk("claude", event.delta.text);
-                    }
-                }
-
-                const finalMsg = await claudeStream.finalMessage();
-                senaFullResponse += currentText;
-
-                toolUseBlocks = finalMsg.content.filter(
-                    (b): b is Anthropic.ToolUseBlock => b.type === "tool_use"
-                );
-
-                if (finalMsg.stop_reason === "tool_use" && toolUseBlocks.length > 0) {
-                    const toolResults: Anthropic.ToolResultBlockParam[] = [];
-                    for (const toolBlock of toolUseBlocks) {
-                        if (toolBlock.name === "append_unified_entry") {
-                            const input = toolBlock.input as { role: "insight" | "decision" | "action"; content: string };
-                            try {
-                                await appendUnified({
-                                    role: input.role,
-                                    content: input.content,
-                                    timestamp: new Date().toISOString(),
-                                });
-                                toolResults.push({ type: "tool_result", tool_use_id: toolBlock.id, content: "저장 완료" });
-                            } catch (e) {
-                                toolResults.push({ type: "tool_result", tool_use_id: toolBlock.id, content: "저장 실패", is_error: true });
-                            }
-                        } else if (toolBlock.name === "propose_prompt_patch") {
-                            const input = toolBlock.input as { title: string; content: string };
-                            try {
-                                const patch = await appendPromptPatch({
-                                    title: input.title,
-                                    content: input.content,
-                                    proposedBy: "sena",
-                                    timestamp: new Date().toISOString(),
-                                });
-                                console.log(`[PromptPatch] 세나가 새 패치 제안: "${patch.title}"`);
-                                toolResults.push({ type: "tool_result", tool_use_id: toolBlock.id, content: `패치 저장 완료 (id: ${patch.id})` });
-                            } catch (e) {
-                                toolResults.push({ type: "tool_result", tool_use_id: toolBlock.id, content: "패치 저장 실패", is_error: true });
-                            }
-                        } else if (toolBlock.name === "update_base_prompt_section") {
-                            const input = toolBlock.input as { section_id: string; new_content: string; reason: string };
-                            try {
-                                await updateBasePromptSection(input.section_id, input.new_content, "sena");
-                                console.log(`[BasePromptSections] 세나가 섹션 업데이트: "${input.section_id}" — ${input.reason}`);
-                                toolResults.push({ type: "tool_result", tool_use_id: toolBlock.id, content: `섹션 '${input.section_id}' 업데이트 완료` });
-                            } catch (e) {
-                                toolResults.push({ type: "tool_result", tool_use_id: toolBlock.id, content: "섹션 업데이트 실패", is_error: true });
-                            }
-                        } else if (toolBlock.name === "request_code_task") {
-                            const input = toolBlock.input as {
-                                type: "bug_fix" | "feature_request" | "analysis" | "question";
-                                title: string;
-                                description: string;
-                                context: string;
-                            };
-                            try {
-                                const task = await appendCodeTask({
-                                    type: input.type,
-                                    title: input.title,
-                                    description: input.description,
-                                    context: input.context,
-                                    status: "pending",
-                                    proposedBy: "sena",
-                                    timestamp: new Date().toISOString(),
-                                });
-                                console.log(`[CodeTask] 세나가 새 코드 작업 요청: "${task.title}"`);
-                                toolResults.push({ type: "tool_result", tool_use_id: toolBlock.id, content: `작업 요청 저장 완료 (id: ${task.id})` });
-                            } catch (e) {
-                                toolResults.push({ type: "tool_result", tool_use_id: toolBlock.id, content: "작업 저장 실패", is_error: true });
-                            }
+                            required: ["type", "title", "description", "context"],
                         }
                     }
-                    loopMessages.push({ role: "assistant", content: finalMsg.content });
-                    loopMessages.push({ role: "user", content: toolResults });
-                } else {
-                    continueLoop = false;
+                ]
+            }];
+
+            const executeNomaFunction = async (name: string, args: any): Promise<any> => {
+                console.log(`[노마 도구 실행] ${name}`, args);
+                switch (name) {
+                    case "append_unified_entry":
+                        try {
+                            await appendUnified({ role: args.role, content: args.content, timestamp: new Date().toISOString() });
+                            return { status: "success", message: "저장 완료" };
+                        } catch (e: any) { return { status: "error", message: e.message }; }
+                    case "propose_prompt_patch":
+                        try {
+                            const patch = await appendPromptPatch({ title: args.title, content: args.content, proposedBy: "manual", timestamp: new Date().toISOString() });
+                            return { status: "success", id: patch.id, message: "패치 저장 완료" };
+                        } catch (e: any) { return { status: "error", message: e.message }; }
+                    case "update_base_prompt_section":
+                        try {
+                            await updateBasePromptSection(args.section_id, args.new_content, "noma");
+                            return { status: "success", message: `섹션 '${args.section_id}' 업데이트 완료` };
+                        } catch (e: any) { return { status: "error", message: e.message }; }
+                    case "request_code_task":
+                        try {
+                            const task = await appendCodeTask({ type: args.type, title: args.title, description: args.description, context: args.context, status: "pending", proposedBy: "sena", timestamp: new Date().toISOString() });
+                            return { status: "success", id: task.id, message: "작업 요청 저장 완료" };
+                        } catch (e: any) { return { status: "error", message: e.message }; }
+                    default: return { error: `알 수 없는 도구: ${name}` };
                 }
+            };
+
+            const ai = new GoogleGenAI({ apiKey: geminiKey });
+            const nomaContents: any[] = [];
+            for (const m of messages.slice(0, -1)) {
+                if (m.role === "user") nomaContents.push({ role: "user", parts: [{ text: `[사용자] ${m.content}` }] });
+                else nomaContents.push({ role: "model", parts: [{ text: m.content || "(응답 없음)" }] });
+            }
+            nomaContents.push({ role: "user", parts: [{ text: `[사용자] ${lastMessage.content}` }] });
+
+            const streamWithFunctionCalling = async (currentContents: any[]) => {
+                const stream = await ai.models.generateContentStream({
+                    model: "gemini-2.5-flash",
+                    contents: currentContents,
+                    config: { systemInstruction: nomaSystemPrompt || undefined, tools: nomaTools } as any,
+                });
+
+                const functionCalls: Array<{ name: string; args: any }> = [];
+                let modelText = "";
+
+                for await (const chunk of stream) {
+                    const text = chunk.text;
+                    if (text) {
+                        modelText += text;
+                        writeChunk("noma", text);
+                    }
+                    const fcs = (chunk as any).functionCalls;
+                    if (fcs?.length) {
+                        functionCalls.push(...fcs.map((fc: any) => ({ name: fc.name, args: fc.args ?? {} })));
+                    }
+                }
+
+                if (functionCalls.length > 0) {
+                    const functionResponses = await Promise.all(
+                        functionCalls.map(async (fc) => ({
+                            functionResponse: { name: fc.name, response: await executeNomaFunction(fc.name, fc.args) },
+                        }))
+                    );
+
+                    const updatedContents = [
+                        ...currentContents,
+                        { role: "model", parts: [{ text: modelText || "" }] },
+                        { role: "user", parts: functionResponses },
+                    ];
+
+                    const stream2 = await ai.models.generateContentStream({
+                        model: "gemini-2.5-flash",
+                        contents: updatedContents,
+                        config: { systemInstruction: nomaSystemPrompt || undefined } as any,
+                    });
+                    for await (const chunk of stream2) {
+                        const text = chunk.text;
+                        if (text) {
+                            modelText += text;
+                            writeChunk("noma", text);
+                        }
+                    }
+                }
+                return modelText;
+            };
+
+            const nomaFullResponse = await streamWithFunctionCalling(nomaContents);
+
+            if (nomaFullResponse) {
+                await appendUnified({ role: "noma", content: nomaFullResponse, timestamp: new Date().toISOString() });
             }
 
-            // 세나 응답 → unified session 저장
-            if (senaFullResponse) {
-                await appendUnified({ role: "sena", content: senaFullResponse, timestamp: new Date().toISOString() });
-            }
-
+            res.write(`data: ${JSON.stringify({ source: "noma", done: true })}\n\n`);
             res.write(`data: [DONE]\n\n`);
             res.end();
         } catch (err: any) {
-            console.error("[Triple Chat] 오류:", err.message);
-            if (!res.headersSent) {
-                res.status(500).json({ error: err.message });
-            } else {
-                res.write(`data: ${JSON.stringify({ error: err.message })}\n\n`);
-                res.end();
-            }
+            console.error("[Triple/Unified Chat] 오류:", err.message);
+            if (!res.headersSent) res.status(500).json({ error: err.message });
+            else { res.write(`data: ${JSON.stringify({ error: err.message })}\n\n`); res.end(); }
         }
     });
 

@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef } from "react";
 import type { ChatMessage } from "../lib/ai-types";
-import { streamChatResponse, streamTripleChatResponse } from "../lib/ai-api";
+import { streamTripleChatResponse } from "../lib/ai-api";
 
 /**
  * systemPrompt: 고정 문자열 OR 메시지별 동적 생성 함수.
@@ -37,6 +37,7 @@ export function useChat(
                 id: crypto.randomUUID(),
                 role: "assistant",
                 content: "",
+                source: "noma",
                 timestamp: new Date(),
             };
 
@@ -51,24 +52,28 @@ export function useChat(
 
             try {
                 const apiMessages = [...messages, userMessage].map((m) => ({
-                    role: m.role,
+                    role: m.role as any,
                     content: m.content,
                 }));
 
-                const stream = streamChatResponse(apiMessages, resolvedPrompt);
+                // unified endpoint (/triple-chat is now the unified tool-enabled endpoint)
+                const stream = streamTripleChatResponse(apiMessages, resolvedPrompt);
 
                 for await (const chunk of stream) {
-                    setMessages((prev) => {
-                        const updated = [...prev];
-                        const last = updated[updated.length - 1];
-                        if (last.role === "assistant") {
-                            updated[updated.length - 1] = {
-                                ...last,
-                                content: last.content + chunk,
-                            };
-                        }
-                        return updated;
-                    });
+                    if ("error" in chunk) {
+                        setError(chunk.error);
+                        break;
+                    }
+                    if ("done" in chunk && chunk.done) continue;
+                    if (!chunk.text) continue; // undefined/empty 텍스트 청크 무시
+
+                    setMessages((prev) =>
+                        prev.map((m) =>
+                            m.id === assistantMessage.id
+                                ? { ...m, content: m.content + chunk.text }
+                                : m
+                        )
+                    );
                 }
             } catch (err) {
                 const msg =
@@ -88,80 +93,6 @@ export function useChat(
         [messages, isLoading]
     );
 
-    // ── 3자 대화 모드 ────────────────────────────────────────────
-    const sendTripleMessage = useCallback(
-        async (content: string) => {
-            if (!content.trim() || isLoading) return;
-
-            setError(null);
-
-            const userMessage: ChatMessage = {
-                id: crypto.randomUUID(),
-                role: "user",
-                content: content.trim(),
-                timestamp: new Date(),
-            };
-
-            // 노마와 Claude 응답 placeholder 동시 생성
-            const nomaId = crypto.randomUUID();
-            const claudeId = crypto.randomUUID();
-            const nomaMessage: ChatMessage = {
-                id: nomaId,
-                role: "assistant",
-                content: "",
-                source: "noma",
-                timestamp: new Date(),
-            };
-            const claudeMessage: ChatMessage = {
-                id: claudeId,
-                role: "assistant",
-                content: "",
-                source: "claude",
-                timestamp: new Date(),
-            };
-
-            setMessages((prev) => [...prev, userMessage, nomaMessage, claudeMessage]);
-            setIsLoading(true);
-
-            try {
-                const apiMessages = [...messages, userMessage].map((m) => ({
-                    role: (m.source === "noma" ? "noma" : m.source === "claude" ? "claude" : m.role) as any,
-                    content: m.content,
-                }));
-
-                const resolvedPromptTriple =
-                    typeof systemPromptRef.current === "function"
-                        ? systemPromptRef.current(content)
-                        : systemPromptRef.current;
-                const stream = streamTripleChatResponse(apiMessages, resolvedPromptTriple);
-
-                for await (const chunk of stream) {
-                    if ("error" in chunk) {
-                        setError(chunk.error);
-                        break;
-                    }
-                    if ("done" in chunk && chunk.done) continue;
-                    if (!chunk.text) continue; // undefined/empty 텍스트 청크 무시
-
-                    const targetId = chunk.source === "noma" ? nomaId : claudeId;
-                    setMessages((prev) =>
-                        prev.map((m) =>
-                            m.id === targetId
-                                ? { ...m, content: m.content + chunk.text }
-                                : m
-                        )
-                    );
-                }
-            } catch (err) {
-                const msg = err instanceof Error ? err.message : "알 수 없는 오류";
-                setError(msg);
-            } finally {
-                setIsLoading(false);
-            }
-        },
-        [messages, isLoading]
-    );
-
     const clearMessages = useCallback(() => {
         setMessages([]);
         setError(null);
@@ -172,5 +103,6 @@ export function useChat(
         setError(null);
     }, []);
 
-    return { messages, isLoading, error, sendMessage, sendTripleMessage, clearMessages, loadMessages };
+    // sendTripleMessage is aliased to sendMessage for backward compatibility while refactoring
+    return { messages, isLoading, error, sendMessage, sendTripleMessage: sendMessage, clearMessages, loadMessages };
 }

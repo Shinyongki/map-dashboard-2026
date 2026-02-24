@@ -122,7 +122,10 @@ export async function* streamTripleChatResponse(
                 if (data === "[DONE]") return;
                 try {
                     const parsed = JSON.parse(data);
-                    if (parsed.error) throw new Error(parsed.error);
+                    if (parsed.error) {
+                        yield { error: parsed.error } as TripleChunk;
+                        return;
+                    }
                     // source가 noma/claude 가 아닌 system 청크는 무시 (tool_use 알림 등)
                     if (parsed.source !== "noma" && parsed.source !== "claude") continue;
                     yield parsed as TripleChunk;
