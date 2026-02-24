@@ -9,6 +9,7 @@ import {
     MapPin,
     ArrowLeft,
     Users,
+    Layers,
 } from "lucide-react";
 import { useAuth } from "@/features/qna/hooks/useAuth";
 import { useQuestions } from "@/features/qna/hooks/useQuestions";
@@ -22,9 +23,10 @@ import AdminPanel from "@/features/qna/components/AdminPanel";
 import DocumentManager from "@/features/qna/components/DocumentManager";
 import DocumentGrid from "@/features/qna/components/DocumentGrid";
 import MowAllocationUpload from "@/features/qna/components/MowAllocationUpload";
+import SectorSettings from "@/features/qna/components/SectorSettings";
 
 type UserView = "documents" | "list" | "form" | "detail";
-type AdminTab = "questions" | "documents" | "allocation";
+type AdminTab = "questions" | "documents" | "allocation" | "sectors";
 
 export default function QnADashboard() {
     const { session, login, logout, isAdmin } = useAuth();
@@ -193,6 +195,16 @@ export default function QnADashboard() {
                             <Users className="h-4 w-4" />
                             배정인원 관리
                         </button>
+                        <button
+                            onClick={() => setAdminTab("sectors")}
+                            className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${adminTab === "sectors"
+                                ? "bg-emerald-100 text-emerald-700"
+                                : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                                }`}
+                        >
+                            <Layers className="h-4 w-4" />
+                            섹터 설정
+                        </button>
                     </div>
 
                     {adminTab === "questions" ? (
@@ -216,8 +228,10 @@ export default function QnADashboard() {
                             onSetValidUntil={setValidUntil}
                             uploadedBy={session.name}
                         />
-                    ) : (
+                    ) : adminTab === "allocation" ? (
                         <MowAllocationUpload />
+                    ) : (
+                        <SectorSettings />
                     )}
                 </div>
             ) : (

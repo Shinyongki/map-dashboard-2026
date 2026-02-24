@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { MapPin, CloudSun, AlertTriangle, Building, MessageSquareText, FileText, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -11,13 +11,27 @@ import QnADashboard from "@/features/qna/components/QnADashboard";
 import AIReportGenerator from "@/features/ai/components/AIReportGenerator";
 import DocumentFeedback from "@/features/ai/components/DocumentFeedback";
 
-
 type DashboardTab = "care" | "welfare" | "climate" | "disaster" | "qna";
+type SectorKey = "welfare" | "climate" | "disaster";
+
+function loadHiddenSectors(): SectorKey[] {
+    try { return JSON.parse(localStorage.getItem("hidden_sectors") || "[]"); } catch { return []; }
+}
 
 export default function DashboardLayout() {
     const [activeTab, setActiveTab] = useState<DashboardTab>("care");
     const [showReportGenerator, setShowReportGenerator] = useState(false);
     const [showDocumentFeedback, setShowDocumentFeedback] = useState(false);
+    const [hiddenSectors, setHiddenSectors] = useState<SectorKey[]>(loadHiddenSectors);
+
+    useEffect(() => {
+        const handler = () => setHiddenSectors(loadHiddenSectors());
+        window.addEventListener("sectors-changed", handler);
+        window.addEventListener("storage", handler);
+        return () => { window.removeEventListener("sectors-changed", handler); window.removeEventListener("storage", handler); };
+    }, []);
+
+    const show = (key: SectorKey) => !hiddenSectors.includes(key);
 
 
     return (
@@ -37,27 +51,33 @@ export default function DashboardLayout() {
                                 <MapPin className="h-4 w-4" />
                                 <span className="font-semibold">돌봄현황</span>
                             </TabsTrigger>
-                            <TabsTrigger
-                                value="welfare"
-                                className="h-10 px-4 gap-2 data-[state=active]:bg-indigo-50 data-[state=active]:text-indigo-700 data-[state=active]:shadow-none rounded-lg"
-                            >
-                                <Building className="h-4 w-4" />
-                                <span className="font-semibold">복지자원</span>
-                            </TabsTrigger>
-                            <TabsTrigger
-                                value="climate"
-                                className="h-10 px-4 gap-2 data-[state=active]:bg-orange-50 data-[state=active]:text-orange-700 data-[state=active]:shadow-none rounded-lg"
-                            >
-                                <CloudSun className="h-4 w-4" />
-                                <span className="font-semibold">기후대응</span>
-                            </TabsTrigger>
-                            <TabsTrigger
-                                value="disaster"
-                                className="h-10 px-4 gap-2 data-[state=active]:bg-red-50 data-[state=active]:text-red-700 data-[state=active]:shadow-none rounded-lg"
-                            >
-                                <AlertTriangle className="h-4 w-4" />
-                                <span className="font-semibold">자연재난</span>
-                            </TabsTrigger>
+                            {show("welfare") && (
+                                <TabsTrigger
+                                    value="welfare"
+                                    className="h-10 px-4 gap-2 data-[state=active]:bg-indigo-50 data-[state=active]:text-indigo-700 data-[state=active]:shadow-none rounded-lg"
+                                >
+                                    <Building className="h-4 w-4" />
+                                    <span className="font-semibold">복지자원</span>
+                                </TabsTrigger>
+                            )}
+                            {show("climate") && (
+                                <TabsTrigger
+                                    value="climate"
+                                    className="h-10 px-4 gap-2 data-[state=active]:bg-orange-50 data-[state=active]:text-orange-700 data-[state=active]:shadow-none rounded-lg"
+                                >
+                                    <CloudSun className="h-4 w-4" />
+                                    <span className="font-semibold">기후대응</span>
+                                </TabsTrigger>
+                            )}
+                            {show("disaster") && (
+                                <TabsTrigger
+                                    value="disaster"
+                                    className="h-10 px-4 gap-2 data-[state=active]:bg-red-50 data-[state=active]:text-red-700 data-[state=active]:shadow-none rounded-lg"
+                                >
+                                    <AlertTriangle className="h-4 w-4" />
+                                    <span className="font-semibold">자연재난</span>
+                                </TabsTrigger>
+                            )}
                             <TabsTrigger
                                 value="qna"
                                 className="h-10 px-4 gap-2 data-[state=active]:bg-emerald-50 data-[state=active]:text-emerald-700 data-[state=active]:shadow-none rounded-lg"
@@ -106,9 +126,9 @@ export default function DashboardLayout() {
                 </div>
             </div>
             {activeTab === "care" && <MapDashboard />}
-            {activeTab === "welfare" && <WelfareMap />}
-            {activeTab === "climate" && <ClimateDashboard />}
-            {activeTab === "disaster" && <DisasterDashboard />}
+            {activeTab === "welfare" && show("welfare") && <WelfareMap />}
+            {activeTab === "climate" && show("climate") && <ClimateDashboard />}
+            {activeTab === "disaster" && show("disaster") && <DisasterDashboard />}
             {activeTab === "qna" && <QnADashboard />}
             <FloatingAIChat activeTab={activeTab} />
             <AIReportGenerator open={showReportGenerator} onClose={() => setShowReportGenerator(false)} />
