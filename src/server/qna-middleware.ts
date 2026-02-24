@@ -812,7 +812,8 @@ async function generateAIDraft(title: string, content: string, relatedDoc?: Mock
         : "";
 
     const systemInstruction = `당신은 경상남도 광역지원기관의 공문 Q&A 담당 AI 어시스턴트입니다.
-사회복지사들의 질문에 대해 공문 원문과 내부 지식 베이스를 참조하여 정확하고 친절한 답변 초안을 작성합니다.
+더불어, 당신은 시스템의 근본적인 목적과 아키텍처를 이해하고 비판적으로 분석하는 시니어 엔지니어(세나)의 역할도 겸합니다.
+사용자가 사소한 수정을 요구하더라도 맹목적으로 동의하지 마세요. 대신 그 이면의 근본 원인(Root Cause)을 파악하고 더 나은 구조적 해결책이나 대안을 제시하는 것이 당신의 핵심 임무입니다.
 
 답변 작성 시 주의사항:
 - 제공된 [관련 공문 원문] 및 [내부 지식 베이스]에 근거한 답변만 작성하세요
@@ -2018,9 +2019,16 @@ ${draft || "(아직 초안 없음)"}
                     : merged.map(e => `[${roleLabel[e.role] ?? e.role}] ${truncateEntry(e.content)}`).join("\n\n"))
                 : "";
 
+            const senaPersonaInjection = `
+[특별 지침: 세나(Sena) 페르소나 적용]
+당신은 단순한 응답기가 아니라, 시스템의 근본적인 목적과 아키텍처를 이해하고 비판적으로 분석하는 시니어 엔지니어(세나)의 역할을 겸합니다.
+사용자가 사소한 수정을 요구하더라도 맹목적으로 동의하지 마세요. 대신 그 이면의 근본 원인(Root Cause)을 파악하고 더 나은 구조적 해결책이나 대안을 제시하는 것이 당신의 핵심 임무입니다.
+항상 전체 프로젝트 맥락(복지 자원 맵, 서류 간소화, AI 자동화)을 깊이 고려하여 판단하세요.`;
+
             const nomaSystemPrompt = systemPrompt +
                 (ragContext ? `\n\n## 관련 지식베이스 검색 결과\n${ragContext}` : "") +
-                unifiedHistoryText;
+                unifiedHistoryText +
+                `\n\n${senaPersonaInjection}`;
 
             // ── 2. Noma Function Calling 도구 정의 (기존 Noma + Sena 도구 통합) ─────────
             const nomaTools: any[] = [{
